@@ -27,11 +27,20 @@ jobs:
             -archivePath build/TaroEH.xcarchive \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO
-      - name: Upload unsigned archive
+      - name: Package unsigned IPA container
+        run: |
+          mkdir -p build/Payload
+          cp -R build/TaroEH.xcarchive/Products/Applications/TaroEH.app build/Payload/
+          cd build
+          zip -qry "TaroEH-${{ inputs.version }}-unsigned.ipa" Payload
+
+      - name: Upload unsigned archive and IPA container
         uses: actions/upload-artifact@v4
         with:
-          name: TaroEH-${{ inputs.version }}-xcarchive
-          path: build/TaroEH.xcarchive
+          name: TaroEH-${{ inputs.version }}-unsigned-build
+          path: |
+            build/TaroEH.xcarchive
+            build/TaroEH-${{ inputs.version }}-unsigned.ipa
 
   # Signing is intentionally separate. Add an Apple certificate and provisioning
   # profile through GitHub Actions secrets before enabling this job.

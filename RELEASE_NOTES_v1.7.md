@@ -2,7 +2,7 @@
 
 ## Release status
 
-Source release and architecture foundation. This release has not yet been built or signed into an IPA; build with Xcode on macOS.
+Source release and architecture foundation. This release has not yet been built or signed into an IPA; build with Xcode on macOS. An unsigned IPA-shaped artifact may be packaged by CI, but it still must be signed with your own Apple ID before iOS can run it.
 
 ## Highlights
 

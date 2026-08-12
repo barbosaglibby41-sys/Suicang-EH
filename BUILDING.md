@@ -31,6 +31,10 @@ xcodebuild -exportArchive \
 
 The exported IPA is in `build/export/`. Do not commit signing certificates, provisioning profiles, Keychain data, Cookies, or personal export options containing secrets.
 
+## About unsigned IPA files
+
+An unsigned IPA is only a ZIP-shaped packaging artifact. iOS will not launch it directly. For device testing, sign it with your own free Apple ID using Xcode, AltStore, SideStore, or Sideloadly. A paid Apple Developer membership is not required for personal testing, but Apple's free provisioning profile has its own expiration and device limits.
+
 ## Release checklist
 
 - Test E-Hentai and ExHentai login separately.
