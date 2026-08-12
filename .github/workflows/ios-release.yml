@@ -1,0 +1,39 @@
+name: iOS Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version
+        required: true
+        default: '1.7.0'
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        run: xcodegen generate
+      - name: Archive
+        run: |
+          xcodebuild archive \
+            -project TaroEH.xcodeproj \
+            -scheme TaroEH \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath build/TaroEH.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO
+      - name: Upload unsigned archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: TaroEH-${{ inputs.version }}-xcarchive
+          path: build/TaroEH.xcarchive
+
+  # Signing is intentionally separate. Add an Apple certificate and provisioning
+  # profile through GitHub Actions secrets before enabling this job.
+  # Required secrets: IOS_CERTIFICATE_BASE64, IOS_CERTIFICATE_PASSWORD,
+  # IOS_MOBILEPROVISION_BASE64, KEYCHAIN_PASSWORD, TEAM_ID.

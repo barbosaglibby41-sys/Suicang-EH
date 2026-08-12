@@ -1,0 +1,14 @@
+TaroEH includes architecture and design ideas inspired by JHenTai.
+
+JHenTai
+Copyright 2021-2026 jiangtian616 and contributors
+Repository: https://github.com/jiangtian616/JHenTai
+Licensed under the Apache License, Version 2.0.
+
+This TaroEH implementation is an original SwiftUI implementation and is not a copy of JHenTai's Flutter source files. The JHenTai LICENSE file is retained separately in this project source distribution.
+
+
+EhTagTranslation Database
+Repository: https://github.com/EhTagTranslation/Database
+License: Creative Commons Attribution-NonCommercial-ShareAlike 3.0 China (CC BY-NC-SA 3.0 CN).
+TaroEH includes a transformed local seed database and keeps this attribution with the application source.

@@ -1,0 +1,35 @@
+name: TaroEH
+options:
+  bundleIdPrefix: com.taro
+  deploymentTarget:
+    iOS: "17.0"
+targets:
+  TaroEH:
+    type: application
+    platform: iOS
+    sources:
+      - path: TaroEH
+    resources:
+      - path: TaroEH/Resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.taro.eh
+        PRODUCT_NAME: TaroEH
+        SWIFT_VERSION: "5.0"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: 芋头E站
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.entertainment
+        TARGETED_DEVICE_FAMILY: "1,2"
+        DEVELOPMENT_ASSET_PATHS: '"TaroEH/Preview Content"'
+    info:
+      path: TaroEH/Info.plist
+      properties:
+        CFBundleDisplayName: 芋头E站
+        CFBundleShortVersionString: "1.7.0"
+        CFBundleVersion: "1"
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        ITSAppUsesNonExemptEncryption: false
