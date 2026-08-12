@@ -1,5 +1,8 @@
 name: iOS Release
 
+permissions:
+  contents: write
+
 on:
   workflow_dispatch:
     inputs:
@@ -41,6 +44,18 @@ jobs:
           path: |
             build/TaroEH.xcarchive
             build/TaroEH-${{ inputs.version }}-unsigned.ipa
+
+      - name: Publish unsigned IPA to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ inputs.version }}
+          name: TaroEH v${{ inputs.version }}
+          body: |
+            TaroEH v${{ inputs.version }} source/build release.
+
+            The attached IPA is an unsigned IPA container. It is not directly runnable on iOS. Sign it yourself with your Apple ID using AltStore, SideStore, Sideloadly, or Xcode.
+          files: build/TaroEH-${{ inputs.version }}-unsigned.ipa
+          prerelease: true
 
   # Signing is intentionally separate. Add an Apple certificate and provisioning
   # profile through GitHub Actions secrets before enabling this job.
