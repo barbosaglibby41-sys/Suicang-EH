@@ -55,11 +55,16 @@ enum SiteParser {
         if let pages = first(#"([0-9,]+)\s+pages"#, in: html)?.replacingOccurrences(of: ",", with: ""), let count = Int(pages) { gallery.pageCount = count }
         if let rating = first(#"Average:\s*([0-9]+(?:\.[0-9]+)?)"#, in: html), let value = Double(rating) { gallery.rating = value }
         if let posted = first(#"(?s)<td[^>]*class=[\"']gdt1[\"'][^>]*>\s*Posted:\s*</td>\s*<td[^>]*class=[\"']gdt2[\"'][^>]*>(.*?)</td>"#, in: html)?.trimmingCharacters(in: .whitespacesAndNewlines), !posted.isEmpty { gallery.postedAt = posted }
+        if let language = first(#"(?s)<td[^>]*class=[\"']gdt1[\"'][^>]*>\s*Language:\s*</td>\s*<td[^>]*class=[\"']gdt2[\"'][^>]*>(.*?)</td>"#, in: html).map(clean), !language.isEmpty { gallery.language = language }
+        if let fileSize = first(#"(?s)<td[^>]*class=[\"']gdt1[\"'][^>]*>\s*File Size:\s*</td>\s*<td[^>]*class=[\"']gdt2[\"'][^>]*>(.*?)</td>"#, in: html).map(clean), !fileSize.isEmpty { gallery.fileSize = fileSize }
+        if let favorites = first(#"id=[\"']favcount[\"'][^>]*>\s*([0-9,]+)\s+times"#, in: html).flatMap({ Int($0.replacingOccurrences(of: ",", with: "")) }) { gallery.favoriteCount = favorites }
+        if let ratings = first(#"id=[\"']rating_count[\"'][^>]*>\s*([0-9,]+)\s*</"#, in: html).flatMap({ Int($0.replacingOccurrences(of: ",", with: "")) }) { gallery.ratingCount = ratings }
         if let cover = first(#"url\((https?[^)]+)\)"#, in: html) { gallery.thumbnailURL = URL(string: decode(cover)) }
         let rawTags = all(#"id=[\"']ta_([^\"']+)[\"']"#, in: html)
         gallery.tags = Array(Set(rawTags.map { GalleryTag.parse(decode($0)) })).sorted { $0.rawName < $1.rawName }
         gallery.comments = comments(from: html)
         gallery.previews = previews(from: html)
+        if let torrent = first(#"href=[\"'](https?://[^\"']+\.torrent)[\"']"#, in: html), let url = URL(string: decode(torrent)) { gallery.torrentURL = url }
         let links = includePageLinks ? imagePageLinks(from: html, base: sourceURL) : []
         return NetworkGalleryDetail(gallery: gallery, pageLinks: links)
     }
@@ -131,6 +136,10 @@ enum SiteParser {
     static func galleriesPage(from html: String, source: EHSource, baseURL: URL?) -> (galleries: [Gallery], nextCursor: Int?) {
         (galleries(from: html, source: source, baseURL: baseURL), nextGalleryCursor(from: html))
     }
+    static func torrentURL(from html: String) -> URL? {
+        first(#"href=[\"'](https?://[^\"']+\.torrent)[\"']"#, in: html).flatMap { URL(string: decode($0)) }
+    }
+
     static func imagePageLinks(from html: String, base: URL) -> [URL] {
         let pattern = #"href=[\"']([^\"']*s/[0-9a-zA-Z]+/[0-9]+-[0-9]+)[\"']"#
         guard let regex = try? NSRegularExpression(pattern: pattern) else { return [] }

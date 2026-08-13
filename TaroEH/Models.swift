@@ -48,6 +48,11 @@ struct Gallery: Identifiable, Hashable, Codable {
     var tags: [GalleryTag]
     var rating: Double?
     var postedAt: String?
+    var language: String?
+    var fileSize: String?
+    var favoriteCount: Int?
+    var ratingCount: Int?
+    var torrentURL: URL?
     var comments: [GalleryComment] = []
     var previews: [PagePreview] = []
 
@@ -55,6 +60,7 @@ struct Gallery: Identifiable, Hashable, Codable {
 
     init(id: Int, source: EHSource = .eHentai, title: String, uploader: String = "", category: String = "", thumbnailURL: URL? = nil, sourceURL: URL? = nil, pageCount: Int = 0, tags: [GalleryTag] = [], rating: Double? = nil, postedAt: String? = nil) {
         self.id = id; self.source = source; self.title = title; self.uploader = uploader; self.category = category; self.thumbnailURL = thumbnailURL; self.sourceURL = sourceURL; self.pageCount = pageCount; self.tags = tags; self.rating = rating; self.postedAt = postedAt
+        self.language = nil; self.fileSize = nil; self.favoriteCount = nil; self.ratingCount = nil; self.torrentURL = nil
     }
     init(id: Int, source: EHSource = .eHentai, title: String, uploader: String = "", category: String = "", thumbnailURL: URL? = nil, sourceURL: URL? = nil, pageCount: Int = 0, tags: [String], rating: Double? = nil, postedAt: String? = nil) {
         self.init(id: id, source: source, title: title, uploader: uploader, category: category, thumbnailURL: thumbnailURL, sourceURL: sourceURL, pageCount: pageCount, tags: tags.map { GalleryTag.parse($0) }, rating: rating, postedAt: postedAt)
@@ -75,6 +81,11 @@ struct Gallery: Identifiable, Hashable, Codable {
         else { tags = (try? c.decode([String].self, forKey: .tags))?.map { GalleryTag.parse($0) } ?? [] }
         rating = try c.decodeIfPresent(Double.self, forKey: .rating)
         postedAt = try c.decodeIfPresent(String.self, forKey: .postedAt)
+        language = nil
+        fileSize = nil
+        favoriteCount = nil
+        ratingCount = nil
+        torrentURL = nil
     }
     func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)

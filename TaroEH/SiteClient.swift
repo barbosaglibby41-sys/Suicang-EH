@@ -120,6 +120,20 @@ final class SiteClient {
         detailLock.unlock()
     }
 
+    /// Fetches the torrent popup and extracts the direct .torrent URL.
+    func torrentURL(for gallery: Gallery, cookieHeader: String?) async throws -> URL? {
+        guard let source = gallery.sourceURL,
+              let components = URLComponents(url: source, resolvingAgainstBaseURL: false),
+              let gid = components.path.split(separator: "/").dropFirst().first,
+              let token = components.path.split(separator: "/").dropFirst().dropFirst().first else { return nil }
+        var popup = URLComponents(url: source, resolvingAgainstBaseURL: false)
+        popup?.path = "/gallerytorrents.php"
+        popup?.queryItems = [URLQueryItem(name: "gid", value: String(gid)), URLQueryItem(name: "t", value: String(token))]
+        guard let url = popup?.url else { return nil }
+        let data = try await request(url, cookieHeader: cookieHeader)
+        guard let html = String(data: data, encoding: .utf8) else { return nil }
+        return SiteParser.torrentURL(from: html)
+    }
     func imageURL(pageURL: URL, cookieHeader: String?) async throws -> URL {
         let data = try await request(pageURL, cookieHeader: cookieHeader)
         guard let html = String(data: data, encoding: .utf8), let image = SiteParser.imageURL(from: html) else { throw SiteError.parseFailed }
