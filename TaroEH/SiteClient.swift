@@ -88,4 +88,28 @@ final class SiteClient {
         for page in detail.pageLinks { output.append(try await imageURL(pageURL: page, cookieHeader: cookieHeader)) }
         return output
     }
+
+    /// Posts a new comment to the gallery. Returns the re-fetched detail page
+    /// so the caller can refresh the comment list.
+    func postComment(gallery: Gallery, content: String, cookieHeader: String?) async throws -> NetworkGalleryDetail {
+        guard let url = gallery.sourceURL else { throw SiteError.invalidResponse }
+        let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count >= 3 else { throw SiteError.commentTooShort }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile", forHTTPHeaderField: "User-Agent")
+        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        if let cookieHeader, !cookieHeader.isEmpty { request.setValue(cookieHeader, forHTTPHeaderField: "Cookie") }
+        var components = URLComponents()
+        components.queryItems = [
+            URLQueryItem(name: "commenttext_new", value: trimmed),
+            URLQueryItem(name: "comment_submit_new", value: "Post")
+        ]
+        request.httpBody = components.percentEncodedQuery?.data(using: .utf8)
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else { throw SiteError.invalidResponse }
+        guard http.statusCode == 302 || (200..<300 ~= http.statusCode) else { throw SiteError.invalidResponse }
+        guard let html = String(data: data, encoding: .utf8) else { throw SiteError.parseFailed }
+        return SiteParser.detail(from: html, sourceURL: url, fallback: gallery)
+    }
 }

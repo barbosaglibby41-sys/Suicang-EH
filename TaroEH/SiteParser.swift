@@ -3,6 +3,7 @@ import Foundation
 struct NetworkGalleryDetail {
     var gallery: Gallery
     var pageLinks: [URL]
+    var comments: [GalleryComment] = []
 }
 
 private struct GalleryListMetadata {
@@ -56,7 +57,39 @@ enum SiteParser {
         if let cover = first(#"url\((https?[^)]+)\)"#, in: html) { gallery.thumbnailURL = URL(string: decode(cover)) }
         let rawTags = all(#"id=[\"']ta_([^\"']+)[\"']"#, in: html)
         gallery.tags = Array(Set(rawTags.map { GalleryTag.parse(decode($0)) })).sorted { $0.rawName < $1.rawName }
+        gallery.comments = comments(from: html)
         return NetworkGalleryDetail(gallery: gallery, pageLinks: imagePageLinks(from: html, base: sourceURL))
+    }
+
+    /// Parses the comment section (`#cdiv`). Returns comments in page order.
+    static func comments(from html: String) -> [GalleryComment] {
+        guard let region = html.range(of: #"id="cdiv""#, options: [.caseInsensitive]) else { return [] }
+        let segment = String(html[region.lowerBound...])
+        let blockPattern = #"<div class="c1">(?:(?!<div class="c1">|<div id="chd").)*"#
+        guard let regex = try? NSRegularExpression(pattern: blockPattern, options: [.caseInsensitive, .dotMatchesLineSeparators]) else { return [] }
+        let ns = segment as NSString
+        return regex.matches(in: segment, range: NSRange(location: 0, length: ns.length)).compactMap { match in
+            let block = ns.substring(with: match.range)
+            guard let content = first(#"<div class="c6" id="comment_\d+">(.*?)</div>"#, in: block) else { return nil }
+            let author = first(#"by:?\s*&nbsp;\s*<a[^>]*>(.*?)</a>"#, in: block).map(clean) ?? "匿名"
+            let postedAt = first(#"Posted on (.*?) by"#, in: block).map(clean) ?? ""
+            let score = first(#"<span id="comment_score_\d+"[^>]*>([+-]?\d+)</span>"#, in: block).flatMap { Int($0) }
+            let commentID = first(#"id="comment_(\d+)""#, in: block).flatMap { Int($0) } ?? 0
+            let votes = first(#"<div class="c7" id="cvotes_\d+"[^>]*>(.*?)</div>"#, in: block).map(clean)
+            let isUploader = block.contains("Uploader Comment")
+            return GalleryComment(id: commentID, author: author, postedAt: postedAt, score: score, isUploader: isUploader, content: htmlToText(content), votes: votes)
+        }
+    }
+
+    /// Converts comment HTML into readable text: <br> becomes newlines, links
+    /// keep their label, and HTML entities are decoded.
+    static func htmlToText(_ html: String) -> String {
+        let withBreaks = html.replacingOccurrences(of: "<br[^>]*>", with: "\n", options: .regularExpression, range: nil)
+        let noTags = withBreaks.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression, range: nil)
+        let trimmed = noTags.replacingOccurrences(of: "[ \t]+\n", with: "\n", options: .regularExpression, range: nil)
+            .replacingOccurrences(of: "\n{3,}", with: "\n\n", options: .regularExpression, range: nil)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return decode(trimmed)
     }
 
     static func imagePageLinks(from html: String, base: URL) -> [URL] {

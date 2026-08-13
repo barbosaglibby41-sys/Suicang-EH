@@ -13,6 +13,16 @@ struct GalleryTag: Identifiable, Hashable, Codable {
     }
 }
 
+struct GalleryComment: Identifiable, Hashable, Codable {
+    let id: Int
+    let author: String
+    let postedAt: String
+    let score: Int?
+    let isUploader: Bool
+    let content: String
+    let votes: String?
+}
+
 struct Gallery: Identifiable, Hashable, Codable {
     let id: Int
     var source: EHSource
@@ -25,6 +35,7 @@ struct Gallery: Identifiable, Hashable, Codable {
     var tags: [GalleryTag]
     var rating: Double?
     var postedAt: String?
+    var comments: [GalleryComment] = []
 
     var legacyTagNames: [String] { tags.map(\.rawName) }
 
@@ -70,8 +81,8 @@ struct GalleryPage: Identifiable, Hashable {
 }
 
 enum SiteError: LocalizedError {
-    case invalidResponse, loginRequired, accessDenied, parseFailed, unsupportedSource
+    case invalidResponse, loginRequired, accessDenied, parseFailed, unsupportedSource, commentTooShort
     var errorDescription: String? {
-        switch self { case .invalidResponse: return "站点返回格式异常"; case .loginRequired: return "请先登录"; case .accessDenied: return "站点拒绝了当前请求"; case .parseFailed: return "无法解析站点页面"; case .unsupportedSource: return "暂不支持该站点" }
+        switch self { case .invalidResponse: return "站点返回格式异常"; case .loginRequired: return "请先登录"; case .accessDenied: return "站点拒绝了当前请求"; case .parseFailed: return "无法解析站点页面"; case .unsupportedSource: return "暂不支持该站点"; case .commentTooShort: return "评论内容至少需要 3 个字符" }
     }
 }

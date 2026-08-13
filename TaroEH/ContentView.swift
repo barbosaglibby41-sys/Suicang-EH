@@ -366,6 +366,9 @@ struct GalleryDetailView: View {
     @EnvironmentObject private var downloads: DownloadStore
     @State private var item: Gallery
     @State private var detailError: String?
+    @State private var showCommentEditor = false
+    @State private var commentDraft = ""
+    @State private var isPostingComment = false
     init(gallery: Gallery) { self.gallery = gallery; _item = State(initialValue: gallery) }
     var body: some View {
         ScrollView { VStack(alignment: .leading, spacing: 18) {
@@ -392,8 +395,66 @@ struct GalleryDetailView: View {
             if !item.tags.isEmpty && groupedTags.isEmpty {
                 FlowTags(tags: item.tags)
             }
+            commentsSection
         }.padding() }
         .navigationTitle("详情").navigationBarTitleDisplayMode(.inline).onAppear { library.record(item) }.task { await hydrate() }
+        .sheet(isPresented: $showCommentEditor) {
+            NavigationStack {
+                VStack(alignment: .leading, spacing: 12) {
+                    TextEditor(text: $commentDraft)
+                        .frame(minHeight: 140)
+                        .padding(8)
+                        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 10))
+                    HStack {
+                        Text("\(commentDraft.count)/2000").font(.caption).foregroundStyle(.secondary)
+                        Spacer()
+                        if isPostingComment { ProgressView().controlSize(.small) }
+                        Button("发送") { postComment() }.buttonStyle(.borderedProminent).disabled(commentDraft.trimmingCharacters(in: .whitespacesAndNewlines).count < 3 || isPostingComment)
+                    }
+                }.padding()
+                .navigationTitle("发表评论").navigationBarTitleDisplayMode(.inline)
+                .toolbar { ToolbarItem(placement: .cancellationAction) { Button("取消") { showCommentEditor = false } } }
+            }
+            .presentationDetents([.medium])
+        }
+    }
+    @ViewBuilder private var commentsSection: some View {
+        if item.sourceURL != nil {
+            HStack(spacing: 6) {
+                Image(systemName: "bubble.left.and.bubble.right.fill").font(.subheadline).foregroundStyle(.purple)
+                Text("评论").font(.headline)
+                Text("\(item.comments.count) 条").font(.caption).foregroundStyle(.secondary)
+                Spacer()
+                if session.isLoggedIn {
+                    Button { commentDraft = ""; showCommentEditor = true } label: {
+                        Label("写评论", systemImage: "square.and.pencil").font(.caption).labelStyle(.titleAndIcon)
+                    }.buttonStyle(.bordered).controlSize(.small)
+                }
+            }
+            if item.comments.isEmpty {
+                Text(session.isLoggedIn ? "暂无评论，抢先发表第一条？" : "暂无评论").font(.caption).foregroundStyle(.secondary).padding(.vertical, 4)
+            } else {
+                VStack(alignment: .leading, spacing: 12) {
+                    ForEach(item.comments) { comment in CommentRow(comment: comment) }
+                }
+            }
+        }
+    }
+    private func postComment() {
+        let content = commentDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !content.isEmpty else { return }
+        isPostingComment = true
+        Task {
+            defer { isPostingComment = false }
+            do {
+                let detail = try await SiteClient.shared.postComment(gallery: item, content: content, cookieHeader: session.cookieHeader())
+                item = detail.gallery
+                commentDraft = ""
+                showCommentEditor = false
+            } catch {
+                detailError = "评论发送失败：\(error.localizedDescription)"
+            }
+        }
     }
     private func sectionNamespace(_ section: (String, [GalleryTag])) -> String {
         section.1.first?.namespace ?? ""
