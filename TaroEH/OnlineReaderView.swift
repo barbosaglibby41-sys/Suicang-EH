@@ -10,8 +10,11 @@ struct OnlineReaderView: View {
     var body: some View {
         Group {
             if let loadError {
-                ContentUnavailableView("无法加载在线页面", systemImage: "exclamationmark.triangle", description: Text(loadError ?? "")) {
-                    Button("重试") { Task { await setup() } }
+                VStack(spacing: 14) {
+                    Image(systemName: "exclamationmark.triangle").font(.largeTitle).foregroundStyle(.orange)
+                    Text("无法加载在线页面").font(.headline)
+                    Text(loadError).font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center).padding(.horizontal, 24)
+                    Button("重试") { Task { await setup() } }.buttonStyle(.borderedProminent)
                 }
             } else if pageLinks.isEmpty {
                 ProgressView("正在获取阅读目录…").tint(.white)
