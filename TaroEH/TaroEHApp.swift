@@ -8,6 +8,7 @@ struct TaroEHApp: App {
     @StateObject private var downloads = DownloadStore()
     @StateObject private var discovery = DiscoveryStore()
     @StateObject private var tagTranslations = TagTranslationStore()
+    @StateObject private var rankings = RankingStore()
     private let modelContainer: ModelContainer
 
     init() {
@@ -23,6 +24,7 @@ struct TaroEHApp: App {
                 .environmentObject(downloads)
                 .environmentObject(discovery)
                 .environmentObject(tagTranslations)
+                .environmentObject(rankings)
         }
         .modelContainer(modelContainer)
     }

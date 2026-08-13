@@ -129,6 +129,12 @@ enum SiteParser {
         return decode(trimmed)
     }
 
+    static func toplistNextPage(from html: String, currentPage: Int) -> Int? {
+        let pages = all(#"href=[\"'][^\"']*toplist\.php[^\"']*[?&]p=(\d+)[^\"']*[\"']"#, in: html)
+            .compactMap(Int.init)
+            .filter { $0 > currentPage }
+        return pages.min()
+    }
     static func nextGalleryCursor(from html: String) -> Int? {
         guard let href = first(#"id=[\"']dnext[\"'][^>]+href=[\"']([^\"']+)[\"']"#, in: html),
               let url = URL(string: decode(href)),

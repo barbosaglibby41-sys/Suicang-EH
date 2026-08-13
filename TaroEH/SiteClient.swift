@@ -114,6 +114,22 @@ final class SiteClient {
         return Int.random(in: 1...maxID)
     }
 
+    /// Loads one toplist page. E-Hentai uses tl=15 yesterday, 13 month,
+    /// 12 year and 11 all-time; each page contains up to 50 galleries.
+    func toplistPage(period: RankingPeriod, source: EHSource, baseURL: URL, cookieHeader: String?, page: Int = 0) async throws -> (galleries: [Gallery], nextPage: Int?) {
+        var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false)
+        components?.path = "/toplist.php"
+        components?.queryItems = [
+            URLQueryItem(name: "tl", value: period.endpointValue),
+            URLQueryItem(name: "p", value: String(page))
+        ]
+        guard let url = components?.url else { throw SiteError.invalidResponse }
+        let data = try await request(url, cookieHeader: cookieHeader)
+        guard let html = String(data: data, encoding: .utf8) else { throw SiteError.parseFailed }
+        let galleries = SiteParser.galleries(from: html, source: source, baseURL: baseURL)
+        let next = SiteParser.toplistNextPage(from: html, currentPage: page)
+        return (galleries, next)
+    }
     func detail(_ gallery: Gallery, cookieHeader: String?) async throws -> NetworkGalleryDetail {
         guard let url = gallery.sourceURL else { throw SiteError.invalidResponse }
         let data = try await request(url, cookieHeader: cookieHeader)

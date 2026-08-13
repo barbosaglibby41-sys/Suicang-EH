@@ -64,6 +64,7 @@ struct DiscoverView: View {
     @EnvironmentObject private var session: SessionStore
     @EnvironmentObject private var discovery: DiscoveryStore
     @EnvironmentObject private var tagTranslations: TagTranslationStore
+    @EnvironmentObject private var rankings: RankingStore
     @AppStorage("taro.eh.siteURL") private var siteAddress = "https://e-hentai.org/"
     @AppStorage("taro.eh.source") private var sourceRaw = EHSource.eHentai.rawValue
     @State private var query = ""
@@ -78,6 +79,7 @@ struct DiscoverView: View {
     @State private var feedGeneration = 0
     @State private var networkError: String?
     @State private var showFilters = false
+    @State private var showAllRankings = false
     @State private var sort: GallerySort = .recent
     @State private var randomOrder: [Int] = []
     @State private var advanced = AdvancedSearchConfig()
@@ -152,6 +154,9 @@ struct DiscoverView: View {
                 suggestions
                 if let networkError { Label(networkError, systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(.orange) }
                 recentQueries
+                if !isSearchResults {
+                    HomeRankingsSection(showAll: $showAllRankings)
+                }
                 HStack {
                     if autoSearch {
                         Button { dismissSearchDestination() } label: {
@@ -208,15 +213,27 @@ struct DiscoverView: View {
         }
         .navigationBarHidden(true)
         .sheet(isPresented: $showFilters) { FilterView(sort: $sort, config: $advanced) }
+        .sheet(isPresented: $showAllRankings) { RankingListView() }
         .task {
+            if let base = URL(string: siteAddress) {
+                await rankings.load(source: currentSource, baseURL: base, cookieHeader: session.cookieHeader())
+            }
             if autoSearch, !(initialQuery ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 onlineSearch()
             } else {
                 loadFrontPage()
             }
         }
-        .onChange(of: sourceRaw) { _, _ in results = []; loadFrontPage() }
-        .onChange(of: siteAddress) { _, _ in results = []; loadFrontPage() }
+        .onChange(of: sourceRaw) { _, _ in
+            results = []
+            loadFrontPage()
+            reloadRankings()
+        }
+        .onChange(of: siteAddress) { _, _ in
+            results = []
+            loadFrontPage()
+            reloadRankings()
+        }
     }
 
     private func dismissSearchDestination() {
@@ -325,10 +342,16 @@ struct DiscoverView: View {
         }
     }
 
+    private func reloadRankings() {
+        guard let base = URL(string: siteAddress) else { return }
+        Task { await rankings.load(source: currentSource, baseURL: base, cookieHeader: session.cookieHeader(), force: true) }
+    }
+
     private func loadFrontPage() {
         guard results.isEmpty else { return }
         selectFeed(.latest)
     }
+
 
     private func selectFeed(_ feed: DiscoverFeed) {
         guard let base = URL(string: siteAddress) else { return }
