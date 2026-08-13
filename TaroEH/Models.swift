@@ -30,6 +30,7 @@ struct PagePreview: Hashable, Codable {
     let page: Int
     let spriteURL: URL
     let xOffset: Int
+    let yOffset: Int
     let width: Int
     let height: Int
     let pageURL: URL

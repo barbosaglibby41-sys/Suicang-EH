@@ -2,45 +2,63 @@ import SwiftUI
 import UIKit
 
 /// Horizontal strip of gallery page thumbnails extracted from the detail
-/// page's sprite sheet. One sprite download yields many tiles (cropped in the
-/// background); tapping a tile opens the reader at that page.
+/// page's sprite sheets. Tiles are shown by offsetting the sprite inside a
+/// clipped frame sized to each page's true aspect ratio (so landscape pages
+/// and long strips render fully, never showing sprite padding). Scrolling to
+/// the end loads the next batch via the gallery's pagination (`?p=N`).
 struct PreviewStrip: View {
     let gallery: Gallery
-    let previews: [PagePreview]
     @EnvironmentObject private var session: SessionStore
-    @State private var tiles: [Int: UIImage] = [:]
+    @State private var previews: [PagePreview]
+    @State private var sprites: [URL: UIImage] = [:]
+    @State private var loadedBatch = 0
+    @State private var isLoadingMore = false
+    @State private var hasMore = true
     @State private var failed = false
+    private let tileWidth: CGFloat = 100
+
+    init(gallery: Gallery, previews: [PagePreview]) {
+        self.gallery = gallery
+        _previews = State(initialValue: previews)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
                 Image(systemName: "photo.stack").font(.subheadline).foregroundStyle(.purple)
                 Text("内容预览").font(.headline)
-                Text("前 \(previews.count) 页").font(.caption).foregroundStyle(.secondary)
+                Text("已加载 \(previews.count) 页").font(.caption).foregroundStyle(.secondary)
+                Spacer()
+                if isLoadingMore { ProgressView().controlSize(.small) }
             }
-            if tiles.isEmpty && !failed {
-                HStack { Spacer(); ProgressView().controlSize(.small); Spacer() }.frame(height: 120)
-            } else if failed && tiles.isEmpty {
-                Text("预览图加载失败，点按开始阅读查看内容").font(.caption).foregroundStyle(.secondary).padding(.vertical, 8)
-            } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(previews, id: \.page) { preview in
-                            tile(preview)
-                        }
-                    }.padding(.vertical, 2)
-                }
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(alignment: .top, spacing: 8) {
+                    ForEach(previews, id: \.page) { preview in
+                        tile(preview)
+                    }
+                    if hasMore {
+                        ProgressView().controlSize(.small).frame(width: 40, height: 80)
+                            .onAppear { Task { await loadMore() } }
+                    }
+                }.padding(.vertical, 2)
+            }
+            if failed && sprites.isEmpty {
+                Text("预览图加载失败，点按开始阅读查看内容").font(.caption).foregroundStyle(.secondary)
             }
         }
-        .task { await loadTiles() }
+        .task { await ensureSprites(for: previews) }
     }
 
     private func tile(_ preview: PagePreview) -> some View {
-        NavigationLink { OnlineReaderView(gallery: gallery, startIndex: preview.page - 1) } label: {
+        let scale = tileWidth / CGFloat(max(preview.width, 1))
+        let tileHeight = tileWidth * CGFloat(max(preview.height, 1)) / CGFloat(max(preview.width, 1))
+        return NavigationLink { OnlineReaderView(gallery: gallery, startIndex: preview.page - 1) } label: {
             ZStack(alignment: .bottomTrailing) {
-                if let image = tiles[preview.page] {
-                    Image(uiImage: image).resizable().aspectRatio(contentMode: .fill)
-                        .frame(width: 100, height: 141).clipped()
+                if let sprite = sprites[preview.spriteURL] {
+                    Image(uiImage: sprite)
+                        .resizable()
+                        .frame(width: sprite.size.width * scale, height: sprite.size.height * scale)
+                        .offset(x: -CGFloat(preview.xOffset) * scale, y: -CGFloat(preview.yOffset) * scale)
                 } else {
                     Color.secondary.opacity(0.15)
                 }
@@ -48,38 +66,52 @@ struct PreviewStrip: View {
                     .font(.caption2.bold()).foregroundStyle(.white)
                     .padding(.horizontal, 5).padding(.vertical, 2)
                     .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 4))
+                    .padding(3)
+                    .allowsHitTesting(false)
             }
-            .frame(width: 100, height: 141)
+            .frame(width: tileWidth, height: tileHeight)
+            .clipped()
             .clipShape(RoundedRectangle(cornerRadius: 8))
             .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.secondary.opacity(0.3), lineWidth: 0.5))
         }
         .buttonStyle(.plain)
     }
 
-    private func loadTiles() async {
-        guard tiles.isEmpty, !previews.isEmpty else { return }
-        let grouped = Dictionary(grouping: previews) { $0.spriteURL }
-        for (spriteURL, group) in grouped {
+    /// Downloads every sprite sheet referenced by the batch, then renders it.
+    private func ensureSprites(for batch: [PagePreview]) async {
+        let needed = Set(batch.map(\.spriteURL)).subtracting(sprites.keys)
+        for url in needed {
             do {
-                let sprite = try await ImagePipeline.shared.image(for: spriteURL, cookieHeader: session.cookieHeader())
-                let cropped = await Self.crop(sprite, previews: group)
-                await MainActor.run { tiles.merge(cropped) { _, new in new } }
+                let image = try await ImagePipeline.shared.image(for: url, cookieHeader: session.cookieHeader())
+                await MainActor.run { sprites[url] = image }
             } catch {
                 failed = true
             }
         }
     }
 
-    private static func crop(_ sprite: UIImage, previews: [PagePreview]) async -> [Int: UIImage] {
-        await Task.detached(priority: .utility) {
-            guard let cg = sprite.cgImage else { return [:] }
-            var result: [Int: UIImage] = [:]
-            for p in previews {
-                let rect = CGRect(x: p.xOffset, y: 0, width: min(p.width, cg.width - p.xOffset), height: min(p.height, cg.height))
-                guard rect.width > 0, rect.height > 0, let tile = cg.cropping(to: rect) else { continue }
-                result[p.page] = UIImage(cgImage: tile)
-            }
-            return result
-        }.value
+    /// Fetches the next 20-page batch via `?p=N` and appends its previews.
+    private func loadMore() async {
+        guard hasMore, !isLoadingMore, let base = gallery.sourceURL else { return }
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+        let next = loadedBatch + 1
+        var components = URLComponents(url: base, resolvingAgainstBaseURL: false)
+        components?.queryItems = [URLQueryItem(name: "p", value: String(next))]
+        guard let url = components?.url else { hasMore = false; return }
+        do {
+            let data = try await SiteClient.shared.request(url, cookieHeader: session.cookieHeader())
+            guard let html = String(data: data, encoding: .utf8) else { hasMore = false; return }
+            let batch = SiteParser.previews(from: html, limit: 20)
+            guard !batch.isEmpty else { hasMore = false; return }
+            loadedBatch = next
+            let known = Set(previews.map(\.page))
+            let fresh = batch.filter { !known.contains($0.page) }
+            guard !fresh.isEmpty else { hasMore = false; return }
+            previews.append(contentsOf: fresh)
+            await ensureSprites(for: fresh)
+        } catch {
+            hasMore = false
+        }
     }
 }
