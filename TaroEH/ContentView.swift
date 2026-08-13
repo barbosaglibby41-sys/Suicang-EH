@@ -168,7 +168,27 @@ struct FeatureCard: View {
 }
 struct GalleryCard: View {
     let gallery: Gallery
-    var body: some View { VStack(alignment: .leading, spacing: 8) { PipelineImage(url: gallery.thumbnailURL, contentMode: .fill).frame(maxWidth: .infinity).aspectRatio(0.72, contentMode: .fit).clipped().clipShape(RoundedRectangle(cornerRadius: 12)); Text(gallery.title).font(.subheadline.bold()).lineLimit(2); Text("\(gallery.pageCount) 页 · \(gallery.category)").font(.caption).foregroundStyle(.secondary) }.contentShape(Rectangle()) }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            PipelineImage(url: gallery.thumbnailURL, contentMode: .fill)
+                .frame(maxWidth: .infinity)
+                .aspectRatio(0.72, contentMode: .fit)
+                .clipped()
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+            Text(gallery.title).font(.subheadline.bold()).lineLimit(2)
+            HStack(spacing: 8) {
+                Label(gallery.pageCount > 0 ? "\(gallery.pageCount) 页" : "页数未知", systemImage: "book.pages")
+                if let rating = gallery.rating, rating > 0 {
+                    Label(String(format: "%.1f", rating), systemImage: "star.fill").foregroundStyle(.yellow)
+                } else {
+                    Label("暂无评分", systemImage: "star").foregroundStyle(.secondary)
+                }
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+        .contentShape(Rectangle())
+    }
 }
 
 struct FilterView: View {
