@@ -105,6 +105,9 @@ struct DiscoverView: View {
             config.keyword = query
         }
         let matched = results.filter { config.matches($0) }
+        // Random feed preserves the server-provided random order and does not
+        // participate in the result sorting menu.
+        guard selectedFeed != .random else { return matched }
         switch sort {
         case .recent: return matched
         case .popular: return matched.sorted { ($0.rating ?? 0) > ($1.rating ?? 0) }
@@ -149,19 +152,21 @@ struct DiscoverView: View {
                     }
                     Text(isSearchResults ? "搜索结果" : selectedFeed.rawValue).font(.title3.bold())
                     Spacer()
-                    Menu {
-                        ForEach(GallerySort.allCases) { option in
-                            Button {
-                                sort = option
-                                if option == .random { randomOrder = results.map(\.id).shuffled() }
-                                else { randomOrder = [] }
-                            } label: {
-                                Label(option.rawValue, systemImage: option.icon)
+                    if !isRandomFeed {
+                        Menu {
+                            ForEach(GallerySort.allCases) { option in
+                                Button {
+                                    sort = option
+                                    if option == .random { randomOrder = results.map(\.id).shuffled() }
+                                    else { randomOrder = [] }
+                                } label: {
+                                    Label(option.rawValue, systemImage: option.icon)
+                                }
                             }
-                        }
-                    } label: {
-                        Label(sort.rawValue, systemImage: "arrow.up.arrow.down").font(.caption.weight(.semibold))
-                    }.buttonStyle(.bordered).controlSize(.small)
+                        } label: {
+                            Label(sort.rawValue, systemImage: "arrow.up.arrow.down").font(.caption.weight(.semibold))
+                        }.buttonStyle(.bordered).controlSize(.small)
+                    }
                     Text("\(filtered.count) 项").foregroundStyle(.secondary).font(.caption)
                 }
                 if isLoading {
