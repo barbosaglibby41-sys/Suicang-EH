@@ -53,26 +53,30 @@ struct PreviewStrip: View {
         let scale = tileWidth / CGFloat(max(preview.width, 1))
         let tileHeight = tileWidth * CGFloat(max(preview.height, 1)) / CGFloat(max(preview.width, 1))
         return NavigationLink { OnlineReaderView(gallery: gallery, startIndex: preview.page - 1) } label: {
-            ZStack(alignment: .bottomTrailing) {
-                if let sprite = sprites[preview.spriteURL] {
+            ZStack(alignment: .topLeading) {
+                if let sprite = sprites[preview.spriteURL], let cg = sprite.cgImage {
+                    // Use CGImage pixel dimensions: xOffset/yOffset are CSS
+                    // pixels, while UIImage.size is in points (÷3 on 3x
+                    // screens) and would misalign the offset math.
                     Image(uiImage: sprite)
                         .resizable()
-                        .frame(width: sprite.size.width * scale, height: sprite.size.height * scale)
+                        .frame(width: CGFloat(cg.width) * scale, height: CGFloat(cg.height) * scale)
                         .offset(x: -CGFloat(preview.xOffset) * scale, y: -CGFloat(preview.yOffset) * scale)
                 } else {
                     Color.secondary.opacity(0.15)
                 }
-                Text("\(preview.page)")
-                    .font(.caption2.bold()).foregroundStyle(.white)
-                    .padding(.horizontal, 5).padding(.vertical, 2)
-                    .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 4))
-                    .padding(3)
-                    .allowsHitTesting(false)
             }
             .frame(width: tileWidth, height: tileHeight)
             .clipped()
             .clipShape(RoundedRectangle(cornerRadius: 8))
             .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.secondary.opacity(0.3), lineWidth: 0.5))
+            .overlay(alignment: .bottomTrailing) {
+                Text("\(preview.page)")
+                    .font(.caption2.bold()).foregroundStyle(.white)
+                    .padding(.horizontal, 5).padding(.vertical, 2)
+                    .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 4))
+                    .padding(3)
+            }
         }
         .buttonStyle(.plain)
     }
