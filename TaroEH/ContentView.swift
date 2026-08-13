@@ -5,6 +5,10 @@ extension Notification.Name {
     static let taroSearchTag = Notification.Name("taro.eh.searchTag")
 }
 
+private struct DiscoverSearchDestination: Hashable {
+    let query: String
+}
+
 struct ContentView: View {
     @EnvironmentObject private var session: SessionStore
     @Environment(\.modelContext) private var modelContext
@@ -17,6 +21,9 @@ struct ContentView: View {
             NavigationStack(path: $path) {
                 DiscoverView()
                     .navigationDestination(for: Gallery.self) { GalleryDetailView(gallery: $0) }
+                    .navigationDestination(for: DiscoverSearchDestination.self) { destination in
+                        DiscoverView(initialQuery: destination.query, autoSearch: true)
+                    }
             }.tabItem { Label("发现", systemImage: "sparkles") }.tag(0)
             NavigationStack { ShelfView() }.tabItem { Label("书架", systemImage: "books.vertical") }.tag(1)
             NavigationStack { DownloadsView() }.tabItem { Label("离线", systemImage: "arrow.down.circle") }.tag(2)
@@ -25,9 +32,13 @@ struct ContentView: View {
         .environmentObject(session)
         .environmentObject(library)
         .tint(.purple)
-        .onReceive(NotificationCenter.default.publisher(for: .taroSearchTag)) { _ in
-            path = NavigationPath()
+        .onReceive(NotificationCenter.default.publisher(for: .taroSearchTag)) { notification in
+            guard let raw = notification.userInfo?["tag"] as? String, !raw.isEmpty else { return }
+            // From the shelf, reset any stale discovery path first. From a
+            // discovery detail, keep that path so Back returns to the detail.
+            if selectedTab != 0 { path = NavigationPath() }
             selectedTab = 0
+            path.append(DiscoverSearchDestination(query: raw))
         }
         .task { library.configure(modelContext) }
     }
@@ -136,13 +147,14 @@ struct DiscoverView: View {
             }.padding()
         }
         .navigationBarHidden(true)
-        .onReceive(NotificationCenter.default.publisher(for: .taroSearchTag)) { notification in
-            guard let raw = notification.userInfo?["tag"] as? String, !raw.isEmpty else { return }
-            query = raw
-            onlineSearch()
-        }
         .sheet(isPresented: $showFilters) { FilterView(sort: $sort, config: $advanced) }
-        .task { loadFrontPage() }
+        .task {
+            if autoSearch, !(initialQuery ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                onlineSearch()
+            } else {
+                loadFrontPage()
+            }
+        }
         .onChange(of: sourceRaw) { _, _ in results = []; loadFrontPage() }
         .onChange(of: siteAddress) { _, _ in results = []; loadFrontPage() }
     }

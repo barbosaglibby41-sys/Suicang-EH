@@ -9,7 +9,7 @@ struct PreviewStrip: View {
     @EnvironmentObject private var session: SessionStore
     @State private var previews: [PagePreview]
     @State private var tiles: [Int: UIImage] = [:]
-    @State private var loadedSprites: Set<URL> = []
+    @State private var spriteCache: [URL: UIImage] = [:]
     @State private var loadedBatch = 0
     @State private var isLoadingMore = false
     @State private var hasMore = true
@@ -78,14 +78,17 @@ struct PreviewStrip: View {
 
     private func loadTiles(for batch: [PagePreview]) async {
         let groups = Dictionary(grouping: batch) { $0.spriteURL }
-        for (spriteURL, group) in groups where !loadedSprites.contains(spriteURL) {
+        for (spriteURL, group) in groups {
             do {
-                let sprite = try await ImagePipeline.shared.image(for: spriteURL, cookieHeader: session.cookieHeader())
-                let result = await crop(sprite, previews: group)
-                await MainActor.run {
-                    tiles.merge(result) { _, new in new }
-                    loadedSprites.insert(spriteURL)
+                let sprite: UIImage
+                if let cached = spriteCache[spriteURL] {
+                    sprite = cached
+                } else {
+                    sprite = try await ImagePipeline.shared.image(for: spriteURL, cookieHeader: session.cookieHeader())
+                    await MainActor.run { spriteCache[spriteURL] = sprite }
                 }
+                let result = await crop(sprite, previews: group)
+                await MainActor.run { tiles.merge(result) { _, new in new } }
             } catch {
                 await MainActor.run { failed = true }
             }
