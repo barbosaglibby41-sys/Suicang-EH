@@ -80,7 +80,7 @@ enum SiteParser {
             guard match.numberOfRanges > 1, let id = Int(ns.substring(with: match.range(at: 1))) else { continue }
             let start = match.range.location
             let remaining = ns.substring(from: start)
-            let end = remaining.range(of: "</td>", options: [.caseInsensitive]).location
+            let end = (remaining as NSString).range(of: "</td>", options: [.caseInsensitive]).location
             let block = end == NSNotFound ? remaining : String(remaining.prefix(end))
 
             let rawImage = first(#"data-src=[\"']([^\"']+)[\"']"#, in: block) ?? first(#"<img[^>]+src=[\"']([^\"']+)[\"']"#, in: block)
