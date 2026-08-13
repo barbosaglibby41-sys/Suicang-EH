@@ -1,5 +1,10 @@
 import Foundation
 
+struct DateRankingResult {
+    let galleries: [Gallery]
+    let resolvedDate: String
+}
+
 /// Direct HTTPS client. Uses system certificate validation and never routes through a relay.
 final class SiteClient {
     static let shared = SiteClient()
@@ -131,13 +136,14 @@ final class SiteClient {
         let next = SiteParser.toplistNextPage(from: html, currentPage: page)
         return (galleries, next)
     }
-    func dateRankings(for date: Date, source: EHSource, baseURL: URL, cookieHeader: String?) async throws -> [Gallery] {
+    func dateRankings(for date: Date, source: EHSource, baseURL: URL, cookieHeader: String?) async throws -> DateRankingResult {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = .current
         formatter.dateFormat = "yyyy-MM-dd"
-        let target = formatter.string(from: date)
+        let requestedDate = formatter.string(from: date)
+        var target = requestedDate
         var output: [Gallery] = []
         var cursor: Int?
         var seenCursors = Set<Int>()
@@ -151,6 +157,14 @@ final class SiteClient {
             guard let url = components?.url else { throw SiteError.invalidResponse }
             let data = try await request(url, cookieHeader: cookieHeader)
             guard let html = String(data: data, encoding: .utf8) else { throw SiteError.parseFailed }
+            if firstRequest, let serverDate = SiteParser.latestPostedDate(from: html), serverDate < target {
+                target = serverDate
+                output.removeAll()
+                cursor = nil
+                seenCursors.removeAll()
+                firstRequest = false
+                continue
+            }
             let page = SiteParser.galleriesPage(from: html, source: source, baseURL: baseURL)
             let sameDay = page.galleries.filter { $0.postedAt?.hasPrefix(target) == true }
             output.append(contentsOf: sameDay)
@@ -165,7 +179,7 @@ final class SiteClient {
             cursor = next
         }
         var seen = Set<Int>()
-        return output.filter { seen.insert($0.id).inserted }
+        return DateRankingResult(galleries: output.filter { seen.insert($0.id).inserted }, resolvedDate: target)
     }
     func detail(_ gallery: Gallery, cookieHeader: String?) async throws -> NetworkGalleryDetail {
         guard let url = gallery.sourceURL else { throw SiteError.invalidResponse }

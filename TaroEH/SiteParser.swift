@@ -135,6 +135,9 @@ enum SiteParser {
             .filter { $0 > currentPage }
         return pages.min()
     }
+    static func latestPostedDate(from html: String) -> String? {
+        all(#"id=[\"']posted_\d+[\"'][^>]*>(\d{4}-\d{2}-\d{2})\s+[^<]*<"#, in: html).max()
+    }
     static func nextGalleryCursor(from html: String) -> Int? {
         guard let href = first(#"id=[\"']dnext[\"'][^>]+href=[\"']([^\"']+)[\"']"#, in: html),
               let url = URL(string: decode(href)),

@@ -39,6 +39,7 @@ final class RankingStore: ObservableObject {
     @Published private(set) var year: [Gallery] = []
     @Published private(set) var allTime: [Gallery] = []
     @Published private(set) var dateRankDate: Date?
+    @Published private(set) var dateResolvedDate: String?
     @Published private(set) var dateResults: [Gallery] = []
     @Published private(set) var dateLoading = false
     @Published private(set) var isLoading = false
@@ -80,7 +81,8 @@ final class RankingStore: ObservableObject {
             let y = try await yesterdayPage
             let m = try await monthPage
             let todayValues = try await todayTask.value
-            set(galleries: todayValues, for: .today)
+            set(galleries: todayValues.galleries, for: .today)
+            dateResolvedDate = todayValues.resolvedDate
             set(galleries: y.galleries, for: .yesterday)
             set(galleries: m.galleries, for: .month)
             nextPage[.yesterday] = y.nextPage
@@ -113,7 +115,9 @@ final class RankingStore: ObservableObject {
         dateLoading = true
         dateRankDate = date
         do {
-            dateResults = try await SiteClient.shared.dateRankings(for: date, source: source, baseURL: baseURL, cookieHeader: cookieHeader)
+            let result = try await SiteClient.shared.dateRankings(for: date, source: source, baseURL: baseURL, cookieHeader: cookieHeader)
+            dateResults = result.galleries
+            dateResolvedDate = result.resolvedDate
         } catch {
             self.error = "日期排行加载失败：\(error.localizedDescription)"
             dateResults = []

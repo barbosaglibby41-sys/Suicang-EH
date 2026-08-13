@@ -106,6 +106,10 @@ struct RankingListView: View {
         period == .today && rankings.dateRankDate != nil ? rankings.dateResults : rankings.galleries(for: period)
     }
     private var isDateMode: Bool { period == .today }
+    private var dateTitle: String {
+        if let resolved = rankings.dateResolvedDate { return resolved }
+        return selectedDate.formatted(date: .abbreviated, time: .omitted)
+    }
 
 
     var body: some View {
@@ -140,8 +144,18 @@ struct RankingListView: View {
                     }
                 }
             }
-            .navigationTitle(isDateMode ? "排行 · \(selectedDate.formatted(date: .abbreviated, time: .omitted))" : "排行 · \(period.rawValue)")
+            .navigationTitle(isDateMode ? "排行 · \(dateTitle)" : "排行 · \(period.rawValue)")
             .navigationBarTitleDisplayMode(.inline)
+            .safeAreaInset(edge: .top) {
+                if isDateMode, let resolved = rankings.dateResolvedDate {
+                    Text("站点实际日期：\(resolved)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 4)
+                        .background(.thinMaterial)
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("关闭") { dismiss() }
