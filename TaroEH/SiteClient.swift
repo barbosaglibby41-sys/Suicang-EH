@@ -45,6 +45,17 @@ final class SiteClient {
         return SiteParser.galleries(from: html, source: source, baseURL: baseURL)
     }
 
+    /// Loads one latest/popular feed page. Latest uses the site's `next` cursor;
+    /// popular currently exposes one complete fixed collection and returns nil.
+    func discoveryPage(source: EHSource, baseURL: URL, cookieHeader: String?, mode: String = "", cursor: Int? = nil) async throws -> (galleries: [Gallery], nextCursor: Int?) {
+        var components = URLComponents(url: mode.isEmpty ? baseURL : baseURL.appendingPathComponent(mode), resolvingAgainstBaseURL: false)
+        if let cursor { components?.queryItems = [URLQueryItem(name: "next", value: String(cursor))] }
+        guard let url = components?.url else { throw SiteError.invalidResponse }
+        let data = try await request(url, cookieHeader: cookieHeader)
+        guard let html = String(data: data, encoding: .utf8) else { throw SiteError.parseFailed }
+        return SiteParser.galleriesPage(from: html, source: source, baseURL: baseURL)
+    }
+
     /// Samples fresh server pages using E-Hentai's supported `next=<gid>` cursor.
     /// It returns a unique random feed batch rather than reordering the currently visible list.
     func randomGalleries(source: EHSource, baseURL: URL, cookieHeader: String?, count: Int = 25, excluding: Set<Int> = []) async throws -> [Gallery] {

@@ -73,6 +73,8 @@ struct DiscoverView: View {
     @State private var isLoadingMore = false
     @State private var isRandomFeed = false
     @State private var isSearchResults = false
+    @State private var nextDiscoveryCursor: Int?
+    @State private var discoveryExhausted = false
     @State private var feedGeneration = 0
     @State private var networkError: String?
     @State private var showFilters = false
@@ -148,14 +150,17 @@ struct DiscoverView: View {
                             NavigationLink(value: gallery) { GalleryCard(gallery: gallery) }
                                 .buttonStyle(.plain)
                                 .onAppear {
-                                    if isRandomFeed, gallery.id == filtered.last?.id {
-                                        loadMoreRandomGalleries()
+                                    if gallery.id == filtered.last?.id {
+                                        if isRandomFeed { loadMoreRandomGalleries() }
+                                        else if selectedFeed == .latest || selectedFeed == .popular { loadMoreDiscovery() }
                                     }
                                 }
                         }
                     }
                     if isRandomFeed {
                         randomFeedFooter
+                    } else if (selectedFeed == .latest || selectedFeed == .popular) && !discoveryExhausted {
+                        HStack { Spacer(); if isLoadingMore { ProgressView("正在加载更多…") } else { Text("继续下滑加载更多").font(.caption).foregroundStyle(.secondary) }; Spacer() }.padding(.vertical, 18)
                     }
                 }
             }.padding()
@@ -269,6 +274,8 @@ struct DiscoverView: View {
         selectedFeed = feed
         isSearchResults = false
         isRandomFeed = feed == .random
+        nextDiscoveryCursor = nil
+        discoveryExhausted = false
         isLoading = true
         isLoadingMore = false
         networkError = nil
@@ -279,11 +286,18 @@ struct DiscoverView: View {
                 let galleries: [Gallery]
                 switch feed {
                 case .latest:
-                    galleries = try await SiteClient.shared.frontPage(source: source, baseURL: base, cookieHeader: cookieHeader)
+                    let page = try await SiteClient.shared.discoveryPage(source: source, baseURL: base, cookieHeader: cookieHeader)
+                    galleries = page.galleries
+                    nextDiscoveryCursor = page.nextCursor
+                    discoveryExhausted = page.nextCursor == nil
                 case .popular:
-                    galleries = try await SiteClient.shared.frontPage(source: source, baseURL: base, cookieHeader: cookieHeader, mode: "popular")
+                    let page = try await SiteClient.shared.discoveryPage(source: source, baseURL: base, cookieHeader: cookieHeader, mode: "popular")
+                    galleries = page.galleries
+                    nextDiscoveryCursor = page.nextCursor
+                    discoveryExhausted = page.nextCursor == nil
                 case .random:
                     galleries = try await SiteClient.shared.randomGalleries(source: source, baseURL: base, cookieHeader: cookieHeader, count: 25)
+                    discoveryExhausted = false
                 }
                 guard generation == feedGeneration else { return }
                 results = galleries
@@ -294,6 +308,36 @@ struct DiscoverView: View {
             }
             guard generation == feedGeneration else { return }
             isLoading = false
+        }
+    }
+
+    private func loadMoreDiscovery() {
+        guard !isSearchResults, !isLoading, !isLoadingMore, !discoveryExhausted, let base = URL(string: siteAddress) else { return }
+        isLoadingMore = true
+        let generation = feedGeneration
+        let source = currentSource
+        let cookieHeader = session.cookieHeader()
+        let cursor = nextDiscoveryCursor
+        let mode = selectedFeed == .popular ? "popular" : ""
+        Task {
+            defer { isLoadingMore = false }
+            do {
+                let page = try await SiteClient.shared.discoveryPage(source: source, baseURL: base, cookieHeader: cookieHeader, mode: mode, cursor: cursor)
+                guard generation == feedGeneration, selectedFeed == (mode == "popular" ? .popular : .latest) else { return }
+                let known = Set(results.map(\.id))
+                let fresh = page.galleries.filter { !known.contains($0.id) }
+                if fresh.isEmpty || page.nextCursor == cursor {
+                    discoveryExhausted = true
+                    return
+                }
+                results.append(contentsOf: fresh)
+                nextDiscoveryCursor = page.nextCursor
+                discoveryExhausted = page.nextCursor == nil
+            } catch {
+                guard generation == feedGeneration else { return }
+                networkError = "更多\(selectedFeed.rawValue)加载失败：\(error.localizedDescription)"
+                // Keep the footer available for retry.
+            }
         }
     }
 

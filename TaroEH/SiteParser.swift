@@ -124,6 +124,13 @@ enum SiteParser {
         return decode(trimmed)
     }
 
+    static func nextGalleryCursor(from html: String) -> Int? {
+        first(#"id=[\"']dnext[\"'][^>]+href=[\"'][^\"']*[?&]next=(\d+)[\"']"#, in: html).flatMap(Int.init)
+    }
+
+    static func galleriesPage(from html: String, source: EHSource, baseURL: URL?) -> (galleries: [Gallery], nextCursor: Int?) {
+        (galleries(from: html, source: source, baseURL: baseURL), nextGalleryCursor(from: html))
+    }
     static func imagePageLinks(from html: String, base: URL) -> [URL] {
         let pattern = #"href=[\"']([^\"']*s/[0-9a-zA-Z]+/[0-9]+-[0-9]+)[\"']"#
         guard let regex = try? NSRegularExpression(pattern: pattern) else { return [] }
