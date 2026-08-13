@@ -60,7 +60,7 @@ struct DiscoverView: View {
                     Image(systemName: "person.crop.circle").font(.title)
                 }
                 HStack(spacing: 12) {
-                    Button { randomGallery() } label: { FeatureCard(icon: "die.face.5", title: "随机一本") }
+                    Button { randomGallery() } label: { FeatureCard(icon: "shuffle", title: "随机画廊") }
                     Button { showFilters = true } label: { FeatureCard(icon: "slider.horizontal.3", title: "筛选排序") }
                 }
                 searchBar
