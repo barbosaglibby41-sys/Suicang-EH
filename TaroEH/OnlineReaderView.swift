@@ -10,7 +10,7 @@ struct OnlineReaderView: View {
     var body: some View {
         Group {
             if let loadError {
-                ContentUnavailableView("无法加载在线页面", systemImage: "exclamationmark.triangle", description: Text(loadError)) {
+                ContentUnavailableView("无法加载在线页面", systemImage: "exclamationmark.triangle", description: Text(loadError ?? "")) {
                     Button("重试") { Task { await setup() } }
                 }
             } else if pageLinks.isEmpty {

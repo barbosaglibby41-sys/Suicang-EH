@@ -406,7 +406,9 @@ struct GalleryDetailView: View {
             return (TagTranslationStore.namespaceName(ns), list)
         }
     }
-    private func hydrate() async { guard item.sourceURL != nil else { return }; do { item = try await SiteClient.shared.detail(item, cookieHeader: session.cookieHeader()).gallery; library.record(item) } catch { detailError = "详情加载失败：\(error.localizedDescription)" } }    private func downloadOnline() { Task { do { guard item.sourceURL != nil else { detailError = "该作品缺少在线地址，无法下载。"; return }; let detail = try await SiteClient.shared.detail(item, cookieHeader: session.cookieHeader()); let urls = try await SiteClient.shared.imageURLs(for: detail, cookieHeader: session.cookieHeader()); guard !urls.isEmpty else { detailError = "未解析到可下载图片。"; return }; item = detail.gallery; if !downloads.enqueue(item, imageURLs: urls) { detailError = "下载任务创建失败，请检查网络后重试。" } } catch { detailError = "无法创建下载任务：\(error.localizedDescription)" } } }
+    private func hydrate() async { guard item.sourceURL != nil else { return }; do { item = try await SiteClient.shared.detail(item, cookieHeader: session.cookieHeader()).gallery; library.record(item) } catch { detailError = "详情加载失败：\(error.localizedDescription)" } }
+
+    private func downloadOnline() { Task { do { guard item.sourceURL != nil else { detailError = "该作品缺少在线地址，无法下载。"; return }; let detail = try await SiteClient.shared.detail(item, cookieHeader: session.cookieHeader()); let urls = try await SiteClient.shared.imageURLs(for: detail, cookieHeader: session.cookieHeader()); guard !urls.isEmpty else { detailError = "未解析到可下载图片。"; return }; item = detail.gallery; if !downloads.enqueue(item, imageURLs: urls) { detailError = "下载任务创建失败，请检查网络后重试。" } } catch { detailError = "无法创建下载任务：\(error.localizedDescription)" } } }
 }
 
 struct FlowTags: View {
