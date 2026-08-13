@@ -66,20 +66,24 @@ final class SiteClient {
     }
 
     /// Samples fresh server pages using E-Hentai's supported `next=<gid>` cursor.
-    /// It returns a unique random feed batch rather than reordering the currently visible list.
+    /// The cursor is drawn from three ranges (recent / middle / older) so the
+    /// feed doesn't bias too heavily toward only the newest uploads.
     func randomGalleries(source: EHSource, baseURL: URL, cookieHeader: String?, count: Int = 25, excluding: Set<Int> = []) async throws -> [Gallery] {
         let newest = try await frontPage(source: source, baseURL: baseURL, cookieHeader: cookieHeader)
             .map(\.id)
             .max() ?? 1
         var output: [Gallery] = []
         var seen = excluding
+        var usedCursors = Set<Int>()
         var attempts = 0
         let perPage = max(1, Int(ceil(Double(count) / 3.0)))
 
-        while output.count < count && attempts < 8 {
+        while output.count < count && attempts < 12 {
             attempts += 1
+            let cursor = randomCursor(maxID: newest, excluding: usedCursors)
+            usedCursors.insert(cursor)
             var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false)
-            components?.queryItems = [URLQueryItem(name: "next", value: String(Int.random(in: 1...newest)))]
+            components?.queryItems = [URLQueryItem(name: "next", value: String(cursor))]
             guard let url = components?.url else { throw SiteError.invalidResponse }
             let data = try await request(url, cookieHeader: cookieHeader)
             guard let html = String(data: data, encoding: .utf8) else { throw SiteError.parseFailed }
@@ -91,6 +95,23 @@ final class SiteClient {
             }
         }
         return output
+    }
+
+    /// Generates a cursor from recent / middle / old ranges with weighted odds.
+    private func randomCursor(maxID: Int, excluding: Set<Int>) -> Int {
+        guard maxID > 1 else { return 1 }
+        let ranges = [
+            (weight: 0.45, lower: Int(Double(maxID) * 0.67), upper: maxID),
+            (weight: 0.35, lower: Int(Double(maxID) * 0.34), upper: Int(Double(maxID) * 0.66)),
+            (weight: 0.20, lower: 1, upper: max(1, Int(Double(maxID) * 0.33)))
+        ]
+        for _ in 0..<20 {
+            let roll = Double.random(in: 0...1)
+            let chosen = roll < ranges[0].weight ? ranges[0] : roll < ranges[0].weight + ranges[1].weight ? ranges[1] : ranges[2]
+            let cursor = Int.random(in: min(chosen.lower, chosen.upper)...max(chosen.lower, chosen.upper))
+            if !excluding.contains(cursor) { return cursor }
+        }
+        return Int.random(in: 1...maxID)
     }
 
     func detail(_ gallery: Gallery, cookieHeader: String?) async throws -> NetworkGalleryDetail {

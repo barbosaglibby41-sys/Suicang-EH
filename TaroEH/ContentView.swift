@@ -131,8 +131,16 @@ struct DiscoverView: View {
                     Spacer()
                     Image(systemName: "person.crop.circle").font(.title)
                 }
-                HStack(spacing: 10) {
+                HStack {
                     feedSelector
+                    if isRandomFeed {
+                        Button { selectFeed(.random) } label: {
+                            Image(systemName: "arrow.clockwise")
+                                .frame(width: 42, height: 42)
+                        }
+                        .buttonStyle(.bordered)
+                        .accessibilityLabel("换一批随机画廊")
+                    }
                     Button { showFilters = true } label: {
                         Image(systemName: "slider.horizontal.3")
                             .frame(width: 42, height: 42)
