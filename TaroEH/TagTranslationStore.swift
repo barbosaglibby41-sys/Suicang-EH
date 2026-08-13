@@ -151,7 +151,7 @@ final class TagTranslationStore: ObservableObject {
         return prefix + tag.key + " "
     }
 
-    func suggestions(for query: String, limit: Int = 12) -> [TranslatedTag] {
+    func suggestions(for query: String, limit: Int = 30) -> [TranslatedTag] {
         let term = currentToken(in: query).lowercased()
         guard !term.isEmpty else { return [] }
         // Chinese users commonly search one character at a time (for example, "足").

@@ -242,19 +242,24 @@ struct DiscoverView: View {
                     Spacer()
                     Text("点击直接搜索").font(.caption2).foregroundStyle(.secondary)
                 }.padding(.bottom, 8)
-                ForEach(values) { tag in
-                    Button { searchSuggestion(tag) } label: {
-                        HStack(spacing: 10) {
-                            Image(systemName: "magnifyingglass").foregroundStyle(.purple)
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text("\(tag.namespace):\(tag.key)").font(.subheadline).lineLimit(1)
-                                Text("\(TagTranslationStore.namespaceName(tag.namespace)) · \(tag.name)").font(.caption).foregroundStyle(.secondary).lineLimit(1)
-                            }
-                            Spacer()
-                            Image(systemName: "arrow.up.right").font(.caption).foregroundStyle(.secondary)
-                        }.padding(.vertical, 9)
-                    }.buttonStyle(.plain)
+                ScrollView(.vertical, showsIndicators: true) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(values) { tag in
+                            Button { searchSuggestion(tag) } label: {
+                                HStack(spacing: 10) {
+                                    Image(systemName: "magnifyingglass").foregroundStyle(.purple)
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text("\(tag.namespace):\(tag.key)").font(.subheadline).lineLimit(1)
+                                        Text("\(TagTranslationStore.namespaceName(tag.namespace)) · \(tag.name)").font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "arrow.up.right").font(.caption).foregroundStyle(.secondary)
+                                }.padding(.vertical, 9)
+                            }.buttonStyle(.plain)
+                        }
+                    }
                 }
+                .frame(maxHeight: 360)
             }.padding(12).background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
         }
     }
