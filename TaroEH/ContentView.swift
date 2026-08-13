@@ -378,6 +378,7 @@ struct GalleryDetailView: View {
             if let detailError { Text(detailError).font(.caption).foregroundStyle(.orange) }
             HStack { NavigationLink { ReaderDestination.view(for: item) } label: { Label("开始阅读", systemImage: "book.fill").frame(maxWidth: .infinity) }.buttonStyle(.borderedProminent).disabled(!offlineAvailable && item.sourceURL == nil); Button { downloadOnline() } label: { Image(systemName: "arrow.down.to.line") }.buttonStyle(.bordered).disabled(item.sourceURL == nil); if let source = item.sourceURL { Link(destination: source) { Image(systemName: "safari") }.buttonStyle(.bordered) }; ShareLink(item: item.title) { Image(systemName: "square.and.arrow.up") }.buttonStyle(.bordered) }
             if item.sourceURL == nil && !offlineAvailable { Text("缺少在线地址且无离线副本，无法阅读或下载。").font(.caption).foregroundStyle(.orange) }
+            if !item.previews.isEmpty { PreviewStrip(gallery: item, previews: item.previews) }
             HStack(spacing: 6) {
                 Image(systemName: "tag.fill").font(.subheadline).foregroundStyle(.purple)
                 Text("标签").font(.headline)

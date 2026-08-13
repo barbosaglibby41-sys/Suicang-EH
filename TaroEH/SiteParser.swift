@@ -58,8 +58,32 @@ enum SiteParser {
         let rawTags = all(#"id=[\"']ta_([^\"']+)[\"']"#, in: html)
         gallery.tags = Array(Set(rawTags.map { GalleryTag.parse(decode($0)) })).sorted { $0.rawName < $1.rawName }
         gallery.comments = comments(from: html)
+        gallery.previews = previews(from: html)
         let links = includePageLinks ? imagePageLinks(from: html, base: sourceURL) : []
         return NetworkGalleryDetail(gallery: gallery, pageLinks: links)
+    }
+
+    /// Parses the thumbnail sprite sheet in `#gdt`: each entry is a 200px-wide
+    /// tile of one sprite image. Only the first sheet (≤20 pages) is returned
+    /// so long galleries stay cheap to open.
+    static func previews(from html: String, limit: Int = 20) -> [PagePreview] {
+        guard let region = html.range(of: #"id="gdt""#, options: [.caseInsensitive]) else { return [] }
+        let start = region.lowerBound
+        let end = html.range(of: #"id="gdo""#, options: [.caseInsensitive], range: start..<html.endIndex)?.lowerBound ?? html.endIndex
+        let segment = String(html[start..<end])
+        let pattern = #"<a href="([^"]*/s/[^"]+)"[^>]*><div title="Page (\d+):[^"]*" style="[^"]*url\(([^)]+)\)\s*(-?\d+)px\s+0[^"]*""#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else { return [] }
+        let ns = segment as NSString
+        var seen = Set<Int>()
+        return regex.matches(in: segment, range: NSRange(location: 0, length: ns.length)).compactMap { match in
+            guard match.numberOfRanges > 4,
+                  let page = Int(ns.substring(with: match.range(at: 2))),
+                  seen.insert(page).inserted,
+                  let sprite = URL(string: decode(ns.substring(with: match.range(at: 3)))),
+                  let pageURL = URL(string: decode(ns.substring(with: match.range(at: 1)))),
+                  let xOffset = Int(ns.substring(with: match.range(at: 4))) else { return nil }
+            return PagePreview(page: page, spriteURL: sprite, xOffset: abs(xOffset), width: 200, height: 283, pageURL: pageURL)
+        }.sorted { $0.page < $1.page }.prefix(limit).map { $0 }
     }
 
     /// Parses the comment section (`#cdiv`). Returns comments in page order.

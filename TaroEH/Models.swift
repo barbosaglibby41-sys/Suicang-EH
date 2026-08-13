@@ -23,6 +23,18 @@ struct GalleryComment: Identifiable, Hashable, Codable {
     let votes: String?
 }
 
+/// A thumbnail entry from the gallery detail page. E-Hentai serves page
+/// thumbnails as sprite sheets (20 pages per image) cropped via background
+/// offsets, so one download yields many preview tiles.
+struct PagePreview: Hashable, Codable {
+    let page: Int
+    let spriteURL: URL
+    let xOffset: Int
+    let width: Int
+    let height: Int
+    let pageURL: URL
+}
+
 struct Gallery: Identifiable, Hashable, Codable {
     let id: Int
     var source: EHSource
@@ -36,6 +48,7 @@ struct Gallery: Identifiable, Hashable, Codable {
     var rating: Double?
     var postedAt: String?
     var comments: [GalleryComment] = []
+    var previews: [PagePreview] = []
 
     var legacyTagNames: [String] { tags.map(\.rawName) }
 

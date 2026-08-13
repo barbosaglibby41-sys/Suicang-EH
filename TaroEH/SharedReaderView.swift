@@ -23,14 +23,23 @@ enum ReaderDestination {
 struct SharedReaderView<Source: View>: View {
     let title: String
     let pageCount: Int
+    let initialIndex: Int
     @ViewBuilder let source: (Int, Bool, CGFloat) -> Source
     @Environment(\.dismiss) private var dismiss
     @AppStorage("taro.eh.reader.direction") private var direction = "horizontal"
     @AppStorage("taro.eh.reader.fit") private var fit = true
     @AppStorage("taro.eh.reader.keepScreenOn") private var keepScreenOn = true
-    @State private var index = 0
+    @State private var index: Int
     @State private var showUI = true
     @State private var scale: CGFloat = 1
+
+    init(title: String, pageCount: Int, initialIndex: Int = 0, @ViewBuilder source: @escaping (Int, Bool, CGFloat) -> Source) {
+        self.title = title
+        self.pageCount = pageCount
+        self.initialIndex = initialIndex
+        self.source = source
+        _index = State(initialValue: min(max(0, initialIndex), max(0, pageCount - 1)))
+    }
     var body: some View {
         ZStack { Color.black.ignoresSafeArea(); content; if showUI { overlay } }
             .foregroundStyle(.white).statusBarHidden(!showUI)

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct OnlineReaderView: View {
     let gallery: Gallery
+    var startIndex: Int = 0
     @EnvironmentObject private var session: SessionStore
     @State private var pageLinks: [URL] = []
     @State private var imageURLs: [Int: URL] = [:]
@@ -19,7 +20,7 @@ struct OnlineReaderView: View {
             } else if pageLinks.isEmpty {
                 ProgressView("正在获取阅读目录…").tint(.white)
             } else {
-                SharedReaderView(title: gallery.title, pageCount: pageLinks.count) { index, fit, scale in
+                SharedReaderView(title: gallery.title, pageCount: pageLinks.count, initialIndex: min(startIndex, max(0, pageLinks.count - 1))) { index, fit, scale in
                     OnlinePage(url: imageURLs[index], fit: fit, scale: scale).task { await loadPage(index) }
                 }
             }
