@@ -80,6 +80,7 @@ struct DiscoverView: View {
     @State private var showFilters = false
     @State private var sort: GallerySort = .recent
     @State private var advanced = AdvancedSearchConfig()
+    @FocusState private var searchFocused: Bool
     private let initialQuery: String?
     private let autoSearch: Bool
     private let columns = [
@@ -216,45 +217,60 @@ struct DiscoverView: View {
     }
 
     private var searchBar: some View {
-        HStack {
+        HStack(spacing: 10) {
             Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
             TextField("搜索标题、作者或标签", text: $query)
                 .textInputAutocapitalization(.never)
-                .onSubmit { onlineSearch() }
+                .autocorrectionDisabled()
+                .submitLabel(.search)
+                .focused($searchFocused)
+                .onSubmit { searchFocused = false; onlineSearch() }
             if isLoading { ProgressView().controlSize(.small) }
-            else if !query.isEmpty { Button { onlineSearch() } label: { Image(systemName: "arrow.right.circle.fill") } }
+            else if !query.isEmpty {
+                Button { query = ""; results = []; isSearchResults = false; searchFocused = true; loadFrontPage() } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary) }.accessibilityLabel("清空搜索")
+                Button { searchFocused = false; onlineSearch() } label: { Image(systemName: "arrow.right.circle.fill").foregroundStyle(.purple) }.accessibilityLabel("执行搜索")
+            }
         }.padding(13).background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
     }
 
     @ViewBuilder private var suggestions: some View {
-        if tagTranslations.enabled && !query.isEmpty {
-            let values = tagTranslations.suggestions(for: query)
-            if !values.isEmpty {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("标签补全").font(.caption).foregroundStyle(.secondary)
-                    ForEach(values) { tag in
-                        Button {
-                            if tagTranslations.fillMode { query = tagTranslations.replacingCurrentToken(in: query, with: tag) }
-                        } label: {
-                            HStack {
-                                Circle().fill(TagStyle.background(for: tag.namespace)).frame(width: 8, height: 8)
-                                Text(tag.name).lineLimit(1)
-                                Spacer()
-                                Text(TagTranslationStore.namespaceName(tag.namespace)).font(.caption).foregroundStyle(.secondary)
+        let values = tagTranslations.enabled ? tagTranslations.suggestions(for: query) : []
+        if searchFocused && !values.isEmpty {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack {
+                    Label("标签建议", systemImage: "tag").font(.caption).foregroundStyle(.secondary)
+                    Spacer()
+                    Text("点击直接搜索").font(.caption2).foregroundStyle(.secondary)
+                }.padding(.bottom, 8)
+                ForEach(values) { tag in
+                    Button { searchSuggestion(tag) } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: "magnifyingglass").foregroundStyle(.purple)
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("\(tag.namespace):\(tag.key)").font(.subheadline).lineLimit(1)
+                                Text("\(TagTranslationStore.namespaceName(tag.namespace)) · \(tag.name)").font(.caption).foregroundStyle(.secondary).lineLimit(1)
                             }
-                        }.buttonStyle(.plain).disabled(!tagTranslations.fillMode)
-                    }
-                }.padding(12).background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
-            }
+                            Spacer()
+                            Image(systemName: "arrow.up.right").font(.caption).foregroundStyle(.secondary)
+                        }.padding(.vertical, 9)
+                    }.buttonStyle(.plain)
+                }
+            }.padding(12).background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
         }
+    }
+
+    private func searchSuggestion(_ tag: TranslatedTag) {
+        query = "\(tag.namespace):\(tag.key)"
+        searchFocused = false
+        onlineSearch()
     }
 
     @ViewBuilder private var recentQueries: some View {
         if !discovery.recentQueries.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
-                HStack { Text("最近搜索").font(.caption).foregroundStyle(.secondary); Spacer(); Button("清除") { discovery.clearQueries() }.font(.caption) }
+                HStack { Label("最近搜索", systemImage: "clock.arrow.circlepath").font(.caption).foregroundStyle(.secondary); Spacer(); Button("清除全部") { discovery.clearQueries() }.font(.caption).foregroundStyle(.purple) }
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack { ForEach(discovery.recentQueries, id: \.self) { item in Button(item) { query = item; onlineSearch() }.font(.caption).padding(.horizontal, 10).padding(.vertical, 7).background(.purple.opacity(0.18), in: Capsule()) } }
+                    HStack { ForEach(discovery.recentQueries, id: \.self) { item in Button { query = item; searchFocused = false; onlineSearch() } label: { Text(item).font(.caption).lineLimit(1).padding(.horizontal, 11).padding(.vertical, 8).background(.purple.opacity(0.18), in: Capsule()) } } }
                 }
             }
         }
