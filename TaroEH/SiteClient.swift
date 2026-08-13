@@ -4,6 +4,9 @@ import Foundation
 final class SiteClient {
     static let shared = SiteClient()
     private let session: URLSession
+    private static let detailCacheTTL: TimeInterval = 300
+    private let detailLock = NSLock()
+    private var detailCache: [String: (gallery: Gallery, date: Date)] = [:]
     private init() {
         let config = URLSessionConfiguration.default
         config.httpCookieStorage = .shared
@@ -79,12 +82,31 @@ final class SiteClient {
 
     /// Lightweight detail fetch for the details screen: parses metadata, tags
     /// and comments but skips the (potentially thousands of) page links, so
-    /// long galleries open without the parsing stall.
+    /// long galleries open without the parsing stall. Results are cached for
+    /// a few minutes so re-opening a gallery from the shelf is instant.
     func detailMetadata(_ gallery: Gallery, cookieHeader: String?) async throws -> Gallery {
+        let key = gallery.stableKey
+        detailLock.lock()
+        if let cached = detailCache[key], Date().timeIntervalSince(cached.date) < Self.detailCacheTTL {
+            detailLock.unlock()
+            return cached.gallery
+        }
+        detailLock.unlock()
         guard let url = gallery.sourceURL else { throw SiteError.invalidResponse }
         let data = try await request(url, cookieHeader: cookieHeader)
         guard let html = String(data: data, encoding: .utf8) else { throw SiteError.parseFailed }
-        return SiteParser.detail(from: html, sourceURL: url, fallback: gallery, includePageLinks: false).gallery
+        let resolved = SiteParser.detail(from: html, sourceURL: url, fallback: gallery, includePageLinks: false).gallery
+        detailLock.lock()
+        detailCache[key] = (resolved, Date())
+        detailLock.unlock()
+        return resolved
+    }
+
+    /// Drops the cached detail after a comment post so the list refreshes.
+    func invalidateDetailCache(for gallery: Gallery) {
+        detailLock.lock()
+        detailCache.removeValue(forKey: gallery.stableKey)
+        detailLock.unlock()
     }
 
     func imageURL(pageURL: URL, cookieHeader: String?) async throws -> URL {
@@ -134,6 +156,10 @@ final class SiteClient {
         guard let http = response as? HTTPURLResponse else { throw SiteError.invalidResponse }
         guard http.statusCode == 302 || (200..<300 ~= http.statusCode) else { throw SiteError.invalidResponse }
         guard let html = String(data: data, encoding: .utf8) else { throw SiteError.parseFailed }
-        return SiteParser.detail(from: html, sourceURL: url, fallback: gallery)
+        let result = SiteParser.detail(from: html, sourceURL: url, fallback: gallery)
+        detailLock.lock()
+        detailCache[gallery.stableKey] = (result.gallery, Date())
+        detailLock.unlock()
+        return result
     }
 }

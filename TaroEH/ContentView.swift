@@ -372,7 +372,7 @@ struct GalleryDetailView: View {
     @State private var offlineAvailable = false
     init(gallery: Gallery) { self.gallery = gallery; _item = State(initialValue: gallery) }
     var body: some View {
-        ScrollView { VStack(alignment: .leading, spacing: 18) {
+        ScrollView { LazyVStack(alignment: .leading, spacing: 18) {
             PipelineImage(url: item.thumbnailURL, cookieHeader: session.cookieHeader(), contentMode: .fit).frame(maxWidth: .infinity).frame(height: 300)
             HStack(alignment: .top) { VStack(alignment: .leading) { Text(item.title).font(.title2.bold()); Text("\(item.uploader) · \(item.pageCount) 页").foregroundStyle(.secondary) }; Spacer(); Button { library.toggleFavorite(item) } label: { Image(systemName: library.isFavorite(item) ? "star.fill" : "star").font(.title2) } }
             if let detailError { Text(detailError).font(.caption).foregroundStyle(.orange) }
