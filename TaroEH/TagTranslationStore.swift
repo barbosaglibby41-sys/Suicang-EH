@@ -5,6 +5,8 @@ struct TranslatedTag: Codable, Hashable, Identifiable {
     let namespace: String
     let key: String
     let name: String
+    /// Optional short description from the upstream database (only newer builds have it).
+    var intro: String?
     var id: String { "\(namespace):\(key)" }
 }
 
@@ -21,6 +23,7 @@ final class TagTranslationStore: ObservableObject {
     @Published private(set) var enabled: Bool
     @Published private(set) var translateChineseSearch = true
     @Published private(set) var fillMode = true
+    @Published private(set) var displayMode: DisplayMode = .chineseOnly
     @Published private(set) var isUpdating = false
     @Published private(set) var progress: Double = 0
     @Published private(set) var databaseVersion = 0
@@ -33,6 +36,7 @@ final class TagTranslationStore: ObservableObject {
     private let enabledKey = "taro.eh.tags.enabled"
     private let chineseKey = "taro.eh.tags.translateChineseSearch"
     private let fillKey = "taro.eh.tags.fillMode"
+    private let displayModeKey = "taro.eh.tags.displayMode"
     private let sourceKey = "taro.eh.tags.source"
     private let databaseFile = "tag_translation.json"
     private var tags: [TranslatedTag] = []
@@ -55,11 +59,40 @@ final class TagTranslationStore: ObservableObject {
         enabled = UserDefaults.standard.object(forKey: enabledKey) as? Bool ?? true
         translateChineseSearch = UserDefaults.standard.object(forKey: chineseKey) as? Bool ?? true
         fillMode = UserDefaults.standard.object(forKey: fillKey) as? Bool ?? true
+        displayMode = DisplayMode(rawValue: UserDefaults.standard.string(forKey: displayModeKey) ?? "") ?? .chineseOnly
         dataSource = UserDefaults.standard.string(forKey: sourceKey) ?? "内置版本"
         loadLocalOrSeed()
     }
 
     var isReady: Bool { !tags.isEmpty }
+
+    /// How translated tag names are rendered in the UI.
+    enum DisplayMode: String, CaseIterable, Codable, Identifiable {
+        case chineseOnly = "仅中文"
+        case bilingual = "中文 + 英文"
+        case original = "仅英文"
+        var id: String { rawValue }
+    }
+
+    /// Chinese label for a tag namespace, falling back to the raw namespace.
+    static func namespaceName(_ namespace: String) -> String {
+        switch namespace.lowercased() {
+        case "female": return "女性"
+        case "male": return "男性"
+        case "mixed": return "混合"
+        case "artist": return "艺术家"
+        case "parody": return "原作"
+        case "character": return "角色"
+        case "group": return "团队"
+        case "language": return "语言"
+        case "reclass": return "重新分类"
+        case "cosplayer": return "Coser"
+        case "temp": return "临时"
+        case "other": return "其他"
+        case "location": return "地点"
+        default: return namespace
+        }
+    }
     var formattedUpdatedAt: String {
         guard let date = ISO8601DateFormatter().date(from: updatedAt) else { return updatedAt.isEmpty ? "内置版本" : updatedAt }
         return date.formatted(date: .abbreviated, time: .shortened)
@@ -68,6 +101,7 @@ final class TagTranslationStore: ObservableObject {
     func setEnabled(_ value: Bool) { enabled = value; UserDefaults.standard.set(value, forKey: enabledKey) }
     func setTranslateChineseSearch(_ value: Bool) { translateChineseSearch = value; UserDefaults.standard.set(value, forKey: chineseKey) }
     func setFillMode(_ value: Bool) { fillMode = value; UserDefaults.standard.set(value, forKey: fillKey) }
+    func setDisplayMode(_ value: DisplayMode) { displayMode = value; UserDefaults.standard.set(value.rawValue, forKey: displayModeKey) }
 
     func translatedTag(for raw: String) -> TranslatedTag? {
         let value = raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -78,7 +112,14 @@ final class TagTranslationStore: ObservableObject {
 
     func displayName(for raw: String) -> String {
         guard enabled, let tag = translatedTag(for: raw) else { return raw }
-        return "\(tag.name)  ·  \(tag.namespace):\(tag.key)"
+        switch displayMode {
+        case .chineseOnly:
+            return tag.name
+        case .bilingual:
+            return "\(tag.name) · \(tag.namespace):\(tag.key)"
+        case .original:
+            return tag.namespace.isEmpty ? tag.key : "\(tag.namespace):\(tag.key)"
+        }
     }
 
     /// Converts Chinese terms to E-Hentai's English tag syntax while preserving ordinary words.
@@ -200,7 +241,13 @@ final class TagTranslationStore: ObservableObject {
     }
     private func decodeRemote(_ data: Data) throws -> TagDatabaseEnvelope {
         let raw = try JSONDecoder().decode(RemoteEnvelope.self, from: data)
-        let values = raw.data.flatMap { group in group.data.map { key, value in TranslatedTag(namespace: group.namespace, key: key, name: Self.stripHTML(value.name)) } }
+        let values = raw.data.flatMap { group in
+            group.data.map { key, value in
+                let name = Self.stripHTML(value.name)
+                let intro = value.intro.map(Self.stripHTML)
+                return TranslatedTag(namespace: group.namespace, key: key, name: name, intro: intro)
+            }
+        }
         return TagDatabaseEnvelope(version: raw.version, updatedAt: raw.head.committer.when, revision: raw.head.sha, tags: values)
     }
     private func lookupChinese(_ text: String) -> TranslatedTag? {
@@ -218,7 +265,14 @@ private struct RemoteEnvelope: Decodable {
         let sha: String?
         let committer: Committer
     }
-    struct Group: Decodable { struct Value: Decodable { let name: String }; let namespace: String; let data: [String: Value] }
+    struct Group: Decodable {
+        struct Value: Decodable {
+            let name: String
+            let intro: String?
+        }
+        let namespace: String
+        let data: [String: Value]
+    }
     let version: Int
     let head: Head
     let data: [Group]

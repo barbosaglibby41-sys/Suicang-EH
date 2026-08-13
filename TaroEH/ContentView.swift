@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct ContentView: View {
     @EnvironmentObject private var session: SessionStore
@@ -178,7 +179,12 @@ struct DiscoverView: View {
                         Button {
                             if tagTranslations.fillMode { query = tagTranslations.replacingCurrentToken(in: query, with: tag) }
                         } label: {
-                            HStack { Text(tag.name); Spacer(); Text("\(tag.namespace):\(tag.key)").font(.caption).foregroundStyle(.secondary) }
+                            HStack {
+                                Circle().fill(TagStyle.background(for: tag.namespace)).frame(width: 8, height: 8)
+                                Text(tag.name).lineLimit(1)
+                                Spacer()
+                                Text(TagTranslationStore.namespaceName(tag.namespace)).font(.caption).foregroundStyle(.secondary)
+                            }
                         }.buttonStyle(.plain).disabled(!tagTranslations.fillMode)
                     }
                 }.padding(12).background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
@@ -367,9 +373,26 @@ struct GalleryDetailView: View {
             HStack(alignment: .top) { VStack(alignment: .leading) { Text(item.title).font(.title2.bold()); Text("\(item.uploader) · \(item.pageCount) 页").foregroundStyle(.secondary) }; Spacer(); Button { library.toggleFavorite(item) } label: { Image(systemName: library.isFavorite(item) ? "star.fill" : "star").font(.title2) } }
             if let detailError { Text(detailError).font(.caption).foregroundStyle(.orange) }
             HStack { NavigationLink { item.sourceURL == nil ? AnyView(ReaderView(gallery: item)) : AnyView(OnlineReaderView(gallery: item)) } label: { Label("开始阅读", systemImage: "book.fill").frame(maxWidth: .infinity) }.buttonStyle(.borderedProminent); Button { downloadOnline() } label: { Image(systemName: "arrow.down.to.line") }.buttonStyle(.bordered); if let source = item.sourceURL { Link(destination: source) { Image(systemName: "safari") }.buttonStyle(.bordered) }; ShareLink(item: item.title) { Image(systemName: "square.and.arrow.up") }.buttonStyle(.bordered) }
-            Text("标签").font(.headline); FlowTags(tags: item.tags)
+            Text("标签").font(.headline)
+            ForEach(groupedTags, id: \.0) { section in
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(section.0).font(.subheadline.bold()).foregroundStyle(.secondary)
+                    FlowTags(tags: section.1)
+                }
+            }
+            if !item.tags.isEmpty && groupedTags.isEmpty {
+                FlowTags(tags: item.tags)
+            }
         }.padding() }
         .navigationTitle("详情").navigationBarTitleDisplayMode(.inline).onAppear { library.record(item) }.task { await hydrate() }
+    }
+    private var groupedTags: [(String, [GalleryTag])] {
+        let order = ["female", "male", "mixed", "artist", "parody", "character", "group", "language", "reclass", "cosplayer", "location", "other"]
+        let grouped = Dictionary(grouping: item.tags) { $0.namespace.lowercased() }
+        return order.compactMap { ns in
+            guard let list = grouped[ns], !list.isEmpty else { return nil }
+            return (TagTranslationStore.namespaceName(ns), list)
+        }
     }
     private func hydrate() async { guard item.sourceURL != nil else { return }; do { item = try await SiteClient.shared.detail(item, cookieHeader: session.cookieHeader()).gallery; library.record(item) } catch { detailError = "详情加载失败：\(error.localizedDescription)" } }
     private func downloadOnline() { Task { do { if item.sourceURL == nil { downloads.enqueue(item); return }; let detail = try await SiteClient.shared.detail(item, cookieHeader: session.cookieHeader()); let urls = try await SiteClient.shared.imageURLs(for: detail, cookieHeader: session.cookieHeader()); guard !urls.isEmpty else { detailError = "未解析到可下载图片。"; return }; item = detail.gallery; downloads.enqueue(item, imageURLs: urls) } catch { detailError = "无法创建下载任务：\(error.localizedDescription)" } } }
@@ -379,7 +402,45 @@ struct FlowTags: View {
     let tags: [GalleryTag]
     @EnvironmentObject private var discovery: DiscoveryStore
     @EnvironmentObject private var translations: TagTranslationStore
-    var body: some View { LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), alignment: .leading)], alignment: .leading) { ForEach(tags) { tag in Button { discovery.toggleTag(tag.rawName) } label: { HStack(spacing: 5) { Text(translations.displayName(for: tag.rawName)); if discovery.isSubscribed(tag.rawName) { Image(systemName: "bell.fill") } }.font(.caption).padding(.horizontal, 10).padding(.vertical, 7).background(discovery.isSubscribed(tag.rawName) ? .purple.opacity(0.35) : .purple.opacity(0.2), in: Capsule()) } } } }
+    @State private var infoTag: TranslatedTag?
+    var body: some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), alignment: .leading)], alignment: .leading) {
+            ForEach(tags) { tag in
+                Button { discovery.toggleTag(tag.rawName) } label: {
+                    HStack(spacing: 5) {
+                        Text(translations.displayName(for: tag.rawName)).lineLimit(1)
+                        if discovery.isSubscribed(tag.rawName) { Image(systemName: "bell.fill") }
+                    }
+                    .font(.caption)
+                    .padding(.horizontal, 10).padding(.vertical, 7)
+                    .foregroundStyle(TagStyle.foreground(for: tag.namespace))
+                    .background(TagStyle.background(for: tag.namespace), in: Capsule())
+                    .overlay(discovery.isSubscribed(tag.rawName) ? Capsule().strokeBorder(.purple, lineWidth: 1.5) : nil)
+                }
+                .buttonStyle(.plain)
+                .contextMenu {
+                    if let intro = translations.translatedTag(for: tag.rawName)?.intro, !intro.isEmpty {
+                        Button("查看简介") { infoTag = translations.translatedTag(for: tag.rawName) }
+                    }
+                    Button("复制原始标签") { UIPasteboard.general.string = tag.rawName }
+                    Button(discovery.isSubscribed(tag.rawName) ? "取消订阅" : "订阅标签") { discovery.toggleTag(tag.rawName) }
+                }
+            }
+        }
+        .alert(item: $infoTag) { tag in
+            Alert(
+                title: Text("\(tag.name)"),
+                message: Text(tagInfoMessage(tag)),
+                primaryButton: .default(Text("订阅标签")) { discovery.toggleTag("\(tag.namespace):\(tag.key)") },
+                secondaryButton: .cancel(Text("关闭"))
+            )
+        }
+    }
+    private func tagInfoMessage(_ tag: TranslatedTag) -> String {
+        var parts = ["原始标签：\(tag.namespace):\(tag.key)"]
+        if let intro = tag.intro, !intro.isEmpty { parts.append("简介：\(intro)") }
+        return parts.joined(separator: "\n\n")
+    }
 }
 
 struct ReaderView: View {

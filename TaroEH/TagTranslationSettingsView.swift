@@ -16,8 +16,13 @@ struct TagTranslationSettingsView: View {
             }
             Section {
                 Toggle("中文标签自动转换", isOn: Binding(get: { tags.translateChineseSearch }, set: tags.setTranslateChineseSearch))
+                Picker("标签显示模式", selection: Binding(get: { tags.displayMode }, set: tags.setDisplayMode)) {
+                    ForEach(TagTranslationStore.DisplayMode.allCases) { mode in
+                        Text(mode.rawValue).tag(mode)
+                    }
+                }
             } footer: {
-                Text("开启后，搜索时会把能匹配本地标签库的中文词转换为 E-Hentai 可识别的英文标签；搜索框和搜索历史仍保留原文。")
+                Text("开启转换后，搜索时会把能匹配本地标签库的中文词转换为 E-Hentai 可识别的英文标签；显示模式控制画廊标签胶囊的文字内容。长按标签可查看简介。")
             }
             Section {
                 Text("E-Hentai 标签翻译库").font(.headline)
