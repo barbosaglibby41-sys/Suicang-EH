@@ -49,7 +49,7 @@ struct OfflineTask: Identifiable, Codable, Hashable {
     func schedule() { while workers.count < maximumConcurrentTasks, let next = tasks.first(where: { $0.state == .queued }) { launch(next.id) } }
     private func launch(_ id: UUID) { guard workers[id] == nil, let i = tasks.firstIndex(where: { $0.id == id }) else { return }; tasks[i].state = .downloading; let snapshot = tasks[i]; persist(); workers[id] = Task { [weak self] in await DownloadService.shared.start(task: snapshot, onPage: { page in guard !Task.isCancelled else { return }; await self?.update(id: id, pages: page) }, onFinish: { result in guard !Task.isCancelled else { return }; await self?.finish(id: id, result: result) }) } }
     private func update(id: UUID, pages: Int) { guard let i = tasks.firstIndex(where: { $0.id == id }) else { return }; tasks[i].completedPages = pages; persist() }
-    private func finish(id: UUID, result: Result<Void, Error>) { guard let i = tasks.firstIndex(where: { $0.id == id }) else { return }; tasks[i].state = result.isSuccess ? .complete : .failed; workers[id] = nil; persist(); schedule() }
+    private func finish(id: UUID, result: Result<Void, Error>) { guard let i = tasks.firstIndex(where: { $0.id == id }) else { return }; tasks[i].state = result.isSuccess ? .complete : .failed; if result.isSuccess { OfflineLibrary.invalidateCache(for: tasks[i].gallery) }; workers[id] = nil; persist(); schedule() }
     private func persist() { if let data = try? JSONEncoder().encode(tasks) { UserDefaults.standard.set(data, forKey: key) } }
     private func load() { if let data = UserDefaults.standard.data(forKey: key), let v = try? JSONDecoder().decode([OfflineTask].self, from: data) { tasks = v } }
 }

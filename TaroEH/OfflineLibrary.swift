@@ -1,19 +1,26 @@
 import Foundation
 
 enum OfflineLibrary {
+    // Directory listings are cached briefly so repeated lookups (detail view
+    // onAppear, reader button availability, offline reader) don't rescan
+    // thousands of files on the main thread. Invalidated on download/delete.
+    private static let cacheTTL: TimeInterval = 30
+    private static var pageURLCache: [String: (urls: [URL], date: Date)] = [:]
+    private static let lock = NSLock()
+
     static func folder(for gallery: Gallery) -> URL? {
         guard let root = try? FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true) else { return nil }
         return root.appendingPathComponent("Offline", isDirectory: true).appendingPathComponent(directoryName(for: gallery), isDirectory: true)
     }
     static func pageURLs(for gallery: Gallery) -> [URL] {
-        let folders = [folder(for: gallery), legacyFolder(for: gallery)].compactMap { $0 }
-        for folder in folders {
-            if let files = try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil) {
-                let pages = files.filter { ["jpg", "jpeg", "png", "webp"].contains($0.pathExtension.lowercased()) }.sorted { $0.lastPathComponent < $1.lastPathComponent }
-                if !pages.isEmpty { return pages }
-            }
+        let key = gallery.stableKey
+        lock.lock(); defer { lock.unlock() }
+        if let cached = pageURLCache[key], Date().timeIntervalSince(cached.date) < cacheTTL {
+            return cached.urls
         }
-        return []
+        let urls = computePageURLs(for: gallery)
+        pageURLCache[key] = (urls, Date())
+        return urls
     }
     static func hasCompleteCopy(_ gallery: Gallery) -> Bool { pageURLs(for: gallery).count >= gallery.pageCount }
     static func size(for gallery: Gallery) -> Int64 { pageURLs(for: gallery).reduce(0) { $0 + ((try? $1.resourceValues(forKeys: [.fileSizeKey]).fileSize).map(Int64.init) ?? 0) } }
@@ -25,7 +32,25 @@ enum OfflineLibrary {
         }.reduce(0, +)
     }
     static func formatted(_ bytes: Int64) -> String { ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file) }
-    static func delete(_ gallery: Gallery) { [folder(for: gallery), legacyFolder(for: gallery)].compactMap { $0 }.forEach { try? FileManager.default.removeItem(at: $0) } }
+    static func delete(_ gallery: Gallery) {
+        invalidateCache(for: gallery)
+        [folder(for: gallery), legacyFolder(for: gallery)].compactMap { $0 }.forEach { try? FileManager.default.removeItem(at: $0) }
+    }
+    /// Drops the cached listing after a download finishes or files change.
+    static func invalidateCache(for gallery: Gallery) {
+        lock.lock(); pageURLCache.removeValue(forKey: gallery.stableKey); lock.unlock()
+    }
     static func directoryName(for gallery: Gallery) -> String { gallery.stableKey.replacingOccurrences(of: ":", with: "_") }
+
+    private static func computePageURLs(for gallery: Gallery) -> [URL] {
+        let folders = [folder(for: gallery), legacyFolder(for: gallery)].compactMap { $0 }
+        for folder in folders {
+            if let files = try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil) {
+                let pages = files.filter { ["jpg", "jpeg", "png", "webp"].contains($0.pathExtension.lowercased()) }.sorted { $0.lastPathComponent < $1.lastPathComponent }
+                if !pages.isEmpty { return pages }
+            }
+        }
+        return []
+    }
     private static func legacyFolder(for gallery: Gallery) -> URL? { guard let root = try? FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: false) else { return nil }; return root.appendingPathComponent("Offline", isDirectory: true).appendingPathComponent(String(gallery.id), isDirectory: true) }
 }
