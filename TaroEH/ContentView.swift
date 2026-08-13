@@ -373,10 +373,18 @@ struct GalleryDetailView: View {
             HStack(alignment: .top) { VStack(alignment: .leading) { Text(item.title).font(.title2.bold()); Text("\(item.uploader) · \(item.pageCount) 页").foregroundStyle(.secondary) }; Spacer(); Button { library.toggleFavorite(item) } label: { Image(systemName: library.isFavorite(item) ? "star.fill" : "star").font(.title2) } }
             if let detailError { Text(detailError).font(.caption).foregroundStyle(.orange) }
             HStack { NavigationLink { item.sourceURL == nil ? AnyView(ReaderView(gallery: item)) : AnyView(OnlineReaderView(gallery: item)) } label: { Label("开始阅读", systemImage: "book.fill").frame(maxWidth: .infinity) }.buttonStyle(.borderedProminent); Button { downloadOnline() } label: { Image(systemName: "arrow.down.to.line") }.buttonStyle(.bordered); if let source = item.sourceURL { Link(destination: source) { Image(systemName: "safari") }.buttonStyle(.bordered) }; ShareLink(item: item.title) { Image(systemName: "square.and.arrow.up") }.buttonStyle(.bordered) }
-            Text("标签").font(.headline)
+            HStack(spacing: 6) {
+                Image(systemName: "tag.fill").font(.subheadline).foregroundStyle(.purple)
+                Text("标签").font(.headline)
+                Text("\(item.tags.count) 个").font(.caption).foregroundStyle(.secondary)
+            }
             ForEach(groupedTags, id: \.0) { section in
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(section.0).font(.subheadline.bold()).foregroundStyle(.secondary)
+                    HStack(spacing: 6) {
+                        Circle().fill(TagStyle.background(for: sectionNamespace(section))).frame(width: 8, height: 8)
+                        Text(section.0).font(.subheadline.bold())
+                        Text("\(section.1.count)").font(.caption).foregroundStyle(.secondary)
+                    }
                     FlowTags(tags: section.1)
                 }
             }
@@ -385,6 +393,9 @@ struct GalleryDetailView: View {
             }
         }.padding() }
         .navigationTitle("详情").navigationBarTitleDisplayMode(.inline).onAppear { library.record(item) }.task { await hydrate() }
+    }
+    private func sectionNamespace(_ section: (String, [GalleryTag])) -> String {
+        section.1.first?.namespace ?? ""
     }
     private var groupedTags: [(String, [GalleryTag])] {
         let order = ["female", "male", "mixed", "artist", "parody", "character", "group", "language", "reclass", "cosplayer", "location", "other"]
@@ -404,18 +415,10 @@ struct FlowTags: View {
     @EnvironmentObject private var translations: TagTranslationStore
     @State private var infoTag: TranslatedTag?
     var body: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), alignment: .leading)], alignment: .leading) {
+        FlowLayout(spacing: 8) {
             ForEach(tags) { tag in
                 Button { discovery.toggleTag(tag.rawName) } label: {
-                    HStack(spacing: 5) {
-                        Text(translations.displayName(for: tag.rawName)).lineLimit(1)
-                        if discovery.isSubscribed(tag.rawName) { Image(systemName: "bell.fill") }
-                    }
-                    .font(.caption)
-                    .padding(.horizontal, 10).padding(.vertical, 7)
-                    .foregroundStyle(TagStyle.foreground(for: tag.namespace))
-                    .background(TagStyle.background(for: tag.namespace), in: Capsule())
-                    .overlay(discovery.isSubscribed(tag.rawName) ? Capsule().strokeBorder(.purple, lineWidth: 1.5) : nil)
+                    chip(for: tag)
                 }
                 .buttonStyle(.plain)
                 .contextMenu {
@@ -436,6 +439,34 @@ struct FlowTags: View {
             )
         }
     }
+
+    /// A uniform-height rounded chip. Translated tags get the namespace color;
+    /// untranslated ones are dimmed so the two states read at a glance.
+    private func chip(for tag: GalleryTag) -> some View {
+        let translated = translations.translatedTag(for: tag.rawName) != nil
+        let subscribed = discovery.isSubscribed(tag.rawName)
+        return HStack(spacing: 5) {
+            if subscribed {
+                Image(systemName: "bell.fill").font(.system(size: 9))
+            }
+            Text(translations.displayName(for: tag.rawName))
+                .lineLimit(1)
+                .font(.system(size: 12, weight: translated ? .medium : .regular))
+        }
+        .foregroundStyle(translated ? TagStyle.foreground(for: tag.namespace) : Color.secondary)
+        .padding(.horizontal, 10)
+        .frame(height: 30)
+        .background(
+            translated ? TagStyle.background(for: tag.namespace) : Color.secondary.opacity(0.12),
+            in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+        )
+        .overlay(
+            subscribed
+                ? RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(Color.purple.opacity(0.7), lineWidth: 1.2)
+                : nil
+        )
+    }
+
     private func tagInfoMessage(_ tag: TranslatedTag) -> String {
         var parts = ["原始标签：\(tag.namespace):\(tag.key)"]
         if let intro = tag.intro, !intro.isEmpty { parts.append("简介：\(intro)") }
