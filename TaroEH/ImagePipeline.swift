@@ -60,10 +60,20 @@ private struct PipelineImageContent: View {
     @State private var failed = false
     var body: some View {
         Group {
-            if let image { Image(uiImage: image).resizable().aspectRatio(contentMode: contentMode) }
-            else if failed { Image(systemName: "photo.badge.exclamationmark").foregroundStyle(.secondary) }
-            else { ProgressView() }
+            if let image {
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: contentMode)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
+            } else if failed {
+                Image(systemName: "photo.badge.exclamationmark").foregroundStyle(.secondary)
+            } else {
+                ProgressView()
+            }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .clipped()
         .task(id: url) {
             do { image = try await ImagePipeline.shared.image(for: url, cookieHeader: cookieHeader) }
             catch { failed = true }

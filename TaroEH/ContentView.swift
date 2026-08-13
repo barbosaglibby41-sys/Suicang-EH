@@ -36,7 +36,10 @@ struct DiscoverView: View {
     @State private var showFilters = false
     @State private var sort: GallerySort = .recent
     @State private var advanced = AdvancedSearchConfig()
-    private let columns = [GridItem(.adaptive(minimum: 155), spacing: 14)]
+    private let columns = [
+        GridItem(.flexible(minimum: 0), spacing: 12, alignment: .top),
+        GridItem(.flexible(minimum: 0), spacing: 12, alignment: .top)
+    ]
 
     private var currentSource: EHSource { EHSource(rawValue: sourceRaw) ?? .eHentai }
     private var filtered: [Gallery] {
@@ -168,25 +171,37 @@ struct FeatureCard: View {
 }
 struct GalleryCard: View {
     let gallery: Gallery
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            PipelineImage(url: gallery.thumbnailURL, contentMode: .fill)
-                .frame(maxWidth: .infinity)
-                .aspectRatio(0.72, contentMode: .fit)
-                .clipped()
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-            Text(gallery.title).font(.subheadline.bold()).lineLimit(2)
+            ZStack {
+                Color.secondary.opacity(0.14)
+                PipelineImage(url: gallery.thumbnailURL, contentMode: .fill)
+            }
+            .aspectRatio(0.72, contentMode: .fit)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+
+            Text(gallery.title)
+                .font(.subheadline.bold())
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, minHeight: 40, alignment: .topLeading)
+
             HStack(spacing: 8) {
                 Label(gallery.pageCount > 0 ? "\(gallery.pageCount) 页" : "页数未知", systemImage: "book.pages")
                 if let rating = gallery.rating, rating > 0 {
-                    Label(String(format: "%.1f", rating), systemImage: "star.fill").foregroundStyle(.yellow)
+                    Label(String(format: "%.1f", rating), systemImage: "star.fill")
+                        .foregroundStyle(.yellow)
                 } else {
-                    Label("暂无评分", systemImage: "star").foregroundStyle(.secondary)
+                    Label("暂无评分", systemImage: "star")
                 }
             }
+            .lineLimit(1)
             .font(.caption)
             .foregroundStyle(.secondary)
+            .frame(height: 18, alignment: .leading)
         }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
         .contentShape(Rectangle())
     }
 }
