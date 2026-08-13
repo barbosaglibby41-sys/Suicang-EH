@@ -23,7 +23,7 @@ struct SettingsView: View {
                 Text("不使用第三方中转服务器。Cookie 仅保存在本机 Keychain。网络功能与标签翻译库均支持本地回退。")
                     .font(.footnote).foregroundStyle(.secondary)
             }
-            Section("关于") { LabeledContent("版本", value: "1.7.4"); Text("JHenTai 架构参考：Apache-2.0，完整许可证随源代码提供。") .font(.footnote).foregroundStyle(.secondary) }
+            Section("关于") { LabeledContent("版本", value: "1.7.5"); Text("JHenTai 架构参考：Apache-2.0，完整许可证随源代码提供。") .font(.footnote).foregroundStyle(.secondary) }
         }.navigationTitle("设置")
     }
 }

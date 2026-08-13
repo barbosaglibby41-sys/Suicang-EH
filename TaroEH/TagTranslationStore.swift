@@ -153,7 +153,11 @@ final class TagTranslationStore: ObservableObject {
 
     func suggestions(for query: String, limit: Int = 12) -> [TranslatedTag] {
         let term = currentToken(in: query).lowercased()
-        guard term.count >= 2 else { return [] }
+        guard !term.isEmpty else { return [] }
+        // Chinese users commonly search one character at a time (for example, "足").
+        // Latin input still needs two characters to avoid noise.
+        let containsCJK = term.unicodeScalars.contains { (0x4E00...0x9FFF).contains($0.value) }
+        guard containsCJK || term.count >= 2 else { return [] }
         let initial = String(term.prefix(1))
         let candidates = searchBuckets[initial] ?? tags
         let scored: [(TranslatedTag, Int)] = candidates.map { ($0, score($0, term)) }
