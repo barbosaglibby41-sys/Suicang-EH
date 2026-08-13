@@ -15,7 +15,10 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.taro.eh
         PRODUCT_NAME: TaroEH
+        MARKETING_VERSION: "1.7.0"
+        CURRENT_PROJECT_VERSION: "1"
         SWIFT_VERSION: "5.0"
+        INFOPLIST_FILE: TaroEH/Info.plist
         GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.entertainment
         TARGETED_DEVICE_FAMILY: "1,2"
