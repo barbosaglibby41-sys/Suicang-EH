@@ -184,7 +184,7 @@ struct GalleryCard: View {
                 .font(.subheadline.bold())
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)
-                .frame(maxWidth: .infinity, height: 42, alignment: .topLeading)
+                .frame(maxWidth: .infinity, minHeight: 42, maxHeight: 42, alignment: .topLeading)
 
             HStack(spacing: 8) {
                 Label(gallery.pageCount > 0 ? "\(gallery.pageCount) 页" : "页数未知", systemImage: "book.pages")
