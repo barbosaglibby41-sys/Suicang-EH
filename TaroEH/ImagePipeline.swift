@@ -60,21 +60,47 @@ private struct PipelineImageContent: View {
     @State private var failed = false
     var body: some View {
         Group {
-            if let image {
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: contentMode)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .clipped()
-            } else if failed {
-                Image(systemName: "photo.badge.exclamationmark").foregroundStyle(.secondary)
-            } else {
-                ProgressView()
-            }
+            if let image { Image(uiImage: image).resizable().aspectRatio(contentMode: contentMode) }
+            else if failed { Image(systemName: "photo.badge.exclamationmark").foregroundStyle(.secondary) }
+            else { ProgressView() }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .clipped()
         .task(id: url) {
+            do { image = try await ImagePipeline.shared.image(for: url, cookieHeader: cookieHeader) }
+            catch { failed = true }
+        }
+    }
+}
+
+/// A cover image whose loaded bitmap is constrained to its caller's fixed viewport.
+struct GalleryCover: View {
+    let url: URL?
+    var cookieHeader: String? = nil
+    @State private var image: UIImage?
+    @State private var failed = false
+
+    var body: some View {
+        GeometryReader { proxy in
+            ZStack {
+                Color.secondary.opacity(0.14)
+                if let image {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: proxy.size.width, height: proxy.size.height)
+                        .clipped()
+                } else if failed {
+                    Image(systemName: "photo.badge.exclamationmark").foregroundStyle(.secondary)
+                } else {
+                    ProgressView()
+                }
+            }
+            .frame(width: proxy.size.width, height: proxy.size.height)
+            .clipped()
+        }
+        .task(id: url) {
+            image = nil
+            failed = false
+            guard let url else { return }
             do { image = try await ImagePipeline.shared.image(for: url, cookieHeader: cookieHeader) }
             catch { failed = true }
         }

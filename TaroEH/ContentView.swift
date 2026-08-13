@@ -171,21 +171,20 @@ struct FeatureCard: View {
 }
 struct GalleryCard: View {
     let gallery: Gallery
+    private let coverHeight: CGFloat = 220
+    private let cardHeight: CGFloat = 302
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            ZStack {
-                Color.secondary.opacity(0.14)
-                PipelineImage(url: gallery.thumbnailURL, contentMode: .fill)
-            }
-            .aspectRatio(0.72, contentMode: .fit)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
+            GalleryCover(url: gallery.thumbnailURL)
+                .frame(height: coverHeight)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
 
             Text(gallery.title)
                 .font(.subheadline.bold())
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)
-                .frame(maxWidth: .infinity, minHeight: 40, alignment: .topLeading)
+                .frame(maxWidth: .infinity, height: 42, alignment: .topLeading)
 
             HStack(spacing: 8) {
                 Label(gallery.pageCount > 0 ? "\(gallery.pageCount) 页" : "页数未知", systemImage: "book.pages")
@@ -201,7 +200,7 @@ struct GalleryCard: View {
             .foregroundStyle(.secondary)
             .frame(height: 18, alignment: .leading)
         }
-        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .frame(maxWidth: .infinity, minHeight: cardHeight, maxHeight: cardHeight, alignment: .topLeading)
         .contentShape(Rectangle())
     }
 }
