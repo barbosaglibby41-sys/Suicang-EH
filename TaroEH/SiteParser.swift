@@ -54,6 +54,7 @@ enum SiteParser {
         gallery.uploader = first(#"id=[\"']gdn[\"'][^>]*>.*?<a[^>]*>(.*?)</a>"#, in: html).map(clean) ?? gallery.uploader
         if let pages = first(#"([0-9,]+)\s+pages"#, in: html)?.replacingOccurrences(of: ",", with: ""), let count = Int(pages) { gallery.pageCount = count }
         if let rating = first(#"Average:\s*([0-9]+(?:\.[0-9]+)?)"#, in: html), let value = Double(rating) { gallery.rating = value }
+        if let posted = first(#"(?s)<td[^>]*class=[\"']gdt1[\"'][^>]*>\s*Posted:\s*</td>\s*<td[^>]*class=[\"']gdt2[\"'][^>]*>(.*?)</td>"#, in: html)?.trimmingCharacters(in: .whitespacesAndNewlines), !posted.isEmpty { gallery.postedAt = posted }
         if let cover = first(#"url\((https?[^)]+)\)"#, in: html) { gallery.thumbnailURL = URL(string: decode(cover)) }
         let rawTags = all(#"id=[\"']ta_([^\"']+)[\"']"#, in: html)
         gallery.tags = Array(Set(rawTags.map { GalleryTag.parse(decode($0)) })).sorted { $0.rawName < $1.rawName }

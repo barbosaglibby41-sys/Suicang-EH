@@ -116,27 +116,27 @@ struct PreviewStrip: View {
 
     private func loadMore() async {
         guard hasMore, !isLoadingMore, let base = gallery.sourceURL else { return }
-        await MainActor.run { isLoadingMore = true }
-        defer { Task { @MainActor in isLoadingMore = false } }
+        isLoadingMore = true
+        defer { isLoadingMore = false }
         let next = loadedBatch + 1
         var components = URLComponents(url: base, resolvingAgainstBaseURL: false)
         components?.queryItems = [URLQueryItem(name: "p", value: String(next))]
-        guard let url = components?.url else { await MainActor.run { hasMore = false }; return }
+        guard let url = components?.url else { hasMore = false; return }
         do {
             let data = try await SiteClient.shared.request(url, cookieHeader: session.cookieHeader())
-            guard let html = String(data: data, encoding: .utf8) else { await MainActor.run { hasMore = false }; return }
+            guard let html = String(data: data, encoding: .utf8) else { hasMore = false; return }
             let batch = SiteParser.previews(from: html, limit: 20)
-            guard !batch.isEmpty else { await MainActor.run { hasMore = false }; return }
+            guard !batch.isEmpty else { hasMore = false; return }
             let known = Set(previews.map(\.page))
             let fresh = batch.filter { !known.contains($0.page) }
-            guard !fresh.isEmpty else { await MainActor.run { hasMore = false }; return }
-            await MainActor.run {
-                loadedBatch = next
-                previews.append(contentsOf: fresh)
-            }
+            guard !fresh.isEmpty else { hasMore = false; return }
+            loadedBatch = next
+            previews.append(contentsOf: fresh)
             await loadTiles(for: fresh)
         } catch {
-            await MainActor.run { hasMore = false }
+            failed = true
+            // Keep the sentinel available so a transient request can retry.
+            hasMore = true
         }
     }
 }
