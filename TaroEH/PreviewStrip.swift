@@ -35,6 +35,9 @@ struct PreviewStrip: View {
                     ForEach(previews, id: \.page) { preview in tile(preview) }
                     if hasMore {
                         ProgressView().controlSize(.small).frame(width: 40, height: 80)
+                            // Recreate the sentinel after every appended batch;
+                            // horizontal ScrollView otherwise fires onAppear only once.
+                            .id("preview-loader-\(previews.count)")
                             .onAppear { Task { await loadMore() } }
                     }
                 }.padding(.vertical, 2)

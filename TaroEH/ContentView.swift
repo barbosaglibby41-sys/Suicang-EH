@@ -25,7 +25,10 @@ struct ContentView: View {
         .environmentObject(session)
         .environmentObject(library)
         .tint(.purple)
-        .onReceive(NotificationCenter.default.publisher(for: .taroSearchTag)) { _ in selectedTab = 0 }
+        .onReceive(NotificationCenter.default.publisher(for: .taroSearchTag)) { _ in
+            path = NavigationPath()
+            selectedTab = 0
+        }
         .task { library.configure(modelContext) }
     }
 }
