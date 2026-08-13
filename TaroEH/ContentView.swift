@@ -143,7 +143,13 @@ struct DiscoverView: View {
                     Spacer()
                     Text("\(filtered.count) 项").foregroundStyle(.secondary).font(.caption)
                 }
-                if !isLoading && filtered.isEmpty {
+                if isLoading {
+                    VStack(spacing: 12) {
+                        ProgressView().controlSize(.large)
+                        Text("正在搜索网络…").font(.caption).foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 180)
+                } else if filtered.isEmpty {
                     ContentUnavailableView("暂无画廊", systemImage: "rectangle.stack", description: Text("下拉刷新或使用搜索查找作品。"))
                 } else {
                     LazyVGrid(columns: columns, spacing: 14) {
@@ -252,10 +258,13 @@ struct DiscoverView: View {
                                         Text("\(tag.namespace):\(tag.key)").font(.subheadline).lineLimit(1)
                                         Text("\(TagTranslationStore.namespaceName(tag.namespace)) · \(tag.name)").font(.caption).foregroundStyle(.secondary).lineLimit(1)
                                     }
-                                    Spacer()
+                                    Spacer(minLength: 20)
                                     Image(systemName: "arrow.up.right").font(.caption).foregroundStyle(.secondary)
-                                }.padding(.vertical, 9)
-                            }.buttonStyle(.plain)
+                                }
+                                .frame(maxWidth: .infinity, minHeight: 46, alignment: .leading)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                 }
@@ -403,6 +412,7 @@ struct DiscoverView: View {
                 guard generation == feedGeneration else { return }
                 discovery.record(query: term)
                 results = found
+                withAnimation(.easeOut(duration: 0.2)) { isLoading = false }
                 if found.isEmpty { networkError = "没有匹配结果，或站点页面结构发生变化。" }
             } catch {
                 guard generation == feedGeneration else { return }
