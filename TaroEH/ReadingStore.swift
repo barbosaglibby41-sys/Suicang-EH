@@ -32,7 +32,15 @@ struct OfflineTask: Identifiable, Codable, Hashable {
     init() { load(); tasks = tasks.map { var t = $0; if t.state == .downloading { t.state = .queued }; return t }; schedule() }
     var runningCount: Int { workers.count }
     var maximumConcurrentTasks: Int { let value = UserDefaults.standard.integer(forKey: "taro.eh.concurrent"); return max(1, min(6, value == 0 ? 2 : value)) }
-    func enqueue(_ gallery: Gallery, imageURLs: [URL]? = nil) { guard !tasks.contains(where: { $0.gallery.stableKey == gallery.stableKey }) else { return }; let urls = imageURLs ?? DemoData.pages(for: gallery).map(\.imageURL); tasks.insert(OfflineTask(id: UUID(), gallery: gallery, imageURLs: urls, completedPages: 0, state: .queued, createdAt: .now), at: 0); persist(); schedule() }
+    /// Returns false when no real image URLs are provided (e.g. missing source
+    /// URL) so callers can surface an error instead of downloading demo pages.
+    @discardableResult
+    func enqueue(_ gallery: Gallery, imageURLs: [URL]? = nil) -> Bool {
+        guard !tasks.contains(where: { $0.gallery.stableKey == gallery.stableKey }) else { return true }
+        guard let urls = imageURLs, !urls.isEmpty else { return false }
+        tasks.insert(OfflineTask(id: UUID(), gallery: gallery, imageURLs: urls, completedPages: 0, state: .queued, createdAt: .now), at: 0)
+        persist(); schedule(); return true
+    }
     func toggle(_ task: OfflineTask) { task.state == .downloading ? pause(task) : resume(task) }
     func resume(_ task: OfflineTask) { guard let i = tasks.firstIndex(where: { $0.id == task.id }), tasks[i].state != .complete else { return }; tasks[i].state = .queued; persist(); schedule() }
     func pause(_ task: OfflineTask) { workers[task.id]?.cancel(); workers[task.id] = nil; guard let i = tasks.firstIndex(where: { $0.id == task.id }) else { return }; tasks[i].state = .paused; persist(); schedule() }

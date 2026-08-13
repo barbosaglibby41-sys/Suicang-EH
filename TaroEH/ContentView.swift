@@ -372,7 +372,8 @@ struct GalleryDetailView: View {
             PipelineImage(url: item.thumbnailURL, cookieHeader: session.cookieHeader(), contentMode: .fit).frame(maxWidth: .infinity).frame(height: 300)
             HStack(alignment: .top) { VStack(alignment: .leading) { Text(item.title).font(.title2.bold()); Text("\(item.uploader) · \(item.pageCount) 页").foregroundStyle(.secondary) }; Spacer(); Button { library.toggleFavorite(item) } label: { Image(systemName: library.isFavorite(item) ? "star.fill" : "star").font(.title2) } }
             if let detailError { Text(detailError).font(.caption).foregroundStyle(.orange) }
-            HStack { NavigationLink { item.sourceURL == nil ? AnyView(ReaderView(gallery: item)) : AnyView(OnlineReaderView(gallery: item)) } label: { Label("开始阅读", systemImage: "book.fill").frame(maxWidth: .infinity) }.buttonStyle(.borderedProminent); Button { downloadOnline() } label: { Image(systemName: "arrow.down.to.line") }.buttonStyle(.bordered); if let source = item.sourceURL { Link(destination: source) { Image(systemName: "safari") }.buttonStyle(.bordered) }; ShareLink(item: item.title) { Image(systemName: "square.and.arrow.up") }.buttonStyle(.bordered) }
+            HStack { NavigationLink { ReaderDestination.view(for: item) } label: { Label("开始阅读", systemImage: "book.fill").frame(maxWidth: .infinity) }.buttonStyle(.borderedProminent).disabled(!ReaderDestination.canRead(item)); Button { downloadOnline() } label: { Image(systemName: "arrow.down.to.line") }.buttonStyle(.bordered).disabled(item.sourceURL == nil); if let source = item.sourceURL { Link(destination: source) { Image(systemName: "safari") }.buttonStyle(.bordered) }; ShareLink(item: item.title) { Image(systemName: "square.and.arrow.up") }.buttonStyle(.bordered) }
+            if !ReaderDestination.canRead(item) { Text("缺少在线地址且无离线副本，无法阅读或下载。").font(.caption).foregroundStyle(.orange) }
             HStack(spacing: 6) {
                 Image(systemName: "tag.fill").font(.subheadline).foregroundStyle(.purple)
                 Text("标签").font(.headline)
@@ -405,8 +406,7 @@ struct GalleryDetailView: View {
             return (TagTranslationStore.namespaceName(ns), list)
         }
     }
-    private func hydrate() async { guard item.sourceURL != nil else { return }; do { item = try await SiteClient.shared.detail(item, cookieHeader: session.cookieHeader()).gallery; library.record(item) } catch { detailError = "详情加载失败：\(error.localizedDescription)" } }
-    private func downloadOnline() { Task { do { if item.sourceURL == nil { downloads.enqueue(item); return }; let detail = try await SiteClient.shared.detail(item, cookieHeader: session.cookieHeader()); let urls = try await SiteClient.shared.imageURLs(for: detail, cookieHeader: session.cookieHeader()); guard !urls.isEmpty else { detailError = "未解析到可下载图片。"; return }; item = detail.gallery; downloads.enqueue(item, imageURLs: urls) } catch { detailError = "无法创建下载任务：\(error.localizedDescription)" } } }
+    private func hydrate() async { guard item.sourceURL != nil else { return }; do { item = try await SiteClient.shared.detail(item, cookieHeader: session.cookieHeader()).gallery; library.record(item) } catch { detailError = "详情加载失败：\(error.localizedDescription)" } }    private func downloadOnline() { Task { do { guard item.sourceURL != nil else { detailError = "该作品缺少在线地址，无法下载。"; return }; let detail = try await SiteClient.shared.detail(item, cookieHeader: session.cookieHeader()); let urls = try await SiteClient.shared.imageURLs(for: detail, cookieHeader: session.cookieHeader()); guard !urls.isEmpty else { detailError = "未解析到可下载图片。"; return }; item = detail.gallery; if !downloads.enqueue(item, imageURLs: urls) { detailError = "下载任务创建失败，请检查网络后重试。" } } catch { detailError = "无法创建下载任务：\(error.localizedDescription)" } } }
 }
 
 struct FlowTags: View {
@@ -500,7 +500,7 @@ struct ShelfView: View {
                 NavigationLink { GalleryDetailView(gallery: gallery) } label: { GalleryRow(gallery: gallery) }
             }
         }
-        Section("最近阅读") { ForEach(library.history) { gallery in GalleryRow(gallery: gallery) } }
+        Section("最近阅读 · \(library.history.count)") { ForEach(library.history) { gallery in NavigationLink { GalleryDetailView(gallery: gallery) } label: { GalleryRow(gallery: gallery) } } }
     }.navigationTitle("书架") }
 }
 

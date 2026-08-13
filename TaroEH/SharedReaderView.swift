@@ -1,6 +1,25 @@
 import SwiftUI
 import UIKit
 
+/// Picks the right reader for a gallery: online when a source URL exists,
+/// offline when a complete local copy exists, otherwise a fallback message.
+/// Never falls back to the demo reader for real galleries.
+enum ReaderDestination {
+    @ViewBuilder
+    static func view(for gallery: Gallery) -> some View {
+        if gallery.sourceURL != nil {
+            OnlineReaderView(gallery: gallery)
+        } else if OfflineLibrary.hasCompleteCopy(gallery) {
+            OfflineReaderView(gallery: gallery)
+        } else {
+            ContentUnavailableView("无法阅读", systemImage: "book", description: Text("该作品缺少在线地址，且没有离线副本。"))
+        }
+    }
+    static func canRead(_ gallery: Gallery) -> Bool {
+        gallery.sourceURL != nil || OfflineLibrary.hasCompleteCopy(gallery)
+    }
+}
+
 struct SharedReaderView<Source: View>: View {
     let title: String
     let pageCount: Int
