@@ -115,10 +115,10 @@ final class TagTranslationStore: ObservableObject {
         guard term.count >= 2 else { return [] }
         let initial = String(term.prefix(1))
         let candidates = searchBuckets[initial] ?? tags
-        return candidates.lazy.map { ($0, score($0, term)) }
-            .filter { $0.1 > 0 }
-            .sorted { $0.1 == $1.1 ? $0.0.name < $1.0.name : $0.1 > $1.1 }
-            .prefix(limit).map { $0.0 }
+        let scored: [(TranslatedTag, Int)] = candidates.map { ($0, score($0, term)) }
+        let filtered = scored.filter { $0.1 > 0 }
+        let sorted = filtered.sorted { $0.1 == $1.1 ? $0.0.name < $1.0.name : $0.1 > $1.1 }
+        return sorted.prefix(limit).map { $0.0 }
     }
 
     func update() async {
@@ -127,6 +127,7 @@ final class TagTranslationStore: ObservableObject {
         defer { isUpdating = false; progress = 1 }
         var lastError: Error?
         for source in Self.remoteSources {
+            let host = source.host ?? "镜像源"
             do {
                 var request = URLRequest(url: source)
                 request.timeoutInterval = 25
@@ -145,7 +146,7 @@ final class TagTranslationStore: ObservableObject {
                     continue
                 }
                 if envelope.version == databaseVersion && envelope.updatedAt == updatedAt {
-                    statusMessage = "当前已经是最新版本（\(source.host ?? "镜像源")）"
+                    statusMessage = "当前已经是最新版本（\(host)）"
                     return
                 }
                 let canonical = try JSONEncoder().encode(envelope)
@@ -153,7 +154,7 @@ final class TagTranslationStore: ObservableObject {
                 UserDefaults.standard.set("本地更新", forKey: sourceKey)
                 dataSource = "本地更新"
                 apply(envelope)
-                statusMessage = "已更新到数据库版本 \(envelope.version)（来源：\(source.host ?? "镜像源")）"
+                statusMessage = "已更新到数据库版本 \(envelope.version)（来源：\(host)）"
                 return
             } catch {
                 lastError = error
