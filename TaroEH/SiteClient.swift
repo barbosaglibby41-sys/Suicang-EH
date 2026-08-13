@@ -141,19 +141,31 @@ final class SiteClient {
         var output: [Gallery] = []
         var cursor: Int?
         var seenCursors = Set<Int>()
+        var firstRequest = true
 
-        for _ in 0..<20 {
-            let page = try await discoveryPage(source: source, baseURL: baseURL, cookieHeader: cookieHeader, cursor: cursor)
-            let fresh = page.galleries.filter { $0.postedAt?.hasPrefix(target) == true }
-            output.append(contentsOf: fresh)
-            let olderThanTarget = page.galleries.contains { gallery in
+        for _ in 0..<200 {
+            var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false)
+            var queryItems = [URLQueryItem(name: "seek", value: target)]
+            if let cursor { queryItems.append(URLQueryItem(name: "next", value: String(cursor))) }
+            components?.queryItems = queryItems
+            guard let url = components?.url else { throw SiteError.invalidResponse }
+            let data = try await request(url, cookieHeader: cookieHeader)
+            guard let html = String(data: data, encoding: .utf8) else { throw SiteError.parseFailed }
+            let page = SiteParser.galleriesPage(from: html, source: source, baseURL: baseURL)
+            let sameDay = page.galleries.filter { $0.postedAt?.hasPrefix(target) == true }
+            output.append(contentsOf: sameDay)
+            let hasTargetDate = !sameDay.isEmpty
+            let hasOlder = page.galleries.contains { gallery in
                 guard let posted = gallery.postedAt else { return false }
                 return String(posted.prefix(10)) < target
             }
-            guard !olderThanTarget, let next = page.nextCursor, seenCursors.insert(next).inserted else { break }
+            guard let next = page.nextCursor, seenCursors.insert(next).inserted,
+                  firstRequest || hasTargetDate, !hasOlder else { break }
+            firstRequest = false
             cursor = next
         }
-        return output
+        var seen = Set<Int>()
+        return output.filter { seen.insert($0.id).inserted }
     }
     func detail(_ gallery: Gallery, cookieHeader: String?) async throws -> NetworkGalleryDetail {
         guard let url = gallery.sourceURL else { throw SiteError.invalidResponse }

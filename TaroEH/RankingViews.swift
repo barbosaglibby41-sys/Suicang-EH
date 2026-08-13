@@ -111,7 +111,7 @@ struct RankingListView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if rankings.isLoading && galleries.isEmpty {
+                if (rankings.isLoading || rankings.dateLoading) && galleries.isEmpty {
                     ProgressView("正在加载排行…")
                 } else if galleries.isEmpty {
                     ContentUnavailableView("暂无排行", systemImage: "chart.bar", description: Text(rankings.error ?? "请稍后重试"))
@@ -126,7 +126,7 @@ struct RankingListView: View {
                                 .buttonStyle(.plain)
                                 Divider().padding(.leading, 20)
                                     .onAppear {
-                                        if index == galleries.count - 1 {
+                                        if index == galleries.count - 1 && !isDateMode {
                                             Task { await rankings.loadMore(period) }
                                         }
                                     }
