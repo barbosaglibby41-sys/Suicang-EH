@@ -215,14 +215,20 @@ struct DiscoverView: View {
         .sheet(isPresented: $showFilters) { FilterView(sort: $sort, config: $advanced) }
         .sheet(isPresented: $showAllRankings) { RankingListView() }
         .task {
-            if let base = URL(string: siteAddress) {
-                await rankings.load(source: currentSource, baseURL: base, cookieHeader: session.cookieHeader())
-            }
             if autoSearch, !(initialQuery ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 onlineSearch()
             } else {
                 loadFrontPage()
             }
+            // Rankings are intentionally independent from the main feed. The
+            // date-based "today" list may require several server pages and
+            // must never delay the first gallery request.
+            if let base = URL(string: siteAddress) {
+                Task { await rankings.load(source: currentSource, baseURL: base, cookieHeader: session.cookieHeader()) }
+            }
+        }
+        .refreshable {
+            await refreshFrontPage()
         }
         .onChange(of: sourceRaw) { _, _ in
             results = []
@@ -353,6 +359,30 @@ struct DiscoverView: View {
     }
 
 
+    private func refreshFrontPage() async {
+        guard let base = URL(string: siteAddress) else { return }
+        feedGeneration += 1
+        let generation = feedGeneration
+        let source = currentSource
+        let cookieHeader = session.cookieHeader()
+        isLoading = true
+        networkError = nil
+        do {
+            let page = try await SiteClient.shared.discoveryPage(source: source, baseURL: base, cookieHeader: cookieHeader)
+            guard generation == feedGeneration else { return }
+            results = page.galleries
+            selectedFeed = .latest
+            isSearchResults = false
+            isRandomFeed = false
+            nextDiscoveryCursor = page.nextCursor
+            discoveryExhausted = page.nextCursor == nil
+        } catch {
+            guard generation == feedGeneration else { return }
+            networkError = "刷新失败：\(error.localizedDescription)"
+        }
+        if generation == feedGeneration { isLoading = false }
+        Task { await rankings.load(source: source, baseURL: base, cookieHeader: cookieHeader, force: true) }
+    }
     private func selectFeed(_ feed: DiscoverFeed) {
         guard let base = URL(string: siteAddress) else { return }
         feedGeneration += 1

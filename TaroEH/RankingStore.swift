@@ -73,26 +73,36 @@ final class RankingStore: ObservableObject {
         isLoading = true
         error = nil
         resetData()
+        defer { isLoading = false }
         do {
             async let yesterdayPage = SiteClient.shared.toplistPage(period: .yesterday, source: source, baseURL: baseURL, cookieHeader: cookieHeader, page: 0)
             async let monthPage = SiteClient.shared.toplistPage(period: .month, source: source, baseURL: baseURL, cookieHeader: cookieHeader, page: 0)
-            let currentDate = Date()
-            let todayTask = Task { try await SiteClient.shared.dateRankings(for: currentDate, source: source, baseURL: baseURL, cookieHeader: cookieHeader) }
             let y = try await yesterdayPage
-            let m = try await monthPage
-            let todayValues = try await todayTask.value
-            set(galleries: todayValues.galleries, for: .today)
-            dateResolvedDate = todayValues.resolvedDate
             set(galleries: y.galleries, for: .yesterday)
-            set(galleries: m.galleries, for: .month)
             nextPage[.yesterday] = y.nextPage
-            nextPage[.month] = m.nextPage
             hasMore[.yesterday] = y.nextPage != nil
+            let m = try await monthPage
+            set(galleries: m.galleries, for: .month)
+            nextPage[.month] = m.nextPage
             hasMore[.month] = m.nextPage != nil
         } catch {
             self.error = "排行榜加载失败：\(error.localizedDescription)"
         }
         isLoading = false
+
+        // The date-based list is deliberately independent. It can require
+        // many cursor requests and must not delay the official toplists.
+        Task { [weak self] in
+            do {
+                let result = try await SiteClient.shared.dateRankings(for: Date(), source: source, baseURL: baseURL, cookieHeader: cookieHeader)
+                guard let self else { return }
+                self.set(galleries: result.galleries, for: .today)
+                self.dateResolvedDate = result.resolvedDate
+            } catch {
+                // Official yesterday/month rankings remain usable when the
+                // optional date-based list is unavailable.
+            }
+        }
     }
 
     func loadPeriod(_ period: RankingPeriod) async {
