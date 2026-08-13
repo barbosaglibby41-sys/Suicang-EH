@@ -46,11 +46,23 @@ enum OfflineLibrary {
         let folders = [folder(for: gallery), legacyFolder(for: gallery)].compactMap { $0 }
         for folder in folders {
             if let files = try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil) {
-                let pages = files.filter { ["jpg", "jpeg", "png", "webp"].contains($0.pathExtension.lowercased()) }.sorted { $0.lastPathComponent < $1.lastPathComponent }
+                let pages = files.filter { ["jpg", "jpeg", "png", "webp"].contains($0.pathExtension.lowercased()) }.sorted {
+                    let left = naturalPageNumber($0)
+                    let right = naturalPageNumber($1)
+                    return left == right ? $0.lastPathComponent < $1.lastPathComponent : left < right
+                }
                 if !pages.isEmpty { return pages }
             }
         }
         return []
+    }
+
+    /// Numeric-aware ordering keeps 1, 2, 10 instead of lexical 1, 10, 2.
+    private static func naturalPageNumber(_ url: URL) -> Int {
+        let digits = url.deletingPathExtension().lastPathComponent
+            .split(whereSeparator: { !$0.isNumber })
+            .last
+        return digits.flatMap { Int($0) } ?? Int.max
     }
     private static func legacyFolder(for gallery: Gallery) -> URL? { guard let root = try? FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: false) else { return nil }; return root.appendingPathComponent("Offline", isDirectory: true).appendingPathComponent(String(gallery.id), isDirectory: true) }
 }

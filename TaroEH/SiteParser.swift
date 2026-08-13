@@ -157,13 +157,24 @@ enum SiteParser {
         let pattern = #"href=[\"']([^\"']*s/[0-9a-zA-Z]+/[0-9]+-[0-9]+)[\"']"#
         guard let regex = try? NSRegularExpression(pattern: pattern) else { return [] }
         let ns = html as NSString
-        return Array(Set(regex.matches(in: html, range: NSRange(location: 0, length: ns.length)).compactMap { URL(string: ns.substring(with: $0.range(at: 1)), relativeTo: base)?.absoluteURL })).sorted { $0.absoluteString < $1.absoluteString }
+        let urls = Array(Set(regex.matches(in: html, range: NSRange(location: 0, length: ns.length)).compactMap { URL(string: ns.substring(with: $0.range(at: 1)), relativeTo: base)?.absoluteURL }))
+        return urls.sorted {
+            let leftPage = pageNumber(in: $0)
+            let rightPage = pageNumber(in: $1)
+            if leftPage != rightPage { return leftPage < rightPage }
+            return $0.absoluteString < $1.absoluteString
+        }
     }
 
     static func imageURL(from html: String) -> URL? {
         first(#"id=[\"']img[\"'][^>]+src=[\"']([^\"']+)[\"']"#, in: html).flatMap { URL(string: decode($0)) }
     }
 
+    private static func pageNumber(in url: URL) -> Int {
+        let component = url.path.split(separator: "/").last.map(String.init) ?? ""
+        let leading = component.split(separator: "-", maxSplits: 1).first.map(String.init) ?? component
+        return Int(leading) ?? Int.max
+    }
     private static func listMetadata(from html: String, baseURL: URL?) -> [Int: GalleryListMetadata] {
         let idPattern = #"id=[\"']it(\d+)[\"']"#
         guard let regex = try? NSRegularExpression(pattern: idPattern, options: [.caseInsensitive]) else { return [:] }

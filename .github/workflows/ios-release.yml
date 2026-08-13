@@ -9,7 +9,7 @@ on:
       version:
         description: Release version
         required: true
-        default: '1.7.16'
+        default: '1.7.17'
 
 jobs:
   build:

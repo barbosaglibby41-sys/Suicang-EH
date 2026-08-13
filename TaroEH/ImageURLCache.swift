@@ -4,7 +4,7 @@ import Foundation
 struct ImageURLCacheEntry: Codable { var pageLinks: [URL]; var imageURLs: [Int: URL]; var updatedAt: Date }
 @MainActor final class ImageURLCache: ObservableObject {
     static let shared = ImageURLCache(); private var entries: [String: ImageURLCacheEntry] = [:]
-    private let key = "taro.eh.image-url-cache.v2"; private let lifetime: TimeInterval = 86_400
+    private let key = "taro.eh.image-url-cache.v3"; private let lifetime: TimeInterval = 86_400
     private init() {
         if let data = UserDefaults.standard.data(forKey: key), let value = try? JSONDecoder().decode([String: ImageURLCacheEntry].self, from: data) { entries = value; removeExpired() }
     }
