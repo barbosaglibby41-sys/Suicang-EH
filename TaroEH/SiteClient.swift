@@ -42,9 +42,24 @@ final class SiteClient {
         return SiteParser.galleries(from: html, source: source, baseURL: baseURL)
     }
 
-    /// Returns a random item from the currently loaded front page without pretending to use a private random API.
-    func randomGallery(source: EHSource, baseURL: URL, cookieHeader: String?) async throws -> Gallery? {
-        try await frontPage(source: source, baseURL: baseURL, cookieHeader: cookieHeader).randomElement()
+    /// Chooses a random gallery cursor across the site's full gid range, then samples that server page.
+    /// E-Hentai has no public one-gallery random endpoint; `next=<gid>` is its supported pagination cursor.
+    func randomGallery(source: EHSource, baseURL: URL, cookieHeader: String?, excluding: Set<Int> = []) async throws -> Gallery? {
+        let newest = try await frontPage(source: source, baseURL: baseURL, cookieHeader: cookieHeader)
+            .map(\.id)
+            .max() ?? 1
+
+        for _ in 0..<4 {
+            var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false)
+            components?.queryItems = [URLQueryItem(name: "next", value: String(Int.random(in: 1...newest)))]
+            guard let url = components?.url else { throw SiteError.invalidResponse }
+            let data = try await request(url, cookieHeader: cookieHeader)
+            guard let html = String(data: data, encoding: .utf8) else { throw SiteError.parseFailed }
+            let galleries = SiteParser.galleries(from: html, source: source, baseURL: baseURL)
+            if let gallery = galleries.shuffled().first(where: { !excluding.contains($0.id) }) { return gallery }
+            if let gallery = galleries.randomElement() { return gallery }
+        }
+        return nil
     }
 
     func detail(_ gallery: Gallery, cookieHeader: String?) async throws -> NetworkGalleryDetail {

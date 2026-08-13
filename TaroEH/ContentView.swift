@@ -135,10 +135,20 @@ struct DiscoverView: View {
     }
     private func randomGallery() {
         guard let base = URL(string: siteAddress) else { return }
-        isLoading = true; networkError = nil
+        isLoading = true
+        networkError = nil
+        let visibleIDs = Set(results.map(\.id))
         Task {
-            do { if let gallery = try await SiteClient.shared.randomGallery(source: currentSource, baseURL: base, cookieHeader: session.cookieHeader()) { results = [gallery] } }
-            catch { networkError = "随机发现失败：\(error.localizedDescription)" }
+            do {
+                guard let gallery = try await SiteClient.shared.randomGallery(source: currentSource, baseURL: base, cookieHeader: session.cookieHeader(), excluding: visibleIDs) else {
+                    networkError = "站点没有返回可用的随机画廊。"
+                    isLoading = false
+                    return
+                }
+                results = [gallery]
+            } catch {
+                networkError = "随机发现失败：\(error.localizedDescription)"
+            }
             isLoading = false
         }
     }
