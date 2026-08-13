@@ -79,6 +79,7 @@ struct DiscoverView: View {
     @State private var networkError: String?
     @State private var showFilters = false
     @State private var sort: GallerySort = .recent
+    @State private var randomOrder: [Int] = []
     @State private var advanced = AdvancedSearchConfig()
     @FocusState private var searchFocused: Bool
     private let initialQuery: String?
@@ -97,16 +98,23 @@ struct DiscoverView: View {
     private var currentSource: EHSource { EHSource(rawValue: sourceRaw) ?? .eHentai }
     private var filtered: [Gallery] {
         var config = advanced
-        // The server has already applied the online keyword/tag query. List
-        // pages intentionally omit full tag metadata, so applying the same
-        // keyword locally would incorrectly turn valid results into zero.
         if isSearchResults {
             config.keyword = ""
             config.tags = []
         } else {
             config.keyword = query
         }
-        return sort.apply(results.filter { config.matches($0) })
+        let matched = results.filter { config.matches($0) }
+        switch sort {
+        case .recent: return matched
+        case .popular: return matched.sorted { ($0.rating ?? 0) > ($1.rating ?? 0) }
+        case .random:
+            let order = randomOrder.isEmpty ? matched.map(\.id).shuffled() : randomOrder
+            let byID = Dictionary(uniqueKeysWithValues: matched.map { ($0.id, $0) })
+            return order.compactMap { byID[$0] } + matched.filter { !order.contains($0.id) }
+        case .pages: return matched.sorted { $0.pageCount > $1.pageCount }
+        case .title: return matched.sorted { $0.title < $1.title }
+        }
     }
 
     var body: some View {
@@ -141,6 +149,19 @@ struct DiscoverView: View {
                     }
                     Text(isSearchResults ? "搜索结果" : selectedFeed.rawValue).font(.title3.bold())
                     Spacer()
+                    Menu {
+                        ForEach(GallerySort.allCases) { option in
+                            Button {
+                                sort = option
+                                if option == .random { randomOrder = results.map(\.id).shuffled() }
+                                else { randomOrder = [] }
+                            } label: {
+                                Label(option.rawValue, systemImage: option.icon)
+                            }
+                        }
+                    } label: {
+                        Label(sort.rawValue, systemImage: "arrow.up.arrow.down").font(.caption.weight(.semibold))
+                    }.buttonStyle(.bordered).controlSize(.small)
                     Text("\(filtered.count) 项").foregroundStyle(.secondary).font(.caption)
                 }
                 if isLoading {
@@ -435,9 +456,11 @@ struct DiscoverView: View {
 }
 
 enum GallerySort: String, CaseIterable, Identifiable {
-    case recent = "最近", pages = "页数", title = "标题"
+    case recent = "最新", popular = "热门", random = "随机", pages = "页数最多", title = "标题"
     var id: String { rawValue }
-    func apply(_ values: [Gallery]) -> [Gallery] { switch self { case .recent: return values; case .pages: return values.sorted { $0.pageCount > $1.pageCount }; case .title: return values.sorted { $0.title < $1.title } } }
+    var icon: String {
+        switch self { case .recent: return "clock.arrow.circlepath"; case .popular: return "flame"; case .random: return "shuffle"; case .pages: return "book.pages"; case .title: return "textformat" }
+    }
 }
 
 struct FeatureCard: View {
