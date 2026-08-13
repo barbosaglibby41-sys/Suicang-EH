@@ -130,7 +130,11 @@ enum SiteParser {
     }
 
     static func nextGalleryCursor(from html: String) -> Int? {
-        first(#"id=[\"']dnext[\"'][^>]+href=[\"'][^\"']*[?&]next=(\d+)[\"']"#, in: html).flatMap(Int.init)
+        guard let href = first(#"id=[\"']dnext[\"'][^>]+href=[\"']([^\"']+)[\"']"#, in: html),
+              let url = URL(string: decode(href)),
+              let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let value = components.queryItems?.first(where: { $0.name == "next" })?.value else { return nil }
+        return Int(value)
     }
 
     static func galleriesPage(from html: String, source: EHSource, baseURL: URL?) -> (galleries: [Gallery], nextCursor: Int?) {

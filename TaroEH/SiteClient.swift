@@ -28,14 +28,20 @@ final class SiteClient {
     }
 
     func search(config: AdvancedSearchConfig, cookieHeader: String?, baseURL: URL, source: EHSource? = nil, translatedQuery: String? = nil) async throws -> [Gallery] {
+        try await searchPage(config: config, cookieHeader: cookieHeader, baseURL: baseURL, source: source, translatedQuery: translatedQuery).galleries
+    }
+
+    func searchPage(config: AdvancedSearchConfig, cookieHeader: String?, baseURL: URL, source: EHSource? = nil, translatedQuery: String? = nil, cursor: Int? = nil) async throws -> (galleries: [Gallery], nextCursor: Int?) {
         var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false)
         let raw = ([config.keyword] + config.tags).filter { !$0.isEmpty }.joined(separator: " ")
-        components?.queryItems = raw.isEmpty && translatedQuery == nil ? [] : [URLQueryItem(name: "f_search", value: translatedQuery ?? raw)]
+        var items = [URLQueryItem(name: "f_search", value: translatedQuery ?? raw)]
+        if let cursor { items.append(URLQueryItem(name: "next", value: String(cursor))) }
+        components?.queryItems = items
         guard let url = components?.url else { throw SiteError.invalidResponse }
         let data = try await request(url, cookieHeader: cookieHeader)
         guard let html = String(data: data, encoding: .utf8) else { throw SiteError.parseFailed }
         let resolvedSource = source ?? (baseURL.host?.contains("exhentai") == true ? .exHentai : .eHentai)
-        return SiteParser.galleries(from: html, source: resolvedSource, baseURL: baseURL)
+        return SiteParser.galleriesPage(from: html, source: resolvedSource, baseURL: baseURL)
     }
 
     func frontPage(source: EHSource, baseURL: URL, cookieHeader: String?, mode: String = "") async throws -> [Gallery] {
@@ -47,9 +53,12 @@ final class SiteClient {
 
     /// Loads one latest/popular feed page. Latest uses the site's `next` cursor;
     /// popular currently exposes one complete fixed collection and returns nil.
-    func discoveryPage(source: EHSource, baseURL: URL, cookieHeader: String?, mode: String = "", cursor: Int? = nil) async throws -> (galleries: [Gallery], nextCursor: Int?) {
+    func discoveryPage(source: EHSource, baseURL: URL, cookieHeader: String?, mode: String = "", cursor: Int? = nil, query: String? = nil) async throws -> (galleries: [Gallery], nextCursor: Int?) {
         var components = URLComponents(url: mode.isEmpty ? baseURL : baseURL.appendingPathComponent(mode), resolvingAgainstBaseURL: false)
-        if let cursor { components?.queryItems = [URLQueryItem(name: "next", value: String(cursor))] }
+        var items: [URLQueryItem] = []
+        if let query, !query.isEmpty { items.append(URLQueryItem(name: "f_search", value: query)) }
+        if let cursor { items.append(URLQueryItem(name: "next", value: String(cursor))) }
+        components?.queryItems = items.isEmpty ? nil : items
         guard let url = components?.url else { throw SiteError.invalidResponse }
         let data = try await request(url, cookieHeader: cookieHeader)
         guard let html = String(data: data, encoding: .utf8) else { throw SiteError.parseFailed }

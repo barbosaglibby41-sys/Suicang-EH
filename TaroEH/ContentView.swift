@@ -159,14 +159,14 @@ struct DiscoverView: View {
                                 .onAppear {
                                     if gallery.id == filtered.last?.id {
                                         if isRandomFeed { loadMoreRandomGalleries() }
-                                        else if selectedFeed == .latest || selectedFeed == .popular { loadMoreDiscovery() }
+                                        else if selectedFeed == .latest || selectedFeed == .popular || isSearchResults { loadMoreDiscovery() }
                                     }
                                 }
                         }
                     }
                     if isRandomFeed {
                         randomFeedFooter
-                    } else if (selectedFeed == .latest || selectedFeed == .popular) && !discoveryExhausted {
+                    } else if (selectedFeed == .latest || selectedFeed == .popular || isSearchResults) && !discoveryExhausted {
                         HStack { Spacer(); if isLoadingMore { ProgressView("正在加载更多…") } else { Text("继续下滑加载更多").font(.caption).foregroundStyle(.secondary) }; Spacer() }.padding(.vertical, 18)
                     }
                 }
@@ -342,18 +342,26 @@ struct DiscoverView: View {
     }
 
     private func loadMoreDiscovery() {
-        guard !isSearchResults, !isLoading, !isLoadingMore, !discoveryExhausted, let base = URL(string: siteAddress) else { return }
+        guard !isLoading, !isLoadingMore, !discoveryExhausted, let base = URL(string: siteAddress) else { return }
         isLoadingMore = true
         let generation = feedGeneration
         let source = currentSource
         let cookieHeader = session.cookieHeader()
         let cursor = nextDiscoveryCursor
         let mode = selectedFeed == .popular ? "popular" : ""
+        let searchQuery = isSearchResults ? tagTranslations.queryForSite(([query] + advanced.tags).filter { !$0.isEmpty }.joined(separator: " ")) : nil
         Task {
             defer { isLoadingMore = false }
             do {
-                let page = try await SiteClient.shared.discoveryPage(source: source, baseURL: base, cookieHeader: cookieHeader, mode: mode, cursor: cursor)
-                guard generation == feedGeneration, selectedFeed == (mode == "popular" ? .popular : .latest) else { return }
+                let page: (galleries: [Gallery], nextCursor: Int?)
+                if let searchQuery {
+                    var config = advanced
+                    config.keyword = query
+                    page = try await SiteClient.shared.searchPage(config: config, cookieHeader: cookieHeader, baseURL: base, source: source, translatedQuery: searchQuery, cursor: cursor)
+                } else {
+                    page = try await SiteClient.shared.discoveryPage(source: source, baseURL: base, cookieHeader: cookieHeader, mode: mode, cursor: cursor)
+                }
+                guard generation == feedGeneration else { return }
                 let known = Set(results.map(\.id))
                 let fresh = page.galleries.filter { !known.contains($0.id) }
                 if fresh.isEmpty || page.nextCursor == cursor {
@@ -365,7 +373,7 @@ struct DiscoverView: View {
                 discoveryExhausted = page.nextCursor == nil
             } catch {
                 guard generation == feedGeneration else { return }
-                networkError = "更多\(selectedFeed.rawValue)加载失败：\(error.localizedDescription)"
+                networkError = "更多\(isSearchResults ? "搜索结果" : selectedFeed.rawValue)加载失败：\(error.localizedDescription)"
                 // Keep the footer available for retry.
             }
         }
@@ -398,6 +406,7 @@ struct DiscoverView: View {
         let generation = feedGeneration
         let source = currentSource
         let cookieHeader = session.cookieHeader()
+        let translated = tagTranslations.queryForSite(([term] + advanced.tags).filter { !$0.isEmpty }.joined(separator: " "))
         isSearchResults = true
         isRandomFeed = false
         isLoading = true
@@ -407,13 +416,14 @@ struct DiscoverView: View {
         config.keyword = term
         Task {
             do {
-                let raw = ([config.keyword] + config.tags).filter { !$0.isEmpty }.joined(separator: " ")
-                let found = try await SiteClient.shared.search(config: config, cookieHeader: cookieHeader, baseURL: base, source: source, translatedQuery: tagTranslations.queryForSite(raw))
+                let foundPage = try await SiteClient.shared.searchPage(config: config, cookieHeader: cookieHeader, baseURL: base, source: source, translatedQuery: translated)
                 guard generation == feedGeneration else { return }
                 discovery.record(query: term)
-                results = found
+                results = foundPage.galleries
+                nextDiscoveryCursor = foundPage.nextCursor
+                discoveryExhausted = foundPage.nextCursor == nil
                 withAnimation(.easeOut(duration: 0.2)) { isLoading = false }
-                if found.isEmpty { networkError = "没有匹配结果，或站点页面结构发生变化。" }
+                if foundPage.galleries.isEmpty { networkError = "没有匹配结果，或站点页面结构发生变化。" }
             } catch {
                 guard generation == feedGeneration else { return }
                 networkError = "无法完成直连搜索：\(error.localizedDescription)"
