@@ -25,8 +25,8 @@ struct HomeRankingsSection: View {
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(alignment: .top, spacing: 18) {
+                        RankingPreviewColumn(period: .today, galleries: Array(rankings.today.prefix(3)))
                         RankingPreviewColumn(period: .yesterday, galleries: Array(rankings.yesterday.prefix(3)))
-                        RankingPreviewColumn(period: .month, galleries: Array(rankings.month.prefix(3)))
                     }
                 }
             }
@@ -72,7 +72,9 @@ struct RankingRow: View {
                 .clipShape(RoundedRectangle(cornerRadius: 7))
             Text("\(rank)")
                 .font(.title3.weight(.semibold))
-                .frame(width: 22)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+                .frame(width: 34, alignment: .trailing)
             VStack(alignment: .leading, spacing: 4) {
                 Text(gallery.title)
                     .font(.subheadline.weight(.semibold))
@@ -93,12 +95,18 @@ struct RankingRow: View {
 struct RankingListView: View {
     @EnvironmentObject private var rankings: RankingStore
     @State private var period: RankingPeriod = .yesterday
+    @State private var selectedDate = Date()
+    @State private var showDatePicker = false
     @Environment(\.dismiss) private var dismiss
     @AppStorage("taro.eh.siteURL") private var siteAddress = "https://e-hentai.org/"
     @AppStorage("taro.eh.source") private var sourceRaw = EHSource.eHentai.rawValue
     @EnvironmentObject private var session: SessionStore
 
-    private var galleries: [Gallery] { rankings.galleries(for: period) }
+    private var galleries: [Gallery] {
+        period == .today && rankings.dateRankDate != nil ? rankings.dateResults : rankings.galleries(for: period)
+    }
+    private var isDateMode: Bool { period == .today }
+
 
     var body: some View {
         NavigationStack {
@@ -132,7 +140,7 @@ struct RankingListView: View {
                     }
                 }
             }
-            .navigationTitle("排行 · \(period.rawValue)")
+            .navigationTitle(isDateMode ? "排行 · \(selectedDate.formatted(date: .abbreviated, time: .omitted))" : "排行 · \(period.rawValue)")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -143,21 +151,53 @@ struct RankingListView: View {
                         ForEach(RankingPeriod.allCases) { value in
                             Button {
                                 period = value
-                                if rankings.galleries(for: value).isEmpty {
+                                if value == .today {
+                                    selectedDate = Date()
+                                    Task { await loadDate(selectedDate) }
+                                } else if rankings.galleries(for: value).isEmpty {
                                     Task { await loadPeriod(value) }
                                 }
                             } label: {
                                 Label(value.rawValue, systemImage: value.icon)
                             }
                         }
+                        Divider()
+                        Button {
+                            period = .today
+                            showDatePicker = true
+                        } label: {
+                            Label("选择日期…", systemImage: "calendar.badge.plus")
+                        }
                     } label: { Image(systemName: "line.3.horizontal.decrease.circle") }
                 }
+            }
+            .sheet(isPresented: $showDatePicker) {
+                NavigationStack {
+                    Form {
+                        Section("按发布时间筛选") {
+                            DatePicker("选择日期", selection: $selectedDate, in: ...Date(), displayedComponents: .date)
+                            Text("E-Hentai 没有公开任意历史日期的官方排行接口，此处按发布时间筛选最新列表中的作品。")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                    .navigationTitle("选择排行日期")
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("查看") { showDatePicker = false; period = .today; Task { await loadDate(selectedDate) } }
+                        }
+                    }
+                }
+                .presentationDetents([.medium])
             }
             .navigationDestination(for: Gallery.self) { GalleryDetailView(gallery: $0) }
             .task { await loadPeriod(.yesterday) }
         }
     }
 
+    private func loadDate(_ date: Date) async {
+        guard let base = URL(string: siteAddress) else { return }
+        await rankings.loadDate(date, source: EHSource(rawValue: sourceRaw) ?? .eHentai, baseURL: base, cookieHeader: session.cookieHeader())
+    }
     private func loadPeriod(_ value: RankingPeriod) async {
         if rankings.galleries(for: value).isEmpty,
            let base = URL(string: siteAddress) {

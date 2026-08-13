@@ -117,10 +117,11 @@ final class SiteClient {
     /// Loads one toplist page. E-Hentai uses tl=15 yesterday, 13 month,
     /// 12 year and 11 all-time; each page contains up to 50 galleries.
     func toplistPage(period: RankingPeriod, source: EHSource, baseURL: URL, cookieHeader: String?, page: Int = 0) async throws -> (galleries: [Gallery], nextPage: Int?) {
+        guard let endpoint = period.endpointValue else { throw SiteError.invalidResponse }
         var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false)
         components?.path = "/toplist.php"
         components?.queryItems = [
-            URLQueryItem(name: "tl", value: period.endpointValue),
+            URLQueryItem(name: "tl", value: endpoint),
             URLQueryItem(name: "p", value: String(page))
         ]
         guard let url = components?.url else { throw SiteError.invalidResponse }
@@ -129,6 +130,30 @@ final class SiteClient {
         let galleries = SiteParser.galleries(from: html, source: source, baseURL: baseURL)
         let next = SiteParser.toplistNextPage(from: html, currentPage: page)
         return (galleries, next)
+    }
+    func dateRankings(for date: Date, source: EHSource, baseURL: URL, cookieHeader: String?) async throws -> [Gallery] {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = .current
+        formatter.dateFormat = "yyyy-MM-dd"
+        let target = formatter.string(from: date)
+        var output: [Gallery] = []
+        var cursor: Int?
+        var seenCursors = Set<Int>()
+
+        for _ in 0..<20 {
+            let page = try await discoveryPage(source: source, baseURL: baseURL, cookieHeader: cookieHeader, cursor: cursor)
+            let fresh = page.galleries.filter { $0.postedAt?.hasPrefix(target) == true }
+            output.append(contentsOf: fresh)
+            let olderThanTarget = page.galleries.contains { gallery in
+                guard let posted = gallery.postedAt else { return false }
+                return String(posted.prefix(10)) < target
+            }
+            guard !olderThanTarget, let next = page.nextCursor, seenCursors.insert(next).inserted else { break }
+            cursor = next
+        }
+        return output
     }
     func detail(_ gallery: Gallery, cookieHeader: String?) async throws -> NetworkGalleryDetail {
         guard let url = gallery.sourceURL else { throw SiteError.invalidResponse }
