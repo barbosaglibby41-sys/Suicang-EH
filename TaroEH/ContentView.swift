@@ -1,25 +1,31 @@
 import SwiftUI
 import UIKit
 
+extension Notification.Name {
+    static let taroSearchTag = Notification.Name("taro.eh.searchTag")
+}
+
 struct ContentView: View {
     @EnvironmentObject private var session: SessionStore
     @Environment(\.modelContext) private var modelContext
     @StateObject private var library = LibraryStore()
     @State private var path = NavigationPath()
+    @State private var selectedTab = 0
 
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             NavigationStack(path: $path) {
                 DiscoverView()
                     .navigationDestination(for: Gallery.self) { GalleryDetailView(gallery: $0) }
-            }.tabItem { Label("发现", systemImage: "sparkles") }
-            NavigationStack { ShelfView() }.tabItem { Label("书架", systemImage: "books.vertical") }
-            NavigationStack { DownloadsView() }.tabItem { Label("离线", systemImage: "arrow.down.circle") }
-            NavigationStack { SettingsView() }.tabItem { Label("设置", systemImage: "gear") }
+            }.tabItem { Label("发现", systemImage: "sparkles") }.tag(0)
+            NavigationStack { ShelfView() }.tabItem { Label("书架", systemImage: "books.vertical") }.tag(1)
+            NavigationStack { DownloadsView() }.tabItem { Label("离线", systemImage: "arrow.down.circle") }.tag(2)
+            NavigationStack { SettingsView() }.tabItem { Label("设置", systemImage: "gear") }.tag(3)
         }
         .environmentObject(session)
         .environmentObject(library)
         .tint(.purple)
+        .onReceive(NotificationCenter.default.publisher(for: .taroSearchTag)) { _ in selectedTab = 0 }
         .task { library.configure(modelContext) }
     }
 }
@@ -57,10 +63,18 @@ struct DiscoverView: View {
     @State private var showFilters = false
     @State private var sort: GallerySort = .recent
     @State private var advanced = AdvancedSearchConfig()
+    private let initialQuery: String?
+    private let autoSearch: Bool
     private let columns = [
         GridItem(.flexible(minimum: 0), spacing: 12, alignment: .top),
         GridItem(.flexible(minimum: 0), spacing: 12, alignment: .top)
     ]
+
+    init(initialQuery: String? = nil, autoSearch: Bool = false) {
+        self.initialQuery = initialQuery
+        self.autoSearch = autoSearch
+        _query = State(initialValue: initialQuery ?? "")
+    }
 
     private var currentSource: EHSource { EHSource(rawValue: sourceRaw) ?? .eHentai }
     private var filtered: [Gallery] {
@@ -119,6 +133,11 @@ struct DiscoverView: View {
             }.padding()
         }
         .navigationBarHidden(true)
+        .onReceive(NotificationCenter.default.publisher(for: .taroSearchTag)) { notification in
+            guard let raw = notification.userInfo?["tag"] as? String, !raw.isEmpty else { return }
+            query = raw
+            onlineSearch()
+        }
         .sheet(isPresented: $showFilters) { FilterView(sort: $sort, config: $advanced) }
         .task { loadFrontPage() }
         .onChange(of: sourceRaw) { _, _ in results = []; loadFrontPage() }
@@ -486,7 +505,7 @@ struct FlowTags: View {
         VStack(alignment: .leading, spacing: 8) {
             FlowLayout(spacing: 8) {
                 ForEach(visibleTags) { tag in
-                    Button { discovery.toggleTag(tag.rawName) } label: {
+                    Button { searchTag(tag.rawName) } label: {
                         chip(for: tag)
                     }
                     .buttonStyle(.plain)
@@ -513,6 +532,10 @@ struct FlowTags: View {
                 secondaryButton: .cancel(Text("关闭"))
             )
         }
+    }
+
+    private func searchTag(_ rawName: String) {
+        NotificationCenter.default.post(name: .taroSearchTag, object: nil, userInfo: ["tag": rawName])
     }
 
     /// A uniform-height rounded chip. Translated tags get the namespace color;
