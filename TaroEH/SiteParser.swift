@@ -46,7 +46,7 @@ enum SiteParser {
         }
     }
 
-    static func detail(from html: String, sourceURL: URL, fallback: Gallery) -> NetworkGalleryDetail {
+    static func detail(from html: String, sourceURL: URL, fallback: Gallery, includePageLinks: Bool = true) -> NetworkGalleryDetail {
         var gallery = fallback
         gallery.sourceURL = sourceURL
         gallery.title = first(#"id=[\"']gn[\"'][^>]*>(.*?)</"#, in: html).map(clean) ?? gallery.title
@@ -58,13 +58,17 @@ enum SiteParser {
         let rawTags = all(#"id=[\"']ta_([^\"']+)[\"']"#, in: html)
         gallery.tags = Array(Set(rawTags.map { GalleryTag.parse(decode($0)) })).sorted { $0.rawName < $1.rawName }
         gallery.comments = comments(from: html)
-        return NetworkGalleryDetail(gallery: gallery, pageLinks: imagePageLinks(from: html, base: sourceURL))
+        let links = includePageLinks ? imagePageLinks(from: html, base: sourceURL) : []
+        return NetworkGalleryDetail(gallery: gallery, pageLinks: links)
     }
 
     /// Parses the comment section (`#cdiv`). Returns comments in page order.
+    /// Only the cdiv→chd region is scanned so long gallery pages stay fast.
     static func comments(from html: String) -> [GalleryComment] {
         guard let region = html.range(of: #"id="cdiv""#, options: [.caseInsensitive]) else { return [] }
-        let segment = String(html[region.lowerBound...])
+        let start = region.lowerBound
+        let end = html.range(of: #"id="chd""#, options: [.caseInsensitive], range: start..<html.endIndex)?.lowerBound ?? html.endIndex
+        let segment = String(html[start..<end])
         let blockPattern = #"<div class="c1">(?:(?!<div class="c1">|<div id="chd").)*"#
         guard let regex = try? NSRegularExpression(pattern: blockPattern, options: [.caseInsensitive, .dotMatchesLineSeparators]) else { return [] }
         let ns = segment as NSString

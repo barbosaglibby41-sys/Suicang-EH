@@ -77,6 +77,16 @@ final class SiteClient {
         return SiteParser.detail(from: html, sourceURL: url, fallback: gallery)
     }
 
+    /// Lightweight detail fetch for the details screen: parses metadata, tags
+    /// and comments but skips the (potentially thousands of) page links, so
+    /// long galleries open without the parsing stall.
+    func detailMetadata(_ gallery: Gallery, cookieHeader: String?) async throws -> Gallery {
+        guard let url = gallery.sourceURL else { throw SiteError.invalidResponse }
+        let data = try await request(url, cookieHeader: cookieHeader)
+        guard let html = String(data: data, encoding: .utf8) else { throw SiteError.parseFailed }
+        return SiteParser.detail(from: html, sourceURL: url, fallback: gallery, includePageLinks: false).gallery
+    }
+
     func imageURL(pageURL: URL, cookieHeader: String?) async throws -> URL {
         let data = try await request(pageURL, cookieHeader: cookieHeader)
         guard let html = String(data: data, encoding: .utf8), let image = SiteParser.imageURL(from: html) else { throw SiteError.parseFailed }
@@ -84,9 +94,23 @@ final class SiteClient {
     }
 
     func imageURLs(for detail: NetworkGalleryDetail, cookieHeader: String?) async throws -> [URL] {
-        var output: [URL] = []
-        for page in detail.pageLinks { output.append(try await imageURL(pageURL: page, cookieHeader: cookieHeader)) }
-        return output
+        let pages = detail.pageLinks
+        var output = Array<URL?>(repeating: nil, count: pages.count)
+        try await withThrowingTaskGroup(of: (Int, URL).self) { group in
+            var next = 0
+            func addNext() {
+                guard next < pages.count else { return }
+                let index = next; next += 1
+                let page = pages[index]
+                group.addTask { (index, try await self.imageURL(pageURL: page, cookieHeader: cookieHeader)) }
+            }
+            for _ in 0..<min(6, pages.count) { addNext() }
+            while let (index, url) = try await group.next() {
+                output[index] = url
+                addNext()
+            }
+        }
+        return output.compactMap { $0 }
     }
 
     /// Posts a new comment to the gallery. Returns the re-fetched detail page

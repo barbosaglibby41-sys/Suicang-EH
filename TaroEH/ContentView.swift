@@ -369,14 +369,15 @@ struct GalleryDetailView: View {
     @State private var showCommentEditor = false
     @State private var commentDraft = ""
     @State private var isPostingComment = false
+    @State private var offlineAvailable = false
     init(gallery: Gallery) { self.gallery = gallery; _item = State(initialValue: gallery) }
     var body: some View {
         ScrollView { VStack(alignment: .leading, spacing: 18) {
             PipelineImage(url: item.thumbnailURL, cookieHeader: session.cookieHeader(), contentMode: .fit).frame(maxWidth: .infinity).frame(height: 300)
             HStack(alignment: .top) { VStack(alignment: .leading) { Text(item.title).font(.title2.bold()); Text("\(item.uploader) · \(item.pageCount) 页").foregroundStyle(.secondary) }; Spacer(); Button { library.toggleFavorite(item) } label: { Image(systemName: library.isFavorite(item) ? "star.fill" : "star").font(.title2) } }
             if let detailError { Text(detailError).font(.caption).foregroundStyle(.orange) }
-            HStack { NavigationLink { ReaderDestination.view(for: item) } label: { Label("开始阅读", systemImage: "book.fill").frame(maxWidth: .infinity) }.buttonStyle(.borderedProminent).disabled(!ReaderDestination.canRead(item)); Button { downloadOnline() } label: { Image(systemName: "arrow.down.to.line") }.buttonStyle(.bordered).disabled(item.sourceURL == nil); if let source = item.sourceURL { Link(destination: source) { Image(systemName: "safari") }.buttonStyle(.bordered) }; ShareLink(item: item.title) { Image(systemName: "square.and.arrow.up") }.buttonStyle(.bordered) }
-            if !ReaderDestination.canRead(item) { Text("缺少在线地址且无离线副本，无法阅读或下载。").font(.caption).foregroundStyle(.orange) }
+            HStack { NavigationLink { ReaderDestination.view(for: item) } label: { Label("开始阅读", systemImage: "book.fill").frame(maxWidth: .infinity) }.buttonStyle(.borderedProminent).disabled(!offlineAvailable && item.sourceURL == nil); Button { downloadOnline() } label: { Image(systemName: "arrow.down.to.line") }.buttonStyle(.bordered).disabled(item.sourceURL == nil); if let source = item.sourceURL { Link(destination: source) { Image(systemName: "safari") }.buttonStyle(.bordered) }; ShareLink(item: item.title) { Image(systemName: "square.and.arrow.up") }.buttonStyle(.bordered) }
+            if item.sourceURL == nil && !offlineAvailable { Text("缺少在线地址且无离线副本，无法阅读或下载。").font(.caption).foregroundStyle(.orange) }
             HStack(spacing: 6) {
                 Image(systemName: "tag.fill").font(.subheadline).foregroundStyle(.purple)
                 Text("标签").font(.headline)
@@ -397,7 +398,7 @@ struct GalleryDetailView: View {
             }
             commentsSection
         }.padding() }
-        .navigationTitle("详情").navigationBarTitleDisplayMode(.inline).onAppear { library.record(item) }.task { await hydrate() }
+        .navigationTitle("详情").navigationBarTitleDisplayMode(.inline).onAppear { offlineAvailable = OfflineLibrary.hasCompleteCopy(item); library.record(item) }.task { await hydrate() }
         .sheet(isPresented: $showCommentEditor) {
             NavigationStack {
                 VStack(alignment: .leading, spacing: 12) {
@@ -467,7 +468,7 @@ struct GalleryDetailView: View {
             return (TagTranslationStore.namespaceName(ns), list)
         }
     }
-    private func hydrate() async { guard item.sourceURL != nil else { return }; do { item = try await SiteClient.shared.detail(item, cookieHeader: session.cookieHeader()).gallery; library.record(item) } catch { detailError = "详情加载失败：\(error.localizedDescription)" } }
+    private func hydrate() async { guard item.sourceURL != nil else { return }; do { item = try await SiteClient.shared.detailMetadata(item, cookieHeader: session.cookieHeader()); library.record(item) } catch { detailError = "详情加载失败：\(error.localizedDescription)" } }
 
     private func downloadOnline() { Task { do { guard item.sourceURL != nil else { detailError = "该作品缺少在线地址，无法下载。"; return }; let detail = try await SiteClient.shared.detail(item, cookieHeader: session.cookieHeader()); let urls = try await SiteClient.shared.imageURLs(for: detail, cookieHeader: session.cookieHeader()); guard !urls.isEmpty else { detailError = "未解析到可下载图片。"; return }; item = detail.gallery; if !downloads.enqueue(item, imageURLs: urls) { detailError = "下载任务创建失败，请检查网络后重试。" } } catch { detailError = "无法创建下载任务：\(error.localizedDescription)" } } }
 }
@@ -477,19 +478,29 @@ struct FlowTags: View {
     @EnvironmentObject private var discovery: DiscoveryStore
     @EnvironmentObject private var translations: TagTranslationStore
     @State private var infoTag: TranslatedTag?
+    @State private var expanded = false
+    private static let initialLimit = 60
+    private var visibleTags: [GalleryTag] { expanded ? tags : Array(tags.prefix(Self.initialLimit)) }
     var body: some View {
-        FlowLayout(spacing: 8) {
-            ForEach(tags) { tag in
-                Button { discovery.toggleTag(tag.rawName) } label: {
-                    chip(for: tag)
-                }
-                .buttonStyle(.plain)
-                .contextMenu {
-                    if let intro = translations.translatedTag(for: tag.rawName)?.intro, !intro.isEmpty {
-                        Button("查看简介") { infoTag = translations.translatedTag(for: tag.rawName) }
+        VStack(alignment: .leading, spacing: 8) {
+            FlowLayout(spacing: 8) {
+                ForEach(visibleTags) { tag in
+                    Button { discovery.toggleTag(tag.rawName) } label: {
+                        chip(for: tag)
                     }
-                    Button("复制原始标签") { UIPasteboard.general.string = tag.rawName }
-                    Button(discovery.isSubscribed(tag.rawName) ? "取消订阅" : "订阅标签") { discovery.toggleTag(tag.rawName) }
+                    .buttonStyle(.plain)
+                    .contextMenu {
+                        if let intro = translations.translatedTag(for: tag.rawName)?.intro, !intro.isEmpty {
+                            Button("查看简介") { infoTag = translations.translatedTag(for: tag.rawName) }
+                        }
+                        Button("复制原始标签") { UIPasteboard.general.string = tag.rawName }
+                        Button(discovery.isSubscribed(tag.rawName) ? "取消订阅" : "订阅标签") { discovery.toggleTag(tag.rawName) }
+                    }
+                }
+            }
+            if tags.count > Self.initialLimit {
+                Button { withAnimation(.snappy) { expanded.toggle() } } label: {
+                    Label(expanded ? "收起" : "展开全部 \(tags.count) 个标签", systemImage: expanded ? "chevron.up" : "chevron.down").font(.caption).foregroundStyle(.purple)
                 }
             }
         }
