@@ -60,6 +60,7 @@ private enum DiscoverFeed: String, CaseIterable, Identifiable {
 }
 
 struct DiscoverView: View {
+    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var session: SessionStore
     @EnvironmentObject private var discovery: DiscoveryStore
     @EnvironmentObject private var tagTranslations: TagTranslationStore
@@ -93,7 +94,15 @@ struct DiscoverView: View {
     private var currentSource: EHSource { EHSource(rawValue: sourceRaw) ?? .eHentai }
     private var filtered: [Gallery] {
         var config = advanced
-        config.keyword = query
+        // The server has already applied the online keyword/tag query. List
+        // pages intentionally omit full tag metadata, so applying the same
+        // keyword locally would incorrectly turn valid results into zero.
+        if isSearchResults {
+            config.keyword = ""
+            config.tags = []
+        } else {
+            config.keyword = query
+        }
         return sort.apply(results.filter { config.matches($0) })
     }
 
@@ -122,6 +131,11 @@ struct DiscoverView: View {
                 if let networkError { Label(networkError, systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(.orange) }
                 recentQueries
                 HStack {
+                    if autoSearch {
+                        Button { dismissSearchDestination() } label: {
+                            Label("返回详情", systemImage: "chevron.left").font(.subheadline)
+                        }
+                    }
                     Text(isSearchResults ? "搜索结果" : selectedFeed.rawValue).font(.title3.bold())
                     Spacer()
                     Text("\(filtered.count) 项").foregroundStyle(.secondary).font(.caption)
@@ -157,6 +171,10 @@ struct DiscoverView: View {
         }
         .onChange(of: sourceRaw) { _, _ in results = []; loadFrontPage() }
         .onChange(of: siteAddress) { _, _ in results = []; loadFrontPage() }
+    }
+
+    private func dismissSearchDestination() {
+        dismiss()
     }
 
     private var feedSelector: some View {
