@@ -32,6 +32,8 @@ struct DiscoverView: View {
     @State private var query = ""
     @State private var results: [Gallery] = []
     @State private var isLoading = false
+    @State private var isLoadingMore = false
+    @State private var isRandomFeed = false
     @State private var networkError: String?
     @State private var showFilters = false
     @State private var sort: GallerySort = .recent
@@ -67,12 +69,27 @@ struct DiscoverView: View {
                 suggestions
                 if let networkError { Label(networkError, systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(.orange) }
                 recentQueries
-                HStack { Text("画廊").font(.title3.bold()); Spacer(); Text("\(filtered.count) 项").foregroundStyle(.secondary).font(.caption) }
+                HStack {
+                    Text(isRandomFeed ? "随机画廊" : "画廊").font(.title3.bold())
+                    Spacer()
+                    Text("\(filtered.count) 项").foregroundStyle(.secondary).font(.caption)
+                }
                 if !isLoading && filtered.isEmpty {
                     ContentUnavailableView("暂无画廊", systemImage: "rectangle.stack", description: Text("下拉刷新或使用搜索查找作品。"))
                 } else {
                     LazyVGrid(columns: columns, spacing: 14) {
-                        ForEach(filtered) { gallery in NavigationLink(value: gallery) { GalleryCard(gallery: gallery) }.buttonStyle(.plain) }
+                        ForEach(filtered) { gallery in
+                            NavigationLink(value: gallery) { GalleryCard(gallery: gallery) }
+                                .buttonStyle(.plain)
+                                .onAppear {
+                                    if isRandomFeed, gallery.id == filtered.last?.id {
+                                        loadMoreRandomGalleries()
+                                    }
+                                }
+                        }
+                    }
+                    if isRandomFeed {
+                        randomFeedFooter
                     }
                 }
             }.padding()
@@ -82,6 +99,16 @@ struct DiscoverView: View {
         .task { loadFrontPage() }
         .onChange(of: sourceRaw) { _, _ in results = []; loadFrontPage() }
         .onChange(of: siteAddress) { _, _ in results = []; loadFrontPage() }
+    }
+
+    @ViewBuilder private var randomFeedFooter: some View {
+        HStack {
+            Spacer()
+            if isLoadingMore { ProgressView("正在获取更多随机画廊…") }
+            else { Text("继续下滑以加载更多随机画廊").font(.caption).foregroundStyle(.secondary) }
+            Spacer()
+        }
+        .padding(.vertical, 18)
     }
 
     private var searchBar: some View {
@@ -126,6 +153,7 @@ struct DiscoverView: View {
 
     private func loadFrontPage() {
         guard results.isEmpty, let base = URL(string: siteAddress) else { return }
+        isRandomFeed = false
         isLoading = true; networkError = nil
         Task {
             do { results = try await SiteClient.shared.frontPage(source: currentSource, baseURL: base, cookieHeader: session.cookieHeader()) }
@@ -134,27 +162,40 @@ struct DiscoverView: View {
         }
     }
     private func randomGallery() {
-        guard let base = URL(string: siteAddress) else { return }
+        guard let base = URL(string: siteAddress), !isLoading else { return }
         isLoading = true
         networkError = nil
-        let visibleIDs = Set(results.map(\.id))
+        isRandomFeed = true
         Task {
             do {
-                guard let gallery = try await SiteClient.shared.randomGallery(source: currentSource, baseURL: base, cookieHeader: session.cookieHeader(), excluding: visibleIDs) else {
-                    networkError = "站点没有返回可用的随机画廊。"
-                    isLoading = false
-                    return
-                }
-                results = [gallery]
+                let galleries = try await SiteClient.shared.randomGalleries(source: currentSource, baseURL: base, cookieHeader: session.cookieHeader(), count: 25)
+                results = galleries
+                if galleries.isEmpty { networkError = "站点没有返回可用的随机画廊。" }
             } catch {
-                networkError = "随机发现失败：\(error.localizedDescription)"
+                networkError = "随机画廊加载失败：\(error.localizedDescription)"
             }
             isLoading = false
+        }
+    }
+
+    private func loadMoreRandomGalleries() {
+        guard isRandomFeed, !isLoading, !isLoadingMore, let base = URL(string: siteAddress) else { return }
+        isLoadingMore = true
+        let existingIDs = Set(results.map(\.id))
+        Task {
+            defer { isLoadingMore = false }
+            do {
+                let galleries = try await SiteClient.shared.randomGalleries(source: currentSource, baseURL: base, cookieHeader: session.cookieHeader(), count: 25, excluding: existingIDs)
+                results.append(contentsOf: galleries)
+            } catch {
+                networkError = "更多随机画廊加载失败：\(error.localizedDescription)"
+            }
         }
     }
     private func onlineSearch() {
         let term = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !term.isEmpty, let base = URL(string: siteAddress) else { return }
+        isRandomFeed = false
         isLoading = true; networkError = nil
         var config = advanced; config.keyword = term
         Task {

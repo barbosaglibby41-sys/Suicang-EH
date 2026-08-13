@@ -42,24 +42,32 @@ final class SiteClient {
         return SiteParser.galleries(from: html, source: source, baseURL: baseURL)
     }
 
-    /// Chooses a random gallery cursor across the site's full gid range, then samples that server page.
-    /// E-Hentai has no public one-gallery random endpoint; `next=<gid>` is its supported pagination cursor.
-    func randomGallery(source: EHSource, baseURL: URL, cookieHeader: String?, excluding: Set<Int> = []) async throws -> Gallery? {
+    /// Samples fresh server pages using E-Hentai's supported `next=<gid>` cursor.
+    /// It returns a unique random feed batch rather than reordering the currently visible list.
+    func randomGalleries(source: EHSource, baseURL: URL, cookieHeader: String?, count: Int = 25, excluding: Set<Int> = []) async throws -> [Gallery] {
         let newest = try await frontPage(source: source, baseURL: baseURL, cookieHeader: cookieHeader)
             .map(\.id)
             .max() ?? 1
+        var output: [Gallery] = []
+        var seen = excluding
+        var attempts = 0
+        let perPage = max(1, Int(ceil(Double(count) / 3.0)))
 
-        for _ in 0..<4 {
+        while output.count < count && attempts < 8 {
+            attempts += 1
             var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false)
             components?.queryItems = [URLQueryItem(name: "next", value: String(Int.random(in: 1...newest)))]
             guard let url = components?.url else { throw SiteError.invalidResponse }
             let data = try await request(url, cookieHeader: cookieHeader)
             guard let html = String(data: data, encoding: .utf8) else { throw SiteError.parseFailed }
-            let galleries = SiteParser.galleries(from: html, source: source, baseURL: baseURL)
-            if let gallery = galleries.shuffled().first(where: { !excluding.contains($0.id) }) { return gallery }
-            if let gallery = galleries.randomElement() { return gallery }
+            var accepted = 0
+            for gallery in SiteParser.galleries(from: html, source: source, baseURL: baseURL).shuffled() where seen.insert(gallery.id).inserted {
+                output.append(gallery)
+                accepted += 1
+                if output.count == count || accepted == perPage { break }
+            }
         }
-        return nil
+        return output
     }
 
     func detail(_ gallery: Gallery, cookieHeader: String?) async throws -> NetworkGalleryDetail {
