@@ -145,10 +145,11 @@ final class TagTranslationStore: ObservableObject {
 
     func replacingCurrentToken(in query: String, with tag: TranslatedTag) -> String {
         let token = currentToken(in: query)
-        guard !token.isEmpty else { return query + tag.key + " " }
+        let replacement = "\(tag.namespace):\(tag.key) "
+        guard !token.isEmpty else { return query + replacement }
         let end = query.index(query.endIndex, offsetBy: -token.count)
         let prefix = String(query[..<end])
-        return prefix + tag.key + " "
+        return prefix + replacement
     }
 
     func suggestions(for query: String, limit: Int = 30) -> [TranslatedTag] {

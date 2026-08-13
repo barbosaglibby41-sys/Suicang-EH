@@ -300,9 +300,10 @@ struct DiscoverView: View {
     }
 
     private func searchSuggestion(_ tag: TranslatedTag) {
-        query = "\(tag.namespace):\(tag.key)"
-        searchFocused = false
-        onlineSearch()
+        query = tagTranslations.replacingCurrentToken(in: query, with: tag)
+        searchFocused = true
+        // Filling a suggestion intentionally does not start network search;
+        // users can append more tags and submit the complete query afterward.
     }
 
     @ViewBuilder private var recentQueries: some View {
