@@ -11,6 +11,8 @@ struct TranslatedTag: Codable, Hashable, Identifiable {
 struct TagDatabaseEnvelope: Codable {
     let version: Int
     let updatedAt: String
+    /// Upstream Database commit SHA. Optional for bundled and legacy local databases.
+    let revision: String?
     let tags: [TranslatedTag]
 }
 
@@ -41,7 +43,13 @@ final class TagTranslationStore: ObservableObject {
 
     var bundledDatabaseVersion: Int { 7 }
 
-    static let remoteURL = URL(string: "https://fastly.jsdelivr.net/gh/EhTagTranslation/DatabaseReleases/db.html.json")!
+    /// Mirrors are tried in order; GitHub raw is the primary source (real-time),
+    /// jsDelivr CDNs are fallbacks (they may lag behind by a few hours).
+    static let remoteSources: [URL] = [
+        URL(string: "https://raw.githubusercontent.com/EhTagTranslation/DatabaseReleases/master/db.html.json")!,
+        URL(string: "https://cdn.jsdelivr.net/gh/EhTagTranslation/DatabaseReleases/db.html.json")!,
+        URL(string: "https://fastly.jsdelivr.net/gh/EhTagTranslation/DatabaseReleases/db.html.json")!
+    ]
 
     init() {
         enabled = UserDefaults.standard.object(forKey: enabledKey) as? Bool ?? true
@@ -107,42 +115,52 @@ final class TagTranslationStore: ObservableObject {
         guard term.count >= 2 else { return [] }
         let initial = String(term.prefix(1))
         let candidates = searchBuckets[initial] ?? tags
-        var scored: [(tag: TranslatedTag, score: Int)] = []
-        for tag in candidates {
-            let value = score(tag, term)
-            if value > 0 { scored.append((tag, value)) }
-        }
-        scored.sort {
-            if $0.score == $1.score { return $0.tag.name < $1.tag.name }
-            return $0.score > $1.score
-        }
-        return scored.prefix(limit).map { $0.tag }
+        return candidates.lazy.map { ($0, score($0, term)) }
+            .filter { $0.1 > 0 }
+            .sorted { $0.1 == $1.1 ? $0.0.name < $1.0.name : $0.1 > $1.1 }
+            .prefix(limit).map { $0.0 }
     }
 
     func update() async {
         guard !isUpdating else { return }
         isUpdating = true; progress = 0; errorMessage = nil; statusMessage = "正在检查更新…"
         defer { isUpdating = false; progress = 1 }
-        do {
-            var request = URLRequest(url: Self.remoteURL)
-            request.setValue("TaroEH/1.7 (tag database updater)", forHTTPHeaderField: "User-Agent")
-            let (data, response) = try await URLSession.shared.data(for: request)
-            guard let http = response as? HTTPURLResponse, 200..<300 ~= http.statusCode else { throw URLError(.badServerResponse) }
-            let envelope = try decodeRemote(data)
-            if envelope.version == databaseVersion && envelope.updatedAt == updatedAt {
-                statusMessage = "当前已经是最新版本"
+        var lastError: Error?
+        for source in Self.remoteSources {
+            do {
+                var request = URLRequest(url: source)
+                request.timeoutInterval = 25
+                request.cachePolicy = .reloadIgnoringLocalCacheData
+                request.setValue("TaroEH/1.7 (tag database updater)", forHTTPHeaderField: "User-Agent")
+                let (data, response) = try await URLSession.shared.data(for: request)
+                guard let http = response as? HTTPURLResponse, 200..<300 ~= http.statusCode else { throw URLError(.badServerResponse) }
+                let envelope = try decodeRemote(data)
+                guard !envelope.tags.isEmpty else { throw URLError(.cannotDecodeContentData) }
+                // Skip CDN mirrors whose cached copy is older than what we already have,
+                // so a stale fallback can never downgrade the local database.
+                if let localDate = Self.dateFormatter.date(from: updatedAt),
+                   let remoteDate = Self.dateFormatter.date(from: envelope.updatedAt),
+                   remoteDate < localDate {
+                    lastError = URLError(.resourceUnavailable)
+                    continue
+                }
+                if envelope.version == databaseVersion && envelope.updatedAt == updatedAt {
+                    statusMessage = "当前已经是最新版本（\(source.host ?? "镜像源")）"
+                    return
+                }
+                let canonical = try JSONEncoder().encode(envelope)
+                try save(envelope, data: canonical)
+                UserDefaults.standard.set("本地更新", forKey: sourceKey)
+                dataSource = "本地更新"
+                apply(envelope)
+                statusMessage = "已更新到数据库版本 \(envelope.version)（来源：\(source.host ?? "镜像源")）"
                 return
+            } catch {
+                lastError = error
             }
-            let canonical = try JSONEncoder().encode(envelope)
-            try save(envelope, data: canonical)
-            UserDefaults.standard.set("本地更新", forKey: sourceKey)
-            dataSource = "本地更新"
-            apply(envelope)
-            statusMessage = "已更新到数据库版本 \(envelope.version)"
-        } catch {
-            errorMessage = "无法连接，继续使用当前版本：\(error.localizedDescription)"
-            statusMessage = "继续使用当前数据"
         }
+        errorMessage = "无法从任何镜像源获取更新：\(lastError?.localizedDescription ?? "未知错误")。请检查网络后重试。"
+        statusMessage = "继续使用当前数据"
     }
 
     func restoreBundled() {
@@ -154,6 +172,12 @@ final class TagTranslationStore: ObservableObject {
         statusMessage = "已恢复内置数据库版本 \(envelope.version)"
         apply(envelope)
     }
+
+    private static let dateFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
 
     private func loadLocalOrSeed() {
         if let data = try? Data(contentsOf: localURL()), let envelope = try? JSONDecoder().decode(TagDatabaseEnvelope.self, from: data) { apply(envelope); return }
@@ -176,7 +200,7 @@ final class TagTranslationStore: ObservableObject {
     private func decodeRemote(_ data: Data) throws -> TagDatabaseEnvelope {
         let raw = try JSONDecoder().decode(RemoteEnvelope.self, from: data)
         let values = raw.data.flatMap { group in group.data.map { key, value in TranslatedTag(namespace: group.namespace, key: key, name: Self.stripHTML(value.name)) } }
-        return TagDatabaseEnvelope(version: raw.version, updatedAt: raw.head.committer.when, tags: values)
+        return TagDatabaseEnvelope(version: raw.version, updatedAt: raw.head.committer.when, revision: raw.head.sha, tags: values)
     }
     private func lookupChinese(_ text: String) -> TranslatedTag? {
         let t = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -188,7 +212,11 @@ final class TagTranslationStore: ObservableObject {
 }
 
 private struct RemoteEnvelope: Decodable {
-    struct Head: Decodable { struct Committer: Decodable { let when: String }; let committer: Committer }
+    struct Head: Decodable {
+        struct Committer: Decodable { let when: String }
+        let sha: String?
+        let committer: Committer
+    }
     struct Group: Decodable { struct Value: Decodable { let name: String }; let namespace: String; let data: [String: Value] }
     let version: Int
     let head: Head
