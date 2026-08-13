@@ -23,6 +23,21 @@ struct ContentView: View {
     }
 }
 
+private enum DiscoverFeed: String, CaseIterable, Identifiable {
+    case latest = "最新"
+    case popular = "热门"
+    case random = "随机画廊"
+
+    var id: String { rawValue }
+    var icon: String {
+        switch self {
+        case .latest: return "clock.arrow.circlepath"
+        case .popular: return "flame"
+        case .random: return "shuffle"
+        }
+    }
+}
+
 struct DiscoverView: View {
     @EnvironmentObject private var session: SessionStore
     @EnvironmentObject private var discovery: DiscoveryStore
@@ -31,6 +46,7 @@ struct DiscoverView: View {
     @AppStorage("taro.eh.source") private var sourceRaw = EHSource.eHentai.rawValue
     @State private var query = ""
     @State private var results: [Gallery] = []
+    @State private var selectedFeed: DiscoverFeed = .latest
     @State private var isLoading = false
     @State private var isLoadingMore = false
     @State private var isRandomFeed = false
@@ -61,9 +77,14 @@ struct DiscoverView: View {
                     Spacer()
                     Image(systemName: "person.crop.circle").font(.title)
                 }
-                HStack(spacing: 12) {
-                    Button { randomGallery() } label: { FeatureCard(icon: "shuffle", title: "随机画廊") }
-                    Button { showFilters = true } label: { FeatureCard(icon: "slider.horizontal.3", title: "筛选排序") }
+                HStack(spacing: 10) {
+                    feedSelector
+                    Button { showFilters = true } label: {
+                        Image(systemName: "slider.horizontal.3")
+                            .frame(width: 42, height: 42)
+                    }
+                    .buttonStyle(.bordered)
+                    .accessibilityLabel("筛选排序")
                 }
                 searchBar
                 suggestions
@@ -99,6 +120,29 @@ struct DiscoverView: View {
         .task { loadFrontPage() }
         .onChange(of: sourceRaw) { _, _ in results = []; loadFrontPage() }
         .onChange(of: siteAddress) { _, _ in results = []; loadFrontPage() }
+    }
+
+    private var feedSelector: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(DiscoverFeed.allCases) { feed in
+                    Button {
+                        selectFeed(feed)
+                    } label: {
+                        Label(feed.rawValue, systemImage: feed.icon)
+                            .font(.subheadline.weight(.semibold))
+                            .lineLimit(1)
+                            .padding(.horizontal, 13)
+                            .frame(height: 42)
+                            .background(selectedFeed == feed ? Color.purple : Color.secondary.opacity(0.15), in: Capsule())
+                            .foregroundStyle(selectedFeed == feed ? .white : .primary)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(feed.rawValue)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @ViewBuilder private var randomFeedFooter: some View {
@@ -152,27 +196,30 @@ struct DiscoverView: View {
     }
 
     private func loadFrontPage() {
-        guard results.isEmpty, let base = URL(string: siteAddress) else { return }
-        isRandomFeed = false
-        isLoading = true; networkError = nil
-        Task {
-            do { results = try await SiteClient.shared.frontPage(source: currentSource, baseURL: base, cookieHeader: session.cookieHeader()) }
-            catch { networkError = "无法加载首页：\(error.localizedDescription)" }
-            isLoading = false
-        }
+        guard results.isEmpty else { return }
+        selectFeed(.latest)
     }
-    private func randomGallery() {
+
+    private func selectFeed(_ feed: DiscoverFeed) {
         guard let base = URL(string: siteAddress), !isLoading else { return }
+        selectedFeed = feed
+        isRandomFeed = feed == .random
         isLoading = true
         networkError = nil
-        isRandomFeed = true
+
         Task {
             do {
-                let galleries = try await SiteClient.shared.randomGalleries(source: currentSource, baseURL: base, cookieHeader: session.cookieHeader(), count: 25)
-                results = galleries
-                if galleries.isEmpty { networkError = "站点没有返回可用的随机画廊。" }
+                switch feed {
+                case .latest:
+                    results = try await SiteClient.shared.frontPage(source: currentSource, baseURL: base, cookieHeader: session.cookieHeader())
+                case .popular:
+                    results = try await SiteClient.shared.frontPage(source: currentSource, baseURL: base, cookieHeader: session.cookieHeader(), mode: "popular")
+                case .random:
+                    results = try await SiteClient.shared.randomGalleries(source: currentSource, baseURL: base, cookieHeader: session.cookieHeader(), count: 25)
+                }
+                if results.isEmpty { networkError = "站点没有返回可用画廊。" }
             } catch {
-                networkError = "随机画廊加载失败：\(error.localizedDescription)"
+                networkError = "\(feed.rawValue)加载失败：\(error.localizedDescription)"
             }
             isLoading = false
         }
