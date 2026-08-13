@@ -4,6 +4,20 @@ import Foundation
 enum GalleryCategory: String, CaseIterable, Codable, Identifiable {
     case doujinshi = "同人志", manga = "漫画", artistCG = "画师 CG", gameCG = "游戏 CG", western = "西方", nonH = "非 H", imageSet = "图集", cosplay = "Cosplay", asianPorn = "亚洲", misc = "其他"
     var id: String { rawValue }
+    var siteName: String {
+        switch self {
+        case .doujinshi: return "Doujinshi"
+        case .manga: return "Manga"
+        case .artistCG: return "Artist CG"
+        case .gameCG: return "Game CG"
+        case .western: return "Western"
+        case .nonH: return "Non-H"
+        case .imageSet: return "Image Set"
+        case .cosplay: return "Cosplay"
+        case .asianPorn: return "Asian Porn"
+        case .misc: return "Misc"
+        }
+    }
 }
 
 struct AdvancedSearchConfig: Codable, Hashable {
@@ -19,6 +33,8 @@ struct AdvancedSearchConfig: Codable, Hashable {
         let words = ([keyword] + tags).joined(separator: " ").lowercased().split(separator: " ")
         let source = (gallery.title + " " + gallery.uploader + " " + gallery.category + " " + gallery.legacyTagNames.joined(separator: " ")).lowercased()
         guard words.allSatisfy({ source.contains($0) }) else { return false }
+        if !categories.isEmpty, !categories.contains(where: { $0.siteName.caseInsensitiveCompare(gallery.category) == .orderedSame }) { return false }
+        if minimumRating > 0, let rating = gallery.rating, rating < Double(minimumRating) { return false }
         if let min = pageAtLeast, gallery.pageCount < min { return false }
         if let max = pageAtMost, gallery.pageCount > max { return false }
         return true

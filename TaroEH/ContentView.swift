@@ -50,6 +50,8 @@ struct DiscoverView: View {
     @State private var isLoading = false
     @State private var isLoadingMore = false
     @State private var isRandomFeed = false
+    @State private var isSearchResults = false
+    @State private var feedGeneration = 0
     @State private var networkError: String?
     @State private var showFilters = false
     @State private var sort: GallerySort = .recent
@@ -91,7 +93,7 @@ struct DiscoverView: View {
                 if let networkError { Label(networkError, systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(.orange) }
                 recentQueries
                 HStack {
-                    Text(isRandomFeed ? "随机画廊" : "画廊").font(.title3.bold())
+                    Text(isSearchResults ? "搜索结果" : selectedFeed.rawValue).font(.title3.bold())
                     Spacer()
                     Text("\(filtered.count) 项").foregroundStyle(.secondary).font(.caption)
                 }
@@ -201,57 +203,89 @@ struct DiscoverView: View {
     }
 
     private func selectFeed(_ feed: DiscoverFeed) {
-        guard let base = URL(string: siteAddress), !isLoading else { return }
+        guard let base = URL(string: siteAddress) else { return }
+        feedGeneration += 1
+        let generation = feedGeneration
+        let source = currentSource
+        let cookieHeader = session.cookieHeader()
         selectedFeed = feed
+        isSearchResults = false
         isRandomFeed = feed == .random
         isLoading = true
+        isLoadingMore = false
         networkError = nil
+        query = ""
 
         Task {
             do {
+                let galleries: [Gallery]
                 switch feed {
                 case .latest:
-                    results = try await SiteClient.shared.frontPage(source: currentSource, baseURL: base, cookieHeader: session.cookieHeader())
+                    galleries = try await SiteClient.shared.frontPage(source: source, baseURL: base, cookieHeader: cookieHeader)
                 case .popular:
-                    results = try await SiteClient.shared.frontPage(source: currentSource, baseURL: base, cookieHeader: session.cookieHeader(), mode: "popular")
+                    galleries = try await SiteClient.shared.frontPage(source: source, baseURL: base, cookieHeader: cookieHeader, mode: "popular")
                 case .random:
-                    results = try await SiteClient.shared.randomGalleries(source: currentSource, baseURL: base, cookieHeader: session.cookieHeader(), count: 25)
+                    galleries = try await SiteClient.shared.randomGalleries(source: source, baseURL: base, cookieHeader: cookieHeader, count: 25)
                 }
-                if results.isEmpty { networkError = "站点没有返回可用画廊。" }
+                guard generation == feedGeneration else { return }
+                results = galleries
+                if galleries.isEmpty { networkError = "站点没有返回可用画廊。" }
             } catch {
+                guard generation == feedGeneration else { return }
                 networkError = "\(feed.rawValue)加载失败：\(error.localizedDescription)"
             }
+            guard generation == feedGeneration else { return }
             isLoading = false
         }
     }
 
     private func loadMoreRandomGalleries() {
-        guard isRandomFeed, !isLoading, !isLoadingMore, let base = URL(string: siteAddress) else { return }
+        guard selectedFeed == .random, !isLoading, !isLoadingMore, let base = URL(string: siteAddress) else { return }
         isLoadingMore = true
+        let generation = feedGeneration
+        let source = currentSource
+        let cookieHeader = session.cookieHeader()
         let existingIDs = Set(results.map(\.id))
         Task {
-            defer { isLoadingMore = false }
             do {
-                let galleries = try await SiteClient.shared.randomGalleries(source: currentSource, baseURL: base, cookieHeader: session.cookieHeader(), count: 25, excluding: existingIDs)
+                let galleries = try await SiteClient.shared.randomGalleries(source: source, baseURL: base, cookieHeader: cookieHeader, count: 25, excluding: existingIDs)
+                guard generation == feedGeneration, selectedFeed == .random else { return }
                 results.append(contentsOf: galleries)
             } catch {
+                guard generation == feedGeneration, selectedFeed == .random else { return }
                 networkError = "更多随机画廊加载失败：\(error.localizedDescription)"
             }
+            guard generation == feedGeneration else { return }
+            isLoadingMore = false
         }
     }
     private func onlineSearch() {
         let term = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !term.isEmpty, let base = URL(string: siteAddress) else { return }
+        feedGeneration += 1
+        let generation = feedGeneration
+        let source = currentSource
+        let cookieHeader = session.cookieHeader()
+        isSearchResults = true
         isRandomFeed = false
-        isLoading = true; networkError = nil
-        var config = advanced; config.keyword = term
+        isLoading = true
+        isLoadingMore = false
+        networkError = nil
+        var config = advanced
+        config.keyword = term
         Task {
             do {
                 let raw = ([config.keyword] + config.tags).filter { !$0.isEmpty }.joined(separator: " ")
-                let found = try await SiteClient.shared.search(config: config, cookieHeader: session.cookieHeader(), baseURL: base, source: currentSource, translatedQuery: tagTranslations.queryForSite(raw))
-                discovery.record(query: term); results = found
+                let found = try await SiteClient.shared.search(config: config, cookieHeader: cookieHeader, baseURL: base, source: source, translatedQuery: tagTranslations.queryForSite(raw))
+                guard generation == feedGeneration else { return }
+                discovery.record(query: term)
+                results = found
                 if found.isEmpty { networkError = "没有匹配结果，或站点页面结构发生变化。" }
-            } catch { networkError = "无法完成直连搜索：\(error.localizedDescription)" }
+            } catch {
+                guard generation == feedGeneration else { return }
+                networkError = "无法完成直连搜索：\(error.localizedDescription)"
+            }
+            guard generation == feedGeneration else { return }
             isLoading = false
         }
     }
