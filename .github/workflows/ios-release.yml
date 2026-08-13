@@ -32,34 +32,12 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_IDENTITY='' \
             AD_HOC_CODE_SIGNING_ALLOWED=NO
-      - name: Export unsigned IPA
+      - name: Package unsigned IPA container
         run: |
-          cat > ExportOptions.plist <<'PLIST'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>destination</key>
-            <string>export</string>
-            <key>method</key>
-            <string>development</string>
-            <key>signingStyle</key>
-            <string>automatic</string>
-            <key>teamIdentifier</key>
-            <string>PLACEHOLDER_TEAM</string>
-            <key>compileBitcode</key>
-            <false/>
-            <key>destination</key>
-            <string>export</string>
-          </dict>
-          </plist>
-          PLIST
-          mkdir -p build/export
-          xcodebuild -exportArchive \
-            -archivePath build/TaroEH.xcarchive \
-            -exportPath build/export \
-            -exportOptionsPlist ExportOptions.plist \
-            CODE_SIGNING_ALLOWED=NO
+          mkdir -p build/Payload
+          cp -R build/TaroEH.xcarchive/Products/Applications/TaroEH.app build/Payload/
+          ditto -c -k --sequesterRsrc --keepParent build/Payload build/TaroEH-${{ inputs.version }}-unsigned.ipa
+          unzip -t build/TaroEH-${{ inputs.version }}-unsigned.ipa
 
       - name: Upload unsigned archive and IPA container
         uses: actions/upload-artifact@v4
@@ -67,7 +45,7 @@ jobs:
           name: TaroEH-${{ inputs.version }}-unsigned-build
           path: |
             build/TaroEH.xcarchive
-            build/export/TaroEH.ipa
+            build/TaroEH-${{ inputs.version }}-unsigned.ipa
 
       - name: Publish unsigned IPA to GitHub Release
         uses: softprops/action-gh-release@v2
@@ -77,8 +55,9 @@ jobs:
           body: |
             TaroEH v${{ inputs.version }} source/build release.
 
-            This release ships an unsigned IPA container exported via Xcode's archive export flow. It is not directly runnable on iOS. Sign it yourself with your Apple ID using AltStore, SideStore, Sideloadly, or Xcode.
-          files: build/export/TaroEH.ipa
+            The attached IPA is an unsigned IPA container. It is not directly runnable on iOS. Download the actual .ipa file to Files, then re-sign it with your Apple ID using SideStore, AltStore, Sideloadly, or Xcode.
+          files: build/TaroEH-${{ inputs.version }}-unsigned.ipa
+          overwrite_files: true
           prerelease: true
 
   # Signing is intentionally separate. Add an Apple certificate and provisioning
