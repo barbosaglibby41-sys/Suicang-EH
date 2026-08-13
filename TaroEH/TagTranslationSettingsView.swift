@@ -19,7 +19,8 @@ struct TagTranslationSettingsView: View {
             } footer: {
                 Text("开启后，搜索时会把能匹配本地标签库的中文词转换为 E-Hentai 可识别的英文标签；搜索框和搜索历史仍保留原文。")
             }
-            Section(header: Text("E-Hentai 标签翻译库")) {
+            Section {
+                Text("E-Hentai 标签翻译库").font(.headline)
                 HStack {
                     Label(tags.enabled ? "标签翻译已启用" : "标签翻译已关闭", systemImage: tags.enabled ? "checkmark.circle.fill" : "pause.circle")
                     Spacer()
