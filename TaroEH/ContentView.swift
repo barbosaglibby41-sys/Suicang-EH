@@ -236,8 +236,13 @@ struct ShelfView: View {
     var body: some View { List {
         if let recent = library.history.first, reading.page(for: recent) > 0 { Section("继续阅读") { ContinueReadingCard(gallery: recent) } }
         Section("离线作品 · \(offline.count)") { if offline.isEmpty { Text("完成下载的作品会显示在这里").foregroundStyle(.secondary) }; ForEach(offline) { task in NavigationLink { OfflineReaderView(gallery: task.gallery) } label: { GalleryRow(gallery: task.gallery) } } }
-        Section("收藏 · \(library.favorites.count)") { if library.favorites.isEmpty { Text("还没有收藏").foregroundStyle(.secondary) }; ForEach(library.favorites) { NavigationLink(value: $0) { GalleryRow(gallery: $0) } }.navigationDestination(for: Gallery.self) { GalleryDetailView(gallery: $0) } }
-        Section("最近阅读") { ForEach(library.history) { GalleryRow(gallery: $0) } }
+        Section("收藏 · \(library.favorites.count)") {
+            if library.favorites.isEmpty { Text("还没有收藏").foregroundStyle(.secondary) }
+            ForEach(library.favorites) { gallery in
+                NavigationLink { GalleryDetailView(gallery: gallery) } label: { GalleryRow(gallery: gallery) }
+            }
+        }
+        Section("最近阅读") { ForEach(library.history) { gallery in GalleryRow(gallery: gallery) } }
     }.navigationTitle("书架") }
 }
 
