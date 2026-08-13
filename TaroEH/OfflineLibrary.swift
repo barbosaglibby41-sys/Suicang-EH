@@ -17,7 +17,13 @@ enum OfflineLibrary {
     }
     static func hasCompleteCopy(_ gallery: Gallery) -> Bool { pageURLs(for: gallery).count >= gallery.pageCount }
     static func size(for gallery: Gallery) -> Int64 { pageURLs(for: gallery).reduce(0) { $0 + ((try? $1.resourceValues(forKeys: [.fileSizeKey]).fileSize).map(Int64.init) ?? 0) } }
-    static func totalSize() -> Int64 { guard let root = try? FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: false), let e = FileManager.default.enumerator(at: root.appendingPathComponent("Offline"), includingPropertiesForKeys: [.fileSizeKey]) else { return 0 }; return e.compactMap { ($0 as? URL)?.resourceValues(forKeys: [.fileSizeKey]).fileSize }.reduce(0) { $0 + Int64($1) } }
+    static func totalSize() -> Int64 {
+        guard let root = try? FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: false), let enumerator = FileManager.default.enumerator(at: root.appendingPathComponent("Offline"), includingPropertiesForKeys: [.fileSizeKey]) else { return 0 }
+        return enumerator.compactMap { item -> Int64? in
+            guard let url = item as? URL, let value = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize else { return nil }
+            return Int64(value)
+        }.reduce(0, +)
+    }
     static func formatted(_ bytes: Int64) -> String { ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file) }
     static func delete(_ gallery: Gallery) { [folder(for: gallery), legacyFolder(for: gallery)].compactMap { $0 }.forEach { try? FileManager.default.removeItem(at: $0) } }
     static func directoryName(for gallery: Gallery) -> String { gallery.stableKey.replacingOccurrences(of: ":", with: "_") }

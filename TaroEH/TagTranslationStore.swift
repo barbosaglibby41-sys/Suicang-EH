@@ -107,10 +107,16 @@ final class TagTranslationStore: ObservableObject {
         guard term.count >= 2 else { return [] }
         let initial = String(term.prefix(1))
         let candidates = searchBuckets[initial] ?? tags
-        return candidates.lazy.map { ($0, score($0, term)) }
-            .filter { $0.1 > 0 }
-            .sorted { $0.1 == $1.1 ? $0.0.name < $1.0.name : $0.1 > $1.1 }
-            .prefix(limit).map { $0.0 }
+        var scored: [(tag: TranslatedTag, score: Int)] = []
+        for tag in candidates {
+            let value = score(tag, term)
+            if value > 0 { scored.append((tag, value)) }
+        }
+        scored.sort {
+            if $0.score == $1.score { return $0.tag.name < $1.tag.name }
+            return $0.score > $1.score
+        }
+        return scored.prefix(limit).map { $0.tag }
     }
 
     func update() async {

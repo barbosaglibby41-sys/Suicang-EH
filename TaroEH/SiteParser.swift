@@ -43,7 +43,10 @@ enum SiteParser {
     private static func thumbnailMap(from html: String, baseURL: URL?) -> [Int: URL] {
         let pattern = #"(?s)<a[^>]+href=[\"'][^\"']*/g/(\d+)/[^\"']+[\"'][^>]*>\s*<img[^>]+(?:data-src|src)=[\"']([^\"']+)[\"']"#
         var map: [Int: URL] = [:]
-        for values in allGroups(pattern, in: html, groups: 2), values.count == 2, let id = Int(values[0]), let url = URL(string: decode(values[1]), relativeTo: baseURL)?.absoluteURL { map[id] = url }
+        for values in allGroups(pattern, in: html, groups: 2) {
+            guard values.count == 2, let id = Int(values[0]), let url = URL(string: decode(values[1]), relativeTo: baseURL)?.absoluteURL else { continue }
+            map[id] = url
+        }
         return map
     }
     private static func first(_ pattern: String, in text: String) -> String? { all(pattern, in: text).first }

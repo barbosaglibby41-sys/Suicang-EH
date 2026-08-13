@@ -12,7 +12,7 @@ actor DownloadService {
         config.httpMaximumConnectionsPerHost = max(1, min(6, UserDefaults.standard.integer(forKey: "taro.eh.concurrent") == 0 ? 2 : UserDefaults.standard.integer(forKey: "taro.eh.concurrent")))
         session = URLSession(configuration: config)
     }
-    func start(task: OfflineTask, onPage: @escaping @Sendable (Int) async -> Void, onFinish: @escaping @Sendable (Result<Void, Error>) async -> Void) {
+    func start(task: OfflineTask, onPage: @escaping @Sendable (Int) async -> Void, onFinish: @escaping @Sendable (Result<Void, Error>) async -> Void) async {
         do {
             let folder = try folder(for: task.gallery)
             for (index, pageURL) in task.imageURLs.enumerated() {

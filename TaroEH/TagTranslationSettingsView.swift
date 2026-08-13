@@ -25,9 +25,9 @@ struct TagTranslationSettingsView: View {
                     Spacer()
                     Text(tags.dataSource).foregroundStyle(.secondary)
                 }
-                LabeledContent("数据库版本", value: tags.databaseVersion == 0 ? "—" : "\(tags.databaseVersion)")
-                LabeledContent("标签数", value: tags.tagCount.formatted())
-                LabeledContent("更新时间", value: tags.formattedUpdatedAt)
+                HStack { Text("数据库版本"); Spacer(); Text(tags.databaseVersion == 0 ? "—" : "\(tags.databaseVersion)").foregroundStyle(.secondary) }
+                HStack { Text("标签数"); Spacer(); Text(tags.tagCount.formatted()).foregroundStyle(.secondary) }
+                HStack { Text("更新时间"); Spacer(); Text(tags.formattedUpdatedAt).foregroundStyle(.secondary) }
                 if tags.isUpdating {
                     ProgressView { Text("正在检查更新…") }
                 }
