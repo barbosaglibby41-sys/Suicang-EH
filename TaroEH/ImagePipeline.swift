@@ -51,7 +51,11 @@ actor ImagePipeline {
             if let referer { request.setValue(referer.absoluteString, forHTTPHeaderField: "Referer") }
             let (data, response) = try await session.data(for: request)
             guard let http = response as? HTTPURLResponse, 200..<400 ~= http.statusCode else { throw SiteError.invalidResponse }
-            guard let image = UIImage(data: data) else { throw SiteError.parseFailed }
+            guard let contentType = (response as? HTTPURLResponse)?.value(forHTTPHeaderField: "Content-Type"),
+                  contentType.lowercased().contains("image") else {
+                throw SiteError.imageDataInvalid
+            }
+            guard let image = UIImage(data: data) else { throw SiteError.imageDataInvalid }
             let maxDim: CGFloat = 1200
             let scale = min(maxDim / image.size.width, maxDim / image.size.height, 1)
             if scale < 1 {

@@ -106,8 +106,8 @@ struct GalleryPage: Identifiable, Hashable {
 }
 
 enum SiteError: LocalizedError {
-    case invalidResponse, loginRequired, accessDenied, parseFailed, unsupportedSource, commentTooShort
+    case invalidResponse, loginRequired, accessDenied, parseFailed, unsupportedSource, commentTooShort, imageDataInvalid
     var errorDescription: String? {
-        switch self { case .invalidResponse: return "站点返回格式异常"; case .loginRequired: return "请先登录"; case .accessDenied: return "站点拒绝了当前请求"; case .parseFailed: return "无法解析站点页面"; case .unsupportedSource: return "暂不支持该站点"; case .commentTooShort: return "评论内容至少需要 3 个字符" }
+        switch self { case .invalidResponse: return "站点返回格式异常"; case .loginRequired: return "请先登录"; case .accessDenied: return "站点拒绝了当前请求"; case .parseFailed: return "无法解析站点页面"; case .unsupportedSource: return "暂不支持该站点"; case .commentTooShort: return "评论内容至少需要 3 个字符"; case .imageDataInvalid: return "图片服务器返回了无效数据" }
     }
 }

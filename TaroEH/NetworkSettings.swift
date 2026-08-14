@@ -135,7 +135,7 @@ struct NetworkSettingsView: View {
         } header: {
             Text("超时与连接")
         } footer: {
-            Text("连接超时控制 TCP 握手等待时间；接收超时控制数据传输等待时间。并发连接数影响图片同时下载数量。")
+            Text("连接超时控制 TCP 握手等待时间；接收超时控制数据传输等待时间。图片下载使用系统连接管理。")
         }
     }
 

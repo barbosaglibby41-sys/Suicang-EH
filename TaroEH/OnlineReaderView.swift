@@ -54,10 +54,10 @@ struct OnlineReaderView: View {
                         fit: fit,
                         scale: scale,
                         onRetry: {
-                            Task { await resolveAndStore(index: index) }
+                            Task { await resolveAndStore(index: index, force: true) }
                         },
                         onAutoRetry: {
-                            Task { await resolveAndStore(index: index) }
+                            Task { await resolveAndStore(index: index, force: true) }
                         }
                     )
                     .onAppear { ensurePageLoaded(index) }
@@ -193,10 +193,14 @@ struct OnlineReaderView: View {
         }
     }
 
-    private func resolveAndStore(index: Int) async {
-        guard pageLinks.indices.contains(index), imageURLs[index] == nil else { return }
-        // Check cache first
-        if let cached = ImageURLCache.shared.image(for: gallery, at: index) {
+    private func resolveAndStore(index: Int, force: Bool = false) async {
+        guard pageLinks.indices.contains(index) else { return }
+        if !force, imageURLs[index] != nil { return }
+        if force {
+            ImageURLCache.shared.removeImage(for: gallery, at: index)
+            await MainActor.run { imageURLs[index] = nil }
+        }
+        if !force, let cached = ImageURLCache.shared.image(for: gallery, at: index) {
             await MainActor.run { imageURLs[index] = cached }
             return
         }
@@ -205,25 +209,15 @@ struct OnlineReaderView: View {
             let url = try await SiteClient.shared.imageURL(
                 pageURL: page,
                 cookieHeader: session.cookieHeader(),
-                referer: gallery.sourceURL
+                referer: gallery.sourceURL,
+                forceReload: force
             )
             ImageURLCache.shared.setImage(url, gallery: gallery, index: index)
             await MainActor.run { imageURLs[index] = url }
         } catch {
-            // Retry once with forceReload
-            do {
-                let page = pageLinks[index]
-                let url = try await SiteClient.shared.imageURL(
-                    pageURL: page,
-                    cookieHeader: session.cookieHeader(),
-                    referer: gallery.sourceURL,
-                    forceReload: true
-                )
-                ImageURLCache.shared.setImage(url, gallery: gallery, index: index)
-                await MainActor.run { imageURLs[index] = url }
-            } catch {
-                // Will be retried by ReaderPageImage's auto-retry
-            }
+            // One final fresh request with a cache-busting query.
+            guard !force else { return }
+            await resolveAndStore(index: index, force: true)
         }
     }
 
