@@ -24,6 +24,7 @@ struct DownloadsView: View {
 
 struct OfflineReaderView: View {
     let gallery: Gallery
+    @EnvironmentObject private var reading: ReadingStore
     private var pages: [URL] { OfflineLibrary.pageURLs(for: gallery) }
-    var body: some View { if pages.isEmpty { ContentUnavailableView("没有可读页面", systemImage: "photo") } else { SharedReaderView(title: gallery.title, pageCount: pages.count) { i, fit, scale in PipelineImage(url: pages[i], contentMode: fit ? .fit : .fill).scaleEffect(scale).frame(maxWidth: .infinity, maxHeight: .infinity) } } }
+    var body: some View { if pages.isEmpty { ContentUnavailableView("没有可读页面", systemImage: "photo") } else { SharedReaderView(title: gallery.title, pageCount: pages.count, initialIndex: min(reading.page(for: gallery), max(0, pages.count - 1)), onIndexChange: { index in reading.save(gallery: gallery, pageIndex: index) }) { i, fit, scale in PipelineImage(url: pages[i], contentMode: fit ? .fit : .fill).scaleEffect(scale).frame(maxWidth: .infinity, maxHeight: .infinity) } } }
 }

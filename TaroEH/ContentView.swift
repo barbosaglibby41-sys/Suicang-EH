@@ -220,9 +220,7 @@ struct DiscoverView: View {
             } else {
                 loadFrontPage()
             }
-            // Rankings are intentionally independent from the main feed. The
-            // date-based "today" list may require several server pages and
-            // must never delay the first gallery request.
+            // Rankings load independently so the main gallery feed is never blocked.
             if let base = URL(string: siteAddress) {
                 Task { await rankings.load(source: currentSource, baseURL: base, cookieHeader: session.cookieHeader()) }
             }

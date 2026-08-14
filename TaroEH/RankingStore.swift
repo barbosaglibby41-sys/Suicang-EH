@@ -2,16 +2,14 @@ import Foundation
 
 /// The server-side ranking periods exposed by E-Hentai's toplist endpoint.
 enum RankingPeriod: String, CaseIterable, Identifiable, Hashable {
-    case today = "今日"
     case yesterday = "昨日"
     case month = "上月"
     case year = "去年"
     case allTime = "总榜"
 
     var id: String { rawValue }
-    var endpointValue: String? {
+    var endpointValue: String {
         switch self {
-        case .today: return nil
         case .yesterday: return "15"
         case .month: return "13"
         case .year: return "12"
@@ -20,28 +18,21 @@ enum RankingPeriod: String, CaseIterable, Identifiable, Hashable {
     }
     var icon: String {
         switch self {
-        case .today: return "sun.max"
         case .yesterday: return "calendar"
         case .month: return "calendar.badge.clock"
         case .year: return "chart.bar"
         case .allTime: return "trophy"
         }
     }
-    var isDateBased: Bool { self == .today }
 }
 
 /// Loads and caches the site's toplists for the home preview and full list.
 @MainActor
 final class RankingStore: ObservableObject {
-    @Published private(set) var today: [Gallery] = []
     @Published private(set) var yesterday: [Gallery] = []
     @Published private(set) var month: [Gallery] = []
     @Published private(set) var year: [Gallery] = []
     @Published private(set) var allTime: [Gallery] = []
-    @Published private(set) var dateRankDate: Date?
-    @Published private(set) var dateResolvedDate: String?
-    @Published private(set) var dateResults: [Gallery] = []
-    @Published private(set) var dateLoading = false
     @Published private(set) var isLoading = false
     @Published private(set) var loadingMore: Set<RankingPeriod> = []
     @Published private(set) var error: String?
@@ -55,7 +46,6 @@ final class RankingStore: ObservableObject {
 
     func galleries(for period: RankingPeriod) -> [Gallery] {
         switch period {
-        case .today: return today
         case .yesterday: return yesterday
         case .month: return month
         case .year: return year
@@ -89,20 +79,6 @@ final class RankingStore: ObservableObject {
             self.error = "排行榜加载失败：\(error.localizedDescription)"
         }
         isLoading = false
-
-        // The date-based list is deliberately independent. It can require
-        // many cursor requests and must not delay the official toplists.
-        Task { [weak self] in
-            do {
-                let result = try await SiteClient.shared.dateRankings(for: Date(), source: source, baseURL: baseURL, cookieHeader: cookieHeader)
-                guard let self else { return }
-                self.set(galleries: result.galleries, for: .today)
-                self.dateResolvedDate = result.resolvedDate
-            } catch {
-                // Official yesterday/month rankings remain usable when the
-                // optional date-based list is unavailable.
-            }
-        }
     }
 
     func loadPeriod(_ period: RankingPeriod) async {
@@ -121,19 +97,6 @@ final class RankingStore: ObservableObject {
         isLoading = false
     }
 
-    func loadDate(_ date: Date, source: EHSource, baseURL: URL, cookieHeader: String?) async {
-        dateLoading = true
-        dateRankDate = date
-        do {
-            let result = try await SiteClient.shared.dateRankings(for: date, source: source, baseURL: baseURL, cookieHeader: cookieHeader)
-            dateResults = result.galleries
-            dateResolvedDate = result.resolvedDate
-        } catch {
-            self.error = "日期排行加载失败：\(error.localizedDescription)"
-            dateResults = []
-        }
-        dateLoading = false
-    }
     func loadMore(_ period: RankingPeriod) async {
         guard !loadingMore.contains(period), hasMore[period] != false,
               let page = nextPage[period] ?? nil,
@@ -155,13 +118,12 @@ final class RankingStore: ObservableObject {
     func canLoadMore(_ period: RankingPeriod) -> Bool { hasMore[period] == true }
 
     private func resetData() {
-        today = []; yesterday = []; month = []; year = []; allTime = []
+        yesterday = []; month = []; year = []; allTime = []
         nextPage = [:]; hasMore = [:]
     }
 
     private func set(galleries: [Gallery], for period: RankingPeriod) {
         switch period {
-        case .today: today = galleries
         case .yesterday: yesterday = galleries
         case .month: month = galleries
         case .year: year = galleries
@@ -171,7 +133,6 @@ final class RankingStore: ObservableObject {
 
     private func append(_ galleries: [Gallery], to period: RankingPeriod) {
         switch period {
-        case .today: today.append(contentsOf: galleries)
         case .yesterday: yesterday.append(contentsOf: galleries)
         case .month: month.append(contentsOf: galleries)
         case .year: year.append(contentsOf: galleries)

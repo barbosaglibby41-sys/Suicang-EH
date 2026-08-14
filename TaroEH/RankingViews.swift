@@ -25,8 +25,8 @@ struct HomeRankingsSection: View {
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(alignment: .top, spacing: 18) {
-                        RankingPreviewColumn(period: .today, galleries: Array(rankings.today.prefix(3)))
                         RankingPreviewColumn(period: .yesterday, galleries: Array(rankings.yesterday.prefix(3)))
+                        RankingPreviewColumn(period: .month, galleries: Array(rankings.month.prefix(3)))
                     }
                 }
             }
@@ -95,27 +95,18 @@ struct RankingRow: View {
 struct RankingListView: View {
     @EnvironmentObject private var rankings: RankingStore
     @State private var period: RankingPeriod = .yesterday
-    @State private var selectedDate = Date()
-    @State private var showDatePicker = false
     @Environment(\.dismiss) private var dismiss
     @AppStorage("taro.eh.siteURL") private var siteAddress = "https://e-hentai.org/"
     @AppStorage("taro.eh.source") private var sourceRaw = EHSource.eHentai.rawValue
     @EnvironmentObject private var session: SessionStore
 
-    private var galleries: [Gallery] {
-        period == .today && rankings.dateRankDate != nil ? rankings.dateResults : rankings.galleries(for: period)
-    }
-    private var isDateMode: Bool { period == .today }
-    private var dateTitle: String {
-        if let resolved = rankings.dateResolvedDate { return resolved }
-        return selectedDate.formatted(date: .abbreviated, time: .omitted)
-    }
+    private var galleries: [Gallery] { rankings.galleries(for: period) }
 
 
     var body: some View {
         NavigationStack {
             Group {
-                if (rankings.isLoading || rankings.dateLoading) && galleries.isEmpty {
+                if rankings.isLoading && galleries.isEmpty {
                     ProgressView("正在加载排行…")
                 } else if galleries.isEmpty {
                     ContentUnavailableView("暂无排行", systemImage: "chart.bar", description: Text(rankings.error ?? "请稍后重试"))
@@ -130,7 +121,7 @@ struct RankingListView: View {
                                 .buttonStyle(.plain)
                                 Divider().padding(.leading, 20)
                                     .onAppear {
-                                        if index == galleries.count - 1 && !isDateMode {
+                                        if index == galleries.count - 1 {
                                             Task { await rankings.loadMore(period) }
                                         }
                                     }
@@ -144,18 +135,8 @@ struct RankingListView: View {
                     }
                 }
             }
-            .navigationTitle(isDateMode ? "排行 · \(dateTitle)" : "排行 · \(period.rawValue)")
+            .navigationTitle("排行 · \(period.rawValue)")
             .navigationBarTitleDisplayMode(.inline)
-            .safeAreaInset(edge: .top) {
-                if isDateMode, let resolved = rankings.dateResolvedDate {
-                    Text("站点实际日期：\(resolved)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 4)
-                        .background(.thinMaterial)
-                }
-            }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("关闭") { dismiss() }
@@ -165,53 +146,21 @@ struct RankingListView: View {
                         ForEach(RankingPeriod.allCases) { value in
                             Button {
                                 period = value
-                                if value == .today {
-                                    selectedDate = Date()
-                                    Task { await loadDate(selectedDate) }
-                                } else if rankings.galleries(for: value).isEmpty {
+                                if rankings.galleries(for: value).isEmpty {
                                     Task { await loadPeriod(value) }
                                 }
                             } label: {
                                 Label(value.rawValue, systemImage: value.icon)
                             }
                         }
-                        Divider()
-                        Button {
-                            period = .today
-                            showDatePicker = true
-                        } label: {
-                            Label("选择日期…", systemImage: "calendar.badge.plus")
-                        }
                     } label: { Image(systemName: "line.3.horizontal.decrease.circle") }
                 }
-            }
-            .sheet(isPresented: $showDatePicker) {
-                NavigationStack {
-                    Form {
-                        Section("按发布时间筛选") {
-                            DatePicker("选择日期", selection: $selectedDate, in: ...Date(), displayedComponents: .date)
-                            Text("E-Hentai 没有公开任意历史日期的官方排行接口，此处按发布时间筛选最新列表中的作品。")
-                                .font(.caption).foregroundStyle(.secondary)
-                        }
-                    }
-                    .navigationTitle("选择排行日期")
-                    .toolbar {
-                        ToolbarItem(placement: .confirmationAction) {
-                            Button("查看") { showDatePicker = false; period = .today; Task { await loadDate(selectedDate) } }
-                        }
-                    }
-                }
-                .presentationDetents([.medium])
             }
             .navigationDestination(for: Gallery.self) { GalleryDetailView(gallery: $0) }
             .task { await loadPeriod(.yesterday) }
         }
     }
 
-    private func loadDate(_ date: Date) async {
-        guard let base = URL(string: siteAddress) else { return }
-        await rankings.loadDate(date, source: EHSource(rawValue: sourceRaw) ?? .eHentai, baseURL: base, cookieHeader: session.cookieHeader())
-    }
     private func loadPeriod(_ value: RankingPeriod) async {
         if rankings.galleries(for: value).isEmpty,
            let base = URL(string: siteAddress) {

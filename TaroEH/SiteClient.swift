@@ -1,10 +1,5 @@
 import Foundation
 
-struct DateRankingResult {
-    let galleries: [Gallery]
-    let resolvedDate: String
-}
-
 /// Direct HTTPS client. Uses system certificate validation and never routes through a relay.
 final class SiteClient {
     static let shared = SiteClient()
@@ -122,7 +117,7 @@ final class SiteClient {
     /// Loads one toplist page. E-Hentai uses tl=15 yesterday, 13 month,
     /// 12 year and 11 all-time; each page contains up to 50 galleries.
     func toplistPage(period: RankingPeriod, source: EHSource, baseURL: URL, cookieHeader: String?, page: Int = 0) async throws -> (galleries: [Gallery], nextPage: Int?) {
-        guard let endpoint = period.endpointValue else { throw SiteError.invalidResponse }
+        let endpoint = period.endpointValue
         var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false)
         components?.path = "/toplist.php"
         components?.queryItems = [
@@ -135,51 +130,6 @@ final class SiteClient {
         let galleries = SiteParser.galleries(from: html, source: source, baseURL: baseURL)
         let next = SiteParser.toplistNextPage(from: html, currentPage: page)
         return (galleries, next)
-    }
-    func dateRankings(for date: Date, source: EHSource, baseURL: URL, cookieHeader: String?) async throws -> DateRankingResult {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = .current
-        formatter.dateFormat = "yyyy-MM-dd"
-        let requestedDate = formatter.string(from: date)
-        var target = requestedDate
-        var output: [Gallery] = []
-        var cursor: Int?
-        var seenCursors = Set<Int>()
-        var firstRequest = true
-
-        for _ in 0..<200 {
-            var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false)
-            var queryItems = [URLQueryItem(name: "seek", value: target)]
-            if let cursor { queryItems.append(URLQueryItem(name: "next", value: String(cursor))) }
-            components?.queryItems = queryItems
-            guard let url = components?.url else { throw SiteError.invalidResponse }
-            let data = try await request(url, cookieHeader: cookieHeader)
-            guard let html = String(data: data, encoding: .utf8) else { throw SiteError.parseFailed }
-            if firstRequest, let serverDate = SiteParser.latestPostedDate(from: html), serverDate < target {
-                target = serverDate
-                output.removeAll()
-                cursor = nil
-                seenCursors.removeAll()
-                firstRequest = false
-                continue
-            }
-            let page = SiteParser.galleriesPage(from: html, source: source, baseURL: baseURL)
-            let sameDay = page.galleries.filter { $0.postedAt?.hasPrefix(target) == true }
-            output.append(contentsOf: sameDay)
-            let hasTargetDate = !sameDay.isEmpty
-            let hasOlder = page.galleries.contains { gallery in
-                guard let posted = gallery.postedAt else { return false }
-                return String(posted.prefix(10)) < target
-            }
-            guard let next = page.nextCursor, seenCursors.insert(next).inserted,
-                  firstRequest || hasTargetDate, !hasOlder else { break }
-            firstRequest = false
-            cursor = next
-        }
-        var seen = Set<Int>()
-        return DateRankingResult(galleries: output.filter { seen.insert($0.id).inserted }, resolvedDate: target)
     }
     func detail(_ gallery: Gallery, cookieHeader: String?) async throws -> NetworkGalleryDetail {
         guard let url = gallery.sourceURL else { throw SiteError.invalidResponse }
