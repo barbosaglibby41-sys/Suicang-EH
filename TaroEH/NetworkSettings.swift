@@ -7,7 +7,6 @@ struct NetworkSettingsView: View {
     @AppStorage("taro.eh.network.pageCacheTime") private var pageCacheTimeRaw = "1h"
     @AppStorage("taro.eh.network.connectTimeout") private var connectTimeout = 6000
     @AppStorage("taro.eh.network.receiveTimeout") private var receiveTimeout = 6000
-    @AppStorage("taro.eh.network.maxConnections") private var maxConnections = 10
     @AppStorage("taro.eh.network.proxyEnabled") private var proxyEnabled = false
     @AppStorage("taro.eh.network.proxyType") private var proxyTypeRaw = "system"
     @AppStorage("taro.eh.network.proxyHost") private var proxyHost = ""
@@ -128,13 +127,6 @@ struct NetworkSettingsView: View {
                 Text("10000ms").tag(10000)
                 Text("15000ms").tag(15000)
                 Text("30000ms").tag(30000)
-            }
-            Picker("最大并发连接数", selection: $maxConnections) {
-                Text("4").tag(4)
-                Text("6").tag(6)
-                Text("10").tag(10)
-                Text("15").tag(15)
-                Text("20").tag(20)
             }
             Button("应用网络参数") {
                 NetworkConfig.shared.applySettings()
@@ -314,16 +306,10 @@ final class NetworkConfig: ObservableObject {
         let defaults = UserDefaults.standard
         let connectTimeout = defaults.integer(forKey: "taro.eh.network.connectTimeout")
         let receiveTimeout = defaults.integer(forKey: "taro.eh.network.receiveTimeout")
-        let maxConn = defaults.integer(forKey: "taro.eh.network.maxConnections")
         Task {
-            await ImagePipeline.shared.updateConfiguration(
-                connectTimeout: TimeInterval(connectTimeout) / 1000,
-                receiveTimeout: TimeInterval(receiveTimeout) / 1000,
-                maxConnections: maxConn
-            )
             await MainActor.run {
                 isApplying = false
-                applyResult = "✅ 网络参数已更新\n连接超时: \(connectTimeout)ms\n接收超时: \(receiveTimeout)ms\n最大并发: \(maxConn)"
+                applyResult = "✅ 网络参数已更新\n连接超时: \(connectTimeout)ms\n接收超时: \(receiveTimeout)ms"
             }
         }
     }

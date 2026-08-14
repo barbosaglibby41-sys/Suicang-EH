@@ -7,7 +7,7 @@ actor ImagePipeline {
     private let memory = NSCache<NSString, UIImage>()
     private var inFlight: [String: Task<UIImage, Error>] = [:]
     private var activeRequests = 0
-    private var maxConcurrentRequests = 10
+    private let maxConcurrentRequests = 10
 
     private init() {
         let config = URLSessionConfiguration.default
@@ -15,11 +15,11 @@ actor ImagePipeline {
         config.requestCachePolicy = .returnCacheDataElseLoad
         config.waitsForConnectivity = true
         config.timeoutIntervalForRequest = 30
+        config.timeoutIntervalForResource = 60
         config.httpMaximumConnectionsPerHost = 10
         session = URLSession(configuration: config)
         memory.countLimit = 180
         memory.totalCostLimit = 120 * 1024 * 1024
-        // Respond to memory pressure
         NotificationCenter.default.addObserver(
             forName: UIApplication.didReceiveMemoryWarningNotification,
             object: nil, queue: nil
@@ -35,7 +35,7 @@ actor ImagePipeline {
         if let task = inFlight[cacheKey] { return try await task.value }
         let task = Task<UIImage, Error> {
             while await self.canStartRequest() == false {
-                try await Task.sleep(for: .milliseconds(30))
+                try await Task.sleep(for: .milliseconds(20))
             }
             await self.beginRequest()
             defer { Task { await self.endRequest() } }
@@ -47,12 +47,10 @@ actor ImagePipeline {
             var request = URLRequest(url: url)
             request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15", forHTTPHeaderField: "User-Agent")
             request.setValue("image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8", forHTTPHeaderField: "Accept")
-            request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
             if let cookieHeader, !cookieHeader.isEmpty { request.setValue(cookieHeader, forHTTPHeaderField: "Cookie") }
             if let referer { request.setValue(referer.absoluteString, forHTTPHeaderField: "Referer") }
             let (data, response) = try await session.data(for: request)
             guard let http = response as? HTTPURLResponse, 200..<400 ~= http.statusCode else { throw SiteError.invalidResponse }
-            // Downscale very large images to save memory
             guard let image = UIImage(data: data) else { throw SiteError.parseFailed }
             let maxDim: CGFloat = 1200
             let scale = min(maxDim / image.size.width, maxDim / image.size.height, 1)
@@ -78,17 +76,6 @@ actor ImagePipeline {
     private func endRequest() { activeRequests = max(0, activeRequests - 1) }
 
     func removeAllMemory() { memory.removeAllObjects() }
-
-    func updateConfiguration(connectTimeout: TimeInterval, receiveTimeout: TimeInterval, maxConnections: Int) {
-        maxConcurrentRequests = maxConnections
-        // URLSession configuration is immutable after creation, so we update
-        // what we can (the timeout applies to new requests via the actor)
-        currentConnectTimeout = connectTimeout
-        currentReceiveTimeout = receiveTimeout
-    }
-
-    private var currentConnectTimeout: TimeInterval = 30
-    private var currentReceiveTimeout: TimeInterval = 30
 }
 
 // MARK: - Shimmer Placeholder
@@ -98,7 +85,6 @@ struct ShimmerView: View {
     var body: some View {
         GeometryReader { proxy in
             let w = proxy.size.width
-            let h = proxy.size.height
             Rectangle()
                 .fill(Color.secondary.opacity(0.1))
                 .overlay(
@@ -166,7 +152,6 @@ private struct PipelineImageContent: View {
                         image = try await ImagePipeline.shared.image(for: url, cookieHeader: cookieHeader)
                         lastError = nil
                         appeared = false
-                        // Trigger fade-in on next runloop
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) { appeared = true }
                         break
                     } catch { lastError = error }
