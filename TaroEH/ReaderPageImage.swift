@@ -68,26 +68,12 @@ struct ReaderPageImage: View {
                 }
             } catch {
                 guard !Task.isCancelled else { return }
-                // Retry once after delay
-                try? await Task.sleep(for: .milliseconds(500))
-                do {
-                    let value = try await ImagePipeline.shared.image(
-                        for: url,
-                        cookieHeader: session.cookieHeader(),
-                        referer: nil
-                    )
-                    guard !Task.isCancelled else { return }
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        image = value
-                        failed = false
-                    }
-                } catch {
-                    guard !Task.isCancelled else { return }
-                    withAnimation(.easeInOut(duration: 0.25)) {
-                        failed = true
-                    }
-                    onAutoRetry()
-                }
+                // The cached image URL may have expired. Ask the parent to
+                // resolve a fresh page URL immediately instead of retrying
+                // the same stale CDN URL a second time.
+                failed = false
+                onAutoRetry()
+                return
             }
         }
     }

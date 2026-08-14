@@ -193,7 +193,7 @@ final class SiteClient {
             var components = URLComponents(url: pageURL, resolvingAgainstBaseURL: false)
             var items = components?.queryItems ?? []
             items.removeAll { $0.name == "nl" }
-            items.append(URLQueryItem(name: "nl", value: String(Int(Date().timeIntervalSince1970))))
+            items.append(URLQueryItem(name: "nl", value: "\(Int(Date().timeIntervalSince1970 * 1000))"))
             components?.queryItems = items
             target = components?.url ?? pageURL
         }

@@ -26,7 +26,7 @@ struct SettingsView: View {
                 NavigationLink { NetworkSettingsView() } label: { Label("网络设置", systemImage: "network") }
             }
             Section("关于") {
-                LabeledContent("版本", value: "1.7.58")
+                LabeledContent("版本", value: "1.7.59")
                 Text("JHenTai 架构参考：Apache-2.0，完整许可证随源代码提供。")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
