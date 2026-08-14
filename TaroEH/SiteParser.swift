@@ -148,8 +148,12 @@ enum SiteParser {
     static func galleriesPage(from html: String, source: EHSource, baseURL: URL?) -> (galleries: [Gallery], nextCursor: Int?) {
         (galleries(from: html, source: source, baseURL: baseURL), nextGalleryCursor(from: html))
     }
+    static func favoriteToken(from html: String) -> String? {
+        first(#"(?:gallerypopups\.php\?gid=\d+&t=|[?&]t=)([0-9a-zA-Z]+)"#, in: html)
+            ?? first(#"name=[\"']token[\"'][^>]+value=[\"']([^\"']+)[\"']"#, in: html)
+    }
     static func torrentURL(from html: String) -> URL? {
-        first(#"href=[\"'](https?://[^\"']+\.torrent)[\"']"#, in: html).flatMap { URL(string: decode($0)) }
+        return first(#"href=[\"'](https?://[^\"']+\.torrent)[\"']"#, in: html).flatMap { URL(string: decode($0)) }
     }
 
     static func imagePageLinks(from html: String, base: URL) -> [URL] {

@@ -14,6 +14,7 @@ struct ContentView: View {
     @EnvironmentObject private var session: SessionStore
     @Environment(\.modelContext) private var modelContext
     @StateObject private var library = LibraryStore()
+    @StateObject private var cloudFavorites = CloudFavoritesStore()
     @State private var path = NavigationPath()
     @State private var selectedTab = 0
     @State private var bottomBarVisible = true
@@ -60,6 +61,7 @@ struct ContentView: View {
         .animation(.easeInOut(duration: 0.22), value: bottomBarVisible)
         .environmentObject(session)
         .environmentObject(library)
+        .environmentObject(cloudFavorites)
         .tint(.purple)
         .onReceive(NotificationCenter.default.publisher(for: .taroSearchTag)) { notification in
             guard let raw = notification.userInfo?["tag"] as? String, !raw.isEmpty else { return }
@@ -757,6 +759,7 @@ struct GalleryDetailView: View {
     @EnvironmentObject private var reading: ReadingStore
     @State private var item: Gallery
     @State private var detailError: String?
+    @State private var showFavoriteTargets = false
     @State private var showCommentEditor = false
     @State private var commentDraft = ""
     @State private var isPostingComment = false
@@ -769,7 +772,8 @@ struct GalleryDetailView: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: 300)
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-            HStack(alignment: .top) { VStack(alignment: .leading) { Text(item.title).font(.title2.bold()); Text("\(item.uploader) · \(item.pageCount) 页").foregroundStyle(.secondary); if let postedAt = item.postedAt, !postedAt.isEmpty { Label("发布于 \(postedAt)", systemImage: "calendar").font(.caption).foregroundStyle(.secondary) } }; Spacer(); Button { library.toggleFavorite(item) } label: { Image(systemName: library.isFavorite(item) ? "star.fill" : "star").font(.title2) } }
+            HStack(alignment: .top) { VStack(alignment: .leading) { Text(item.title).font(.title2.bold()); Text("\(item.uploader) · \(item.pageCount) 页").foregroundStyle(.secondary); if let postedAt = item.postedAt, !postedAt.isEmpty { Label("发布于 \(postedAt)", systemImage: "calendar").font(.caption).foregroundStyle(.secondary) } }; Spacer(); Button { showFavoriteTargets = true } label: { Image(systemName: library.isFavorite(item) ? "star.fill" : "star").font(.title2) } }
+            .sheet(isPresented: $showFavoriteTargets) { FavoriteTargetSheet(gallery: item) }
             GalleryInfoCard(gallery: item)
             if let detailError { Text(detailError).font(.caption).foregroundStyle(.orange) }
             HStack {
@@ -1013,15 +1017,15 @@ struct ShelfView: View {
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var downloads: DownloadStore
     @EnvironmentObject private var reading: ReadingStore
+    @EnvironmentObject private var session: SessionStore
     private var offline: [OfflineTask] { downloads.tasks.filter { $0.state == .complete } }
     var body: some View { List {
+        if session.isLoggedIn { Section("账户") { NavigationLink { CloudFavoritesView() } label: { Label("账户收藏", systemImage: "cloud.fill"); Spacer(); Text("同步").font(.caption).foregroundStyle(.secondary) } } }
         if let recent = library.history.first, reading.page(for: recent) > 0 { Section("继续阅读") { ContinueReadingCard(gallery: recent) } }
         Section("离线作品 · \(offline.count)") { if offline.isEmpty { Text("完成下载的作品会显示在这里").foregroundStyle(.secondary) }; ForEach(offline) { task in NavigationLink { OfflineReaderView(gallery: task.gallery) } label: { GalleryRow(gallery: task.gallery) } } }
-        Section("收藏 · \(library.favorites.count)") {
-            if library.favorites.isEmpty { Text("还没有收藏").foregroundStyle(.secondary) }
-            ForEach(library.favorites) { gallery in
-                NavigationLink { GalleryDetailView(gallery: gallery) } label: { GalleryRow(gallery: gallery) }
-            }
+        Section("本地收藏 · \(library.favorites.count)") {
+            if library.favorites.isEmpty { Text("还没有本地收藏").foregroundStyle(.secondary) }
+            ForEach(library.favorites) { gallery in NavigationLink { GalleryDetailView(gallery: gallery) } label: { GalleryRow(gallery: gallery) } }
         }
         Section("最近阅读 · \(library.history.count)") { ForEach(library.history) { gallery in NavigationLink { GalleryDetailView(gallery: gallery) } label: { GalleryRow(gallery: gallery) } } }
     }.navigationTitle("书架") }

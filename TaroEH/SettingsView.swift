@@ -5,6 +5,7 @@ struct SettingsView: View {
     var body: some View {
         List {
             Section("账户") {
+                NavigationLink { CloudFavoritesView() } label: { Label("账户收藏", systemImage: session.isLoggedIn ? "cloud.fill" : "cloud") }
                 NavigationLink { WebLoginView() } label: { Label("网页登录", systemImage: "globe") }
                 NavigationLink { CookieImportView() } label: { Label("导入 Cookie", systemImage: "key.fill") }
                 if session.isLoggedIn {
@@ -26,7 +27,7 @@ struct SettingsView: View {
                 NavigationLink { NetworkSettingsView() } label: { Label("网络设置", systemImage: "network") }
             }
             Section("关于") {
-                LabeledContent("版本", value: "1.7.65")
+                LabeledContent("版本", value: "1.7.66")
                 Text("JHenTai 架构参考：Apache-2.0，完整许可证随源代码提供。")
                     .font(.footnote)
                     .foregroundStyle(.secondary)

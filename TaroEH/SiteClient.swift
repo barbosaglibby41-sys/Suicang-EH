@@ -226,15 +226,42 @@ final class SiteClient {
                 group.addTask { (index, try await self.imageURL(pageURL: page, cookieHeader: cookieHeader)) }
             }
             for _ in 0..<min(6, pages.count) { addNext() }
-            while let (index, url) = try await group.next() {
-                output[index] = url
-                addNext()
-            }
+            while let (index, url) = try await group.next() { output[index] = url; addNext() }
         }
         return output.compactMap { $0 }
     }
 
-    /// Posts a new comment to the gallery. Returns the re-fetched detail page
+    func cloudFavorites(source: EHSource, category: Int, cookieHeader: String?) async throws -> CloudFavoritePage {
+        var components = URLComponents(url: source.baseURL.appendingPathComponent("favorites.php"), resolvingAgainstBaseURL: false)!
+        components.queryItems = [URLQueryItem(name: "favcat", value: String(category))]
+        guard let url = components.url else { throw SiteError.invalidResponse }
+        return try await cloudFavorites(url: url, source: source, cookieHeader: cookieHeader)
+    }
+
+    func cloudFavorites(url: URL, source: EHSource, cookieHeader: String?) async throws -> CloudFavoritePage {
+        let data = try await request(url, cookieHeader: cookieHeader)
+        guard let html = String(data: data, encoding: .utf8) else { throw SiteError.parseFailed }
+        return CloudFavoritesParser.page(from: html, source: source, baseURL: source.baseURL)
+    }
+
+    func setCloudFavorite(gallery: Gallery, category: Int, cookieHeader: String?) async throws {
+        guard let detailURL = gallery.sourceURL else { throw SiteError.invalidResponse }
+        let data = try await request(detailURL, cookieHeader: cookieHeader)
+        guard let html = String(data: data, encoding: .utf8) else { throw SiteError.parseFailed }
+        let token = SiteParser.favoriteToken(from: html)
+        var components = URLComponents(url: gallery.source.baseURL, resolvingAgainstBaseURL: false)!
+        components.path = "/gallerypopups.php"
+        components.queryItems = [URLQueryItem(name: "gid", value: String(gallery.id)), URLQueryItem(name: "t", value: token ?? ""), URLQueryItem(name: "act", value: "addfav")]
+        guard let url = components.url else { throw SiteError.invalidResponse }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/x-www-form-urlencoded; charset=utf-8", forHTTPHeaderField: "Content-Type")
+        request.setValue(detailURL.absoluteString, forHTTPHeaderField: "Referer")
+        request.httpBody = "favcat=\(category)&favnote=&submit=Apply+Changes&update=1".data(using: .utf8)
+        applyHeaders(to: &request, cookieHeader: cookieHeader, referer: detailURL)
+        let (_, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse, 200..<400 ~= http.statusCode else { throw SiteError.invalidResponse }
+    }
     /// so the caller can refresh the comment list.
     func postComment(gallery: Gallery, content: String, cookieHeader: String?) async throws -> NetworkGalleryDetail {
         guard let url = gallery.sourceURL else { throw SiteError.invalidResponse }
