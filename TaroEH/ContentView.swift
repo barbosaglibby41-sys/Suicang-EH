@@ -32,6 +32,9 @@ struct ContentView: View {
         .environmentObject(session)
         .environmentObject(library)
         .tint(.purple)
+        .onChange(of: selectedTab) { _, _ in
+            Haptics.light()
+        }
         .onReceive(NotificationCenter.default.publisher(for: .taroSearchTag)) { notification in
             guard let raw = notification.userInfo?["tag"] as? String, !raw.isEmpty else { return }
             // From the shelf, reset any stale discovery path first. From a
@@ -190,8 +193,10 @@ struct DiscoverView: View {
                         Text("正在搜索网络…").font(.caption).foregroundStyle(.secondary)
                     }
                     .frame(maxWidth: .infinity, minHeight: 180)
+                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
                 } else if filtered.isEmpty {
                     ContentUnavailableView("暂无画廊", systemImage: "rectangle.stack", description: Text("下拉刷新或使用搜索查找作品。"))
+                        .transition(.opacity)
                 } else {
                     galleryResultsView
                     if isRandomFeed {
@@ -202,6 +207,8 @@ struct DiscoverView: View {
                 }
             }.padding()
         }
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isLoading)
+        .animation(.easeInOut(duration: 0.25), value: filtered.count)
         .navigationBarHidden(true)
         .sheet(isPresented: $showFilters) { FilterView(sort: $sort, config: $advanced) }
         .sheet(isPresented: $showAllRankings) { RankingListView() }
@@ -239,31 +246,34 @@ struct DiscoverView: View {
                     NavigationLink(value: gallery) {
                         GalleryWaterfallCard(gallery: gallery, showTags: galleryListStyle.includesTags)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(PressScaleStyle())
                     .onAppear { loadMoreIfNeeded(for: gallery) }
                 }
             }
+            .transition(.opacity.combined(with: .move(edge: .bottom)))
         } else if galleryListStyle == .card || galleryListStyle == .cardNoTags {
             LazyVGrid(columns: columns, spacing: 14) {
                 ForEach(filtered) { gallery in
                     NavigationLink(value: gallery) {
                         GalleryCard(gallery: gallery, showTags: galleryListStyle.includesTags)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(PressScaleStyle())
                     .onAppear { loadMoreIfNeeded(for: gallery) }
                 }
             }
+            .transition(.opacity.combined(with: .move(edge: .bottom)))
         } else {
             LazyVStack(spacing: 0) {
                 ForEach(filtered) { gallery in
                     NavigationLink(value: gallery) {
                         GalleryFlatRow(gallery: gallery, showTags: galleryListStyle.includesTags)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(PressScaleStyle())
                     .onAppear { loadMoreIfNeeded(for: gallery) }
                     Divider()
                 }
             }
+            .transition(.opacity)
         }
     }
 
@@ -573,7 +583,7 @@ struct GalleryCard: View {
         VStack(alignment: .leading, spacing: 8) {
             GalleryCover(url: gallery.thumbnailURL)
                 .frame(height: coverHeight)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 .overlay(alignment: .bottomLeading) {
                     if let postedAt = gallery.postedAt, !postedAt.isEmpty {
                         Label("发布 \(postedAt)", systemImage: "calendar")
@@ -581,6 +591,17 @@ struct GalleryCard: View {
                             .foregroundStyle(.white)
                             .padding(.horizontal, 7).padding(.vertical, 4)
                             .background(.black.opacity(0.65), in: Capsule())
+                            .padding(6)
+                    }
+                }
+                .overlay(alignment: .topTrailing) {
+                    if let category = gallery.category as Optional<String>, !category.isEmpty {
+                        Text(category)
+                            .font(.system(size: 9, weight: .bold))
+                            .textCase(.uppercase)
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 6).padding(.vertical, 3)
+                            .background(.purple.opacity(0.75), in: Capsule())
                             .padding(6)
                     }
                 }
@@ -617,6 +638,9 @@ struct GalleryCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
+        .padding(10)
+        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .shadow(color: .black.opacity(0.06), radius: 3, x: 0, y: 1)
         .contentShape(Rectangle())
     }
 }
@@ -884,7 +908,7 @@ struct ReaderView: View {
     @State private var showUI = true
     @State private var fit = true
     var pages: [GalleryPage] { DemoData.pages(for: gallery) }
-    var body: some View { ZStack { Color.black.ignoresSafeArea(); TabView(selection: $index) { ForEach(Array(pages.enumerated()), id: \.element.id) { i, page in PipelineImage(url: page.imageURL, cookieHeader: session.cookieHeader(), contentMode: fit ? .fit : .fill).frame(maxWidth: .infinity, maxHeight: .infinity).clipped().tag(i) } }.tabViewStyle(.page(indexDisplayMode: .never)).onTapGesture { withAnimation { showUI.toggle() } }; if showUI { VStack { HStack { Button { dismiss() } label: { Image(systemName: "chevron.down") }; Spacer(); Text(gallery.title).lineLimit(1); Spacer(); Button { fit.toggle() } label: { Image(systemName: "arrow.up.left.and.arrow.down.right") } }.padding().background(.black.opacity(0.75)); Spacer(); Text("第 \(index + 1) / \(pages.count) 页").font(.caption).padding().background(.black.opacity(0.75)) } } }.foregroundStyle(.white).statusBarHidden(!showUI).onAppear { index = min(reading.page(for: gallery), max(0, pages.count - 1)) }.onChange(of: index) { _, value in reading.save(gallery: gallery, pageIndex: value) } }
+    var body: some View { ZStack { Color.black.ignoresSafeArea(); TabView(selection: $index) { ForEach(Array(pages.enumerated()), id: \.element.id) { i, page in PipelineImage(url: page.imageURL, cookieHeader: session.cookieHeader(), contentMode: fit ? .fit : .fill).frame(maxWidth: .infinity, maxHeight: .infinity).clipped().tag(i) } }.tabViewStyle(.page(indexDisplayMode: .never)).onTapGesture { withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) { showUI.toggle() } }; if showUI { VStack { HStack { Button { dismiss() } label: { Image(systemName: "chevron.down") }; Spacer(); Text(gallery.title).lineLimit(1); Spacer(); Button { fit.toggle() } label: { Image(systemName: "arrow.up.left.and.arrow.down.right") } }.padding().background(.black.opacity(0.75)); Spacer(); Text("第 \(index + 1) / \(pages.count) 页").font(.caption).padding().background(.black.opacity(0.75)) }.transition(.move(edge: .top).combined(with: .opacity)) } }.foregroundStyle(.white).statusBarHidden(!showUI).onAppear { index = min(reading.page(for: gallery), max(0, pages.count - 1)) }.onChange(of: index) { _, value in reading.save(gallery: gallery, pageIndex: value); Haptics.light() } }
 }
 
 struct ShelfView: View {

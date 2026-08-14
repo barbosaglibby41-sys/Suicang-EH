@@ -42,6 +42,21 @@ enum GalleryListStyle: String, CaseIterable, Identifiable {
     }
 }
 
+// MARK: - Press Scale Button Style
+
+struct PressScaleStyle: ButtonStyle {
+    var scale: CGFloat = 0.96
+    var opacity: Double = 0.9
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? scale : 1)
+            .opacity(configuration.isPressed ? opacity : 1)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: configuration.isPressed)
+    }
+}
+
+// MARK: - Settings
+
 struct GalleryListSettingsView: View {
     @AppStorage("taro.eh.gallery.listStyle") private var styleRaw = GalleryListStyle.card.rawValue
     private var style: Binding<GalleryListStyle> {
@@ -71,6 +86,8 @@ struct GalleryListSettingsView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 }
+
+// MARK: - Flat Row
 
 struct GalleryFlatRow: View {
     let gallery: Gallery
@@ -112,8 +129,11 @@ struct GalleryFlatRow: View {
         .frame(minHeight: 122)
         .padding(.vertical, 8)
         .contentShape(Rectangle())
+        .drawingGroup()
     }
 }
+
+// MARK: - Tag Preview
 
 struct GalleryTagPreview: View {
     let tags: [GalleryTag]
@@ -138,6 +158,8 @@ struct GalleryTagPreview: View {
     }
 }
 
+// MARK: - Waterfall Card
+
 struct GalleryWaterfallCard: View {
     let gallery: Gallery
     let showTags: Bool
@@ -161,5 +183,6 @@ struct GalleryWaterfallCard: View {
         }
         .padding(8)
         .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+        .drawingGroup()
     }
 }

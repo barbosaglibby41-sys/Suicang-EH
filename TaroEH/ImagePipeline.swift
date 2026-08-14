@@ -7,18 +7,25 @@ actor ImagePipeline {
     private let memory = NSCache<NSString, UIImage>()
     private var inFlight: [String: Task<UIImage, Error>] = [:]
     private var activeRequests = 0
-    private let maxConcurrentRequests = 3
+    private let maxConcurrentRequests = 6
 
     private init() {
         let config = URLSessionConfiguration.default
         config.httpCookieStorage = .shared
         config.requestCachePolicy = .returnCacheDataElseLoad
         config.waitsForConnectivity = true
-        config.timeoutIntervalForRequest = 45
-        config.httpMaximumConnectionsPerHost = 4
+        config.timeoutIntervalForRequest = 30
+        config.httpMaximumConnectionsPerHost = 6
         session = URLSession(configuration: config)
-        memory.countLimit = 100
-        memory.totalCostLimit = 80 * 1024 * 1024
+        memory.countLimit = 180
+        memory.totalCostLimit = 120 * 1024 * 1024
+        // Respond to memory pressure
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.didReceiveMemoryWarningNotification,
+            object: nil, queue: nil
+        ) { [weak memory] _ in
+            memory?.removeAllObjects()
+        }
     }
 
     func image(for url: URL, cookieHeader: String? = nil, referer: URL? = nil) async throws -> UIImage {
@@ -28,7 +35,7 @@ actor ImagePipeline {
         if let task = inFlight[cacheKey] { return try await task.value }
         let task = Task<UIImage, Error> {
             while await self.canStartRequest() == false {
-                try await Task.sleep(for: .milliseconds(40))
+                try await Task.sleep(for: .milliseconds(30))
             }
             await self.beginRequest()
             defer { Task { await self.endRequest() } }
@@ -44,13 +51,25 @@ actor ImagePipeline {
             if let cookieHeader, !cookieHeader.isEmpty { request.setValue(cookieHeader, forHTTPHeaderField: "Cookie") }
             if let referer { request.setValue(referer.absoluteString, forHTTPHeaderField: "Referer") }
             let (data, response) = try await session.data(for: request)
-            guard let http = response as? HTTPURLResponse, 200..<400 ~= http.statusCode, let image = UIImage(data: data) else { throw SiteError.invalidResponse }
+            guard let http = response as? HTTPURLResponse, 200..<400 ~= http.statusCode else { throw SiteError.invalidResponse }
+            // Downscale very large images to save memory
+            guard let image = UIImage(data: data) else { throw SiteError.parseFailed }
+            let maxDim: CGFloat = 1200
+            let scale = min(maxDim / image.size.width, maxDim / image.size.height, 1)
+            if scale < 1 {
+                let newSize = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+                let format = UIGraphicsImageRendererFormat()
+                format.scale = 1
+                let renderer = UIGraphicsImageRenderer(size: newSize, format: format)
+                return renderer.image { _ in image.draw(in: CGRect(origin: .zero, size: newSize)) }
+            }
             return image
         }
         inFlight[cacheKey] = task
         defer { inFlight[cacheKey] = nil }
         let value = try await task.value
-        memory.setObject(value, forKey: nsKey, cost: value.jpegData(compressionQuality: 0.75)?.count ?? 1)
+        let cost = value.jpegData(compressionQuality: 0.6)?.count ?? 1
+        memory.setObject(value, forKey: nsKey, cost: cost)
         return value
     }
 
@@ -60,6 +79,37 @@ actor ImagePipeline {
 
     func removeAllMemory() { memory.removeAllObjects() }
 }
+
+// MARK: - Shimmer Placeholder
+
+struct ShimmerView: View {
+    @State private var phase: CGFloat = -1
+    var body: some View {
+        GeometryReader { proxy in
+            let w = proxy.size.width
+            let h = proxy.size.height
+            Rectangle()
+                .fill(Color.secondary.opacity(0.1))
+                .overlay(
+                    LinearGradient(
+                        colors: [.clear, Color.white.opacity(0.15), .clear],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                    .frame(width: w * 0.6)
+                    .offset(x: phase * w * 1.6)
+                )
+                .clipped()
+        }
+        .onAppear {
+            withAnimation(.linear(duration: 1.2).repeatForever(autoreverses: false)) {
+                phase = 1
+            }
+        }
+    }
+}
+
+// MARK: - Pipeline Image
 
 struct PipelineImage: View {
     let url: URL?
@@ -80,20 +130,33 @@ private struct PipelineImageContent: View {
     let contentMode: ContentMode
     @State private var image: UIImage?
     @State private var failed = false
+    @State private var appeared = false
     var body: some View {
         Group {
-            if let image { Image(uiImage: image).resizable().aspectRatio(contentMode: contentMode) }
-            else if failed { Image(systemName: "photo.badge.exclamationmark").foregroundStyle(.secondary) }
-            else { ProgressView() }
+            if let image {
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: contentMode)
+                    .opacity(appeared ? 1 : 0)
+                    .animation(.easeOut(duration: 0.25), value: appeared)
+            } else if failed {
+                Image(systemName: "photo.badge.exclamationmark")
+                    .foregroundStyle(.secondary)
+            } else {
+                ShimmerView()
+            }
         }
         .task(id: url) {
             do {
                 var lastError: Error?
                 for attempt in 0..<3 {
                     do {
-                        if attempt > 0 { try await Task.sleep(for: .milliseconds(350 * attempt)) }
+                        if attempt > 0 { try await Task.sleep(for: .milliseconds(300 * attempt)) }
                         image = try await ImagePipeline.shared.image(for: url, cookieHeader: cookieHeader)
                         lastError = nil
+                        appeared = false
+                        // Trigger fade-in on next runloop
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) { appeared = true }
                         break
                     } catch { lastError = error }
                 }
@@ -109,21 +172,24 @@ struct GalleryCover: View {
     var cookieHeader: String? = nil
     @State private var image: UIImage?
     @State private var failed = false
+    @State private var appeared = false
 
     var body: some View {
         GeometryReader { proxy in
             ZStack {
-                Color.secondary.opacity(0.14)
                 if let image {
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFill()
                         .frame(width: proxy.size.width, height: proxy.size.height)
                         .clipped()
+                        .opacity(appeared ? 1 : 0)
+                        .animation(.easeOut(duration: 0.25), value: appeared)
                 } else if failed {
-                    Image(systemName: "photo.badge.exclamationmark").foregroundStyle(.secondary)
+                    Image(systemName: "photo.badge.exclamationmark")
+                        .foregroundStyle(.secondary)
                 } else {
-                    ProgressView()
+                    ShimmerView()
                 }
             }
             .frame(width: proxy.size.width, height: proxy.size.height)
@@ -132,9 +198,12 @@ struct GalleryCover: View {
         .task(id: url) {
             image = nil
             failed = false
+            appeared = false
             guard let url else { return }
-            do { image = try await ImagePipeline.shared.image(for: url, cookieHeader: cookieHeader) }
-            catch { failed = true }
+            do {
+                image = try await ImagePipeline.shared.image(for: url, cookieHeader: cookieHeader)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) { appeared = true }
+            } catch { failed = true }
         }
     }
 }
