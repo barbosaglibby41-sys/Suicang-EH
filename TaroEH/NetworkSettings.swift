@@ -296,19 +296,17 @@ final class NetworkConfig: ObservableObject {
         let connectTimeout = defaults.integer(forKey: "taro.eh.network.connectTimeout")
         let receiveTimeout = defaults.integer(forKey: "taro.eh.network.receiveTimeout")
         let maxConn = defaults.integer(forKey: "taro.eh.network.maxConnections")
-        // Apply to ImagePipeline
-        ImagePipeline.shared.updateConfiguration(
-            connectTimeout: TimeInterval(connectTimeout) / 1000,
-            receiveTimeout: TimeInterval(receiveTimeout) / 1000,
-            maxConnections: maxConn
-        )
+        Task {
+            await ImagePipeline.shared.updateConfiguration(
+                connectTimeout: TimeInterval(connectTimeout) / 1000,
+                receiveTimeout: TimeInterval(receiveTimeout) / 1000,
+                maxConnections: maxConn
+            )
+        }
     }
 
     func applyProxy() {
-        // Proxy configuration is read by URLSessionConfiguration at session creation.
-        // The app needs to be restarted for proxy changes to take full effect.
-        // We clear caches to force reconnection with new settings.
         URLCache.shared.removeAllCachedResponses()
-        ImagePipeline.shared.removeAllMemory()
+        Task { await ImagePipeline.shared.removeAllMemory() }
     }
 }
