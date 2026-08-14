@@ -11,7 +11,9 @@ actor ImagePipeline {
         let config = URLSessionConfiguration.default
         config.httpCookieStorage = .shared
         config.requestCachePolicy = .returnCacheDataElseLoad
-        config.timeoutIntervalForRequest = 30
+        config.waitsForConnectivity = true
+        config.timeoutIntervalForRequest = 45
+        config.httpMaximumConnectionsPerHost = 4
         session = URLSession(configuration: config)
         memory.countLimit = 100
         memory.totalCostLimit = 80 * 1024 * 1024
@@ -21,7 +23,11 @@ actor ImagePipeline {
         if let cached = memory.object(forKey: url as NSURL) { return cached }
         if let task = inFlight[url] { return try await task.value }
         let task = Task<UIImage, Error> {
-            if url.isFileURL, let image = UIImage(contentsOfFile: url.path) { return image }
+            if url.isFileURL {
+                let data = try Data(contentsOf: url, options: [.mappedIfSafe])
+                guard let image = UIImage(data: data) else { throw SiteError.parseFailed }
+                return image
+            }
             var request = URLRequest(url: url)
             request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15", forHTTPHeaderField: "User-Agent")
             if let cookieHeader, !cookieHeader.isEmpty { request.setValue(cookieHeader, forHTTPHeaderField: "Cookie") }
@@ -65,8 +71,18 @@ private struct PipelineImageContent: View {
             else { ProgressView() }
         }
         .task(id: url) {
-            do { image = try await ImagePipeline.shared.image(for: url, cookieHeader: cookieHeader) }
-            catch { failed = true }
+            do {
+                var lastError: Error?
+                for attempt in 0..<3 {
+                    do {
+                        if attempt > 0 { try await Task.sleep(for: .milliseconds(350 * attempt)) }
+                        image = try await ImagePipeline.shared.image(for: url, cookieHeader: cookieHeader)
+                        lastError = nil
+                        break
+                    } catch { lastError = error }
+                }
+                if image == nil, lastError != nil { failed = true }
+            } catch { failed = true }
         }
     }
 }

@@ -54,15 +54,23 @@ struct ReaderPageImage: View {
         .clipped()
         .task(id: "\(url?.absoluteString ?? "nil")-\(retryToken)") {
             guard let url else { return }
-            do {
-                let value = try await ImagePipeline.shared.image(for: url, cookieHeader: session.cookieHeader())
-                guard !Task.isCancelled else { return }
-                withAnimation(.easeOut(duration: 0.22)) {
-                    image = value
-                    failed = false
+            var lastError: Error?
+            for attempt in 0..<3 {
+                do {
+                    if attempt > 0 { try await Task.sleep(for: .milliseconds(350 * attempt)) }
+                    let value = try await ImagePipeline.shared.image(for: url, cookieHeader: session.cookieHeader())
+                    guard !Task.isCancelled else { return }
+                    withAnimation(.easeOut(duration: 0.22)) {
+                        image = value
+                        failed = false
+                    }
+                    lastError = nil
+                    break
+                } catch {
+                    lastError = error
                 }
-            } catch {
-                guard !Task.isCancelled else { return }
+            }
+            if image == nil, lastError != nil, !Task.isCancelled {
                 withAnimation { failed = true }
             }
         }
