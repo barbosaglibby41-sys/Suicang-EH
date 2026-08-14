@@ -33,8 +33,7 @@ final class SessionStore: ObservableObject {
     private let key = "taro_eh_cookie"
 
     var hasCredentials: Bool {
-        guard let header = cookieHeader() else { return false }
-        let names = Set(header.split(separator: ";").compactMap { $0.split(separator: "=", maxSplits: 1).first.map(String.init) })
+        let names = Set(cookieItems.map(\.name))
         return names.contains("ipb_member_id") && names.contains("ipb_pass_hash")
     }
 
