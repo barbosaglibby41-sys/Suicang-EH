@@ -85,8 +85,6 @@ struct DiscoverView: View {
     @State private var sort: GallerySort = .recent
     @State private var randomOrder: [Int] = []
     @State private var advanced = AdvancedSearchConfig()
-    @State private var cachedFiltered: [Gallery] = []
-    @State private var filteredVersion = 0
     @FocusState private var searchFocused: Bool
     private let initialQuery: String?
     private let autoSearch: Bool
@@ -103,10 +101,6 @@ struct DiscoverView: View {
 
     private var currentSource: EHSource { EHSource(rawValue: sourceRaw) ?? .eHentai }
     private var filtered: [Gallery] {
-        let currentVersion = results.count ^ sort.hashValue ^ randomOrder.count ^ advanced.hashValue ^ isSearchResults.hashValue ^ selectedFeed.hashValue
-        if filteredVersion == currentVersion && !cachedFiltered.isEmpty {
-            return cachedFiltered
-        }
         var config = advanced
         if isSearchResults {
             config.keyword = ""
@@ -118,8 +112,6 @@ struct DiscoverView: View {
         // Random feed preserves the server-provided random order and does not
         // participate in the result sorting menu.
         guard selectedFeed != .random else {
-            cachedFiltered = matched
-            filteredVersion = currentVersion
             return matched
         }
         var result: [Gallery] = matched
@@ -134,8 +126,6 @@ struct DiscoverView: View {
         case .title: result = matched.sorted { $0.title < $1.title }
         default: break
         }
-        cachedFiltered = result
-        filteredVersion = currentVersion
         return result
     }
 
@@ -219,8 +209,6 @@ struct DiscoverView: View {
                 }
             }.padding()
         }
-        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isLoading)
-        .animation(.easeInOut(duration: 0.2), value: filtered.count)
         .navigationBarHidden(true)
         .sheet(isPresented: $showFilters) { FilterView(sort: $sort, config: $advanced) }
         .sheet(isPresented: $showAllRankings) { RankingListView() }
@@ -654,7 +642,6 @@ struct GalleryCard: View {
         .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .shadow(color: .black.opacity(0.06), radius: 3, x: 0, y: 1)
         .contentShape(Rectangle())
-        .drawingGroup()
     }
 }
 

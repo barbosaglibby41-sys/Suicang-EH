@@ -129,7 +129,6 @@ struct GalleryFlatRow: View {
         .frame(minHeight: 122)
         .padding(.vertical, 8)
         .contentShape(Rectangle())
-        .drawingGroup()
     }
 }
 
@@ -183,6 +182,5 @@ struct GalleryWaterfallCard: View {
         }
         .padding(8)
         .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
-        .drawingGroup()
     }
 }

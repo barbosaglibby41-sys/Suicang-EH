@@ -95,6 +95,7 @@ struct SharedReaderView<Source: View>: View {
         .onDisappear {
             UIApplication.shared.isIdleTimerDisabled = false
             autoHideWorkItem?.cancel()
+            reading.flush()
         }
         .onChange(of: index) { _, value in
             sliderIndex = value
@@ -127,22 +128,20 @@ struct SharedReaderView<Source: View>: View {
                         ForEach(0..<pageCount, id: \.self) { i in
                             source(i, fit, scale)
                                 .id(i)
-                                .background {
-                                    GeometryReader { geo in
-                                        Color.clear.preference(
-                                            key: ReaderPageOffsetKey.self,
-                                            value: [ReaderPageOffset(index: i, minY: geo.frame(in: .named("reader-scroll")).minY)]
-                                        )
-                                    }
+                                .onAppear {
+                                    onPageAppear(i)
+                                    // Avoid GeometryReader/PreferenceKey updates on
+                                    // every scroll frame. onAppear is enough to
+                                    // advance reading progress without driving a
+                                    // full-tree layout pass continuously.
+                                    guard direction == "vertical", !isProgrammaticScroll, i != index else { return }
+                                    index = i
+                                    sliderIndex = i
                                 }
-                                .onAppear { onPageAppear(i) }
                         }
                     }
                 }
                 .coordinateSpace(name: "reader-scroll")
-                .onPreferenceChange(ReaderPageOffsetKey.self) { offsets in
-                    updateVerticalProgress(offsets)
-                }
                 .onChange(of: sliderIndex) { _, value in
                     guard value != index else { return }
                     isProgrammaticScroll = true
@@ -262,19 +261,6 @@ struct SharedReaderView<Source: View>: View {
         .overlay(alignment: .top) {
             Rectangle().fill(Color.white.opacity(0.08)).frame(height: 0.5)
         }
-    }
-
-    private func updateVerticalProgress(_ offsets: [ReaderPageOffset]) {
-        guard direction == "vertical", !isProgrammaticScroll, !offsets.isEmpty else { return }
-        let candidate = offsets
-            .filter { $0.minY <= 140 }
-            .max { $0.minY < $1.minY }
-            ?? offsets.min { abs($0.minY - 140) < abs($1.minY - 140) }
-        guard let candidate else { return }
-        let next = min(max(candidate.index, 0), max(0, pageCount - 1))
-        guard next != index else { return }
-        index = next
-        sliderIndex = next
     }
 
     private var progressPercent: Int {

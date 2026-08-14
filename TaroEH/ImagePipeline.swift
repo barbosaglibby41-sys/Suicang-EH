@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import ImageIO
 
 actor ImagePipeline {
     static let shared = ImagePipeline()

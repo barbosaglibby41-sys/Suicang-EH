@@ -16,21 +16,24 @@ struct ReadingProgress: Codable, Hashable { var galleryID: Int; var source: EHSo
         if gallery.pageCount > 0 {
             maximum = max(0, gallery.pageCount - 1)
         } else {
-            // A list/detail model may not have its total page count hydrated
-            // yet. Never collapse a valid saved position back to page zero.
             maximum = Int.max
         }
         let safeIndex = min(max(0, pageIndex), maximum)
         records[gallery.stableKey] = ReadingProgress(galleryID: gallery.id, source: gallery.source, pageIndex: safeIndex, pageCount: gallery.pageCount, updatedAt: .now)
-        // Persist immediately so a navigation pop or app suspension cannot lose
-        // the last page. The delayed write remains as a coalesced backup.
-        persist()
+        // Coalesce disk writes while the user is swiping/scrolling. JSON
+        // encoding UserDefaults on the main actor for every page causes
+        // visible frame hitches on long galleries.
         pendingSave?.cancel()
         pendingSave = Task { [weak self] in
-            try? await Task.sleep(for: .milliseconds(500))
+            try? await Task.sleep(for: .milliseconds(300))
             guard !Task.isCancelled else { return }
             await MainActor.run { self?.persist() }
         }
+    }
+    func flush() {
+        pendingSave?.cancel()
+        pendingSave = nil
+        persist()
     }
     func clear(gallery: Gallery) { records.removeValue(forKey: gallery.stableKey); persist() }
     private func persist() { if let data = try? JSONEncoder().encode(records) { UserDefaults.standard.set(data, forKey: key) } }
