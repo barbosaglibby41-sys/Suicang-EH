@@ -24,18 +24,42 @@ struct ContentView: View {
                     .navigationDestination(for: DiscoverSearchDestination.self) { destination in
                         DiscoverView(initialQuery: destination.query, autoSearch: true)
                     }
-            }.tabItem { Label("发现", systemImage: "sparkles") }.tag(0)
-            NavigationStack { ShelfView() }.tabItem { Label("书架", systemImage: "books.vertical") }.tag(1)
-            NavigationStack { DownloadsView() }.tabItem { Label("离线", systemImage: "arrow.down.circle") }.tag(2)
-            NavigationStack { SettingsView() }.tabItem { Label("设置", systemImage: "gear") }.tag(3)
+            }
+            .tabItem { Label("发现", systemImage: "sparkles") }
+            .tag(0)
+
+            NavigationStack { ShelfView() }
+                .tabItem { Label("书架", systemImage: "books.vertical") }
+                .tag(1)
+
+            NavigationStack { DownloadsView() }
+                .tabItem { Label("离线", systemImage: "arrow.down.circle") }
+                .tag(2)
+
+            NavigationStack { SettingsView() }
+                .tabItem { Label("设置", systemImage: "gear") }
+                .tag(3)
+        }
+        .toolbar(.hidden, for: .tabBar)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            TaroTabBar(selection: $selectedTab) { tab in
+                // Tapping the active discovery tab returns to its root, which
+                // matches the expected home-tab behavior without rebuilding
+                // the other navigation stacks.
+                if tab == selectedTab, tab == 0 {
+                    path = NavigationPath()
+                } else {
+                    withAnimation(.easeOut(duration: 0.18)) {
+                        selectedTab = tab
+                    }
+                }
+            }
         }
         .environmentObject(session)
         .environmentObject(library)
         .tint(.purple)
         .onReceive(NotificationCenter.default.publisher(for: .taroSearchTag)) { notification in
             guard let raw = notification.userInfo?["tag"] as? String, !raw.isEmpty else { return }
-            // From the shelf, reset any stale discovery path first. From a
-            // discovery detail, keep that path so Back returns to the detail.
             if selectedTab != 0 { path = NavigationPath() }
             selectedTab = 0
             path.append(DiscoverSearchDestination(query: raw))
@@ -43,6 +67,61 @@ struct ContentView: View {
         .task { library.configure(modelContext) }
     }
 }
+
+private struct TaroTabBar: View {
+    @Binding var selection: Int
+    let action: (Int) -> Void
+    @Environment(\.colorScheme) private var colorScheme
+
+    private let items: [(title: String, icon: String, selectedIcon: String)] = [
+        ("发现", "sparkles", "sparkles") ,
+        ("书架", "books.vertical", "books.vertical.fill"),
+        ("离线", "arrow.down.circle", "arrow.down.circle.fill"),
+        ("设置", "gearshape", "gearshape.fill")
+    ]
+
+    var body: some View {
+        HStack(spacing: 6) {
+            ForEach(Array(items.enumerated()), id: \.offset) { index, item in
+                Button {
+                    action(index)
+                } label: {
+                    VStack(spacing: 3) {
+                        Image(systemName: selection == index ? item.selectedIcon : item.icon)
+                            .font(.system(size: 19, weight: selection == index ? .semibold : .regular))
+                            .frame(height: 22)
+                        Text(item.title)
+                            .font(.system(size: 10, weight: selection == index ? .semibold : .regular))
+                            .lineLimit(1)
+                    }
+                    .foregroundStyle(selection == index ? Color.purple : Color.secondary)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 52)
+                    .background {
+                        if selection == index {
+                            Capsule(style: .continuous)
+                                .fill(Color.purple.opacity(colorScheme == .dark ? 0.22 : 0.1))
+                        }
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(item.title)
+                .accessibilityAddTraits(selection == index ? .isSelected : [])
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.top, 7)
+        .padding(.bottom, 5)
+        .background(Color(.systemBackground).opacity(0.97))
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(Color.secondary.opacity(0.16))
+                .frame(height: 0.5)
+        }
+    }
+}
+
 
 private enum DiscoverFeed: String, CaseIterable, Identifiable {
     case latest = "最新"

@@ -56,16 +56,7 @@ actor ImagePipeline {
                   contentType.lowercased().contains("image") else {
                 throw SiteError.imageDataInvalid
             }
-            guard let image = UIImage(data: data) else { throw SiteError.imageDataInvalid }
-            let maxDim: CGFloat = 1200
-            let scale = min(maxDim / image.size.width, maxDim / image.size.height, 1)
-            if scale < 1 {
-                let newSize = CGSize(width: image.size.width * scale, height: image.size.height * scale)
-                let format = UIGraphicsImageRendererFormat()
-                format.scale = 1
-                let renderer = UIGraphicsImageRenderer(size: newSize, format: format)
-                return renderer.image { _ in image.draw(in: CGRect(origin: .zero, size: newSize)) }
-            }
+            guard let image = Self.decodeImage(data: data, maxPixelSize: 1200) else { throw SiteError.imageDataInvalid }
             return image
         }
         inFlight[cacheKey] = task
