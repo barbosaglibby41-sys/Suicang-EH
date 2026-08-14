@@ -12,15 +12,16 @@ struct OnlineReaderView: View {
     @State private var nextBatch = 1
     @State private var isLoadingMore = false
     @State private var hasMorePages = true
-    @State private var lastLoadedPage = 0
     @State private var refreshingPageLinks = false
-    @State private var autoRetryWorkItems: [Int: Task<Void, Never>] = [:]
     @State private var setupPhase: SetupPhase = .fetching
     @State private var currentPage = 0
+    @State private var resolvedUpTo = -1
+    @State private var isBatchResolving = false
 
-    /// How many pages ahead of and behind the current page to preload.
-    private let preloadAhead = 5
-    private let preloadBehind = 2
+    /// URL resolution batch size — how many pages to resolve URLs for at once.
+    private let resolveBatchSize = 20
+    /// How many pages ahead to ensure images are downloaded.
+    private let imagePreloadAhead = 8
 
     enum SetupPhase: Equatable {
         case fetching
@@ -41,17 +42,15 @@ struct OnlineReaderView: View {
             } else {
                 SharedReaderView(gallery: gallery, title: gallery.title, pageCount: pageLinks.count, initialIndex: min(startIndex, max(0, pageLinks.count - 1)), onIndexChange: { index in
                     reading.save(gallery: gallery, pageIndex: index)
-                    lastLoadedPage = max(lastLoadedPage, index)
                     currentPage = index
-                    preloadWindow(around: index)
+                    triggerBatchResolveIfNeeded(around: index)
                     if index >= pageLinks.count - 5 {
                         Task { await loadMorePagesIfNeeded() }
                     }
                 }, onPageAppear: { index in
-                    lastLoadedPage = max(lastLoadedPage, index)
                     currentPage = index
                     ensurePageLoaded(index)
-                    preloadWindow(around: index)
+                    triggerBatchResolveIfNeeded(around: index)
                     if index >= pageLinks.count - 5 {
                         Task { await loadMorePagesIfNeeded() }
                     }
@@ -79,7 +78,7 @@ struct OnlineReaderView: View {
         }
         .animation(.easeInOut(duration: 0.35), value: setupPhase)
         .animation(.easeInOut(duration: 0.35), value: pageLinks.isEmpty)
-        .onChange(of: pageLinks.count) { _, _ in preloadWindow(around: currentPage) }
+        .onChange(of: pageLinks.count) { _, _ in triggerBatchResolveIfNeeded(around: currentPage) }
         .task { await setup() }
     }
 
@@ -167,7 +166,8 @@ struct OnlineReaderView: View {
                 return
             }
             nextBatch = max(1, (pageLinks.count + 19) / 20)
-            lastLoadedPage = max(0, pageLinks.count - 1)
+            // Track which pages already have cached URLs
+            resolvedUpTo = imageURLs.keys.max() ?? -1
             withAnimation(.easeInOut(duration: 0.35)) {
                 setupPhase = .ready
             }
@@ -175,37 +175,92 @@ struct OnlineReaderView: View {
             loadError = error.localizedDescription
             setupPhase = .error
         }
-        // Start preloading from the user's saved position or page 0
         let startPos = min(startIndex, max(0, pageLinks.count - 1))
         currentPage = startPos
-        preloadWindow(around: startPos)
+        // Immediately batch-resolve URLs for the first 20 pages
+        triggerBatchResolveIfNeeded(around: startPos)
+        ensurePageLoaded(startPos)
     }
 
-    // MARK: - Preload Window
+    // MARK: - Batch URL Resolution (JHenTai-style parallel pipeline)
 
-    /// Preloads a window of pages around the current index.
-    /// Pages are prioritized: current → ahead → behind.
-    func preloadWindow(around center: Int) {
-        guard pageLinks.indices.contains(center) else { return }
-        // Current page first — no delay
-        ensurePageLoaded(center)
-        // Ahead pages — these are what the user will see next
-        for offset in 1...preloadAhead {
-            let idx = center + offset
-            if pageLinks.indices.contains(idx), imageURLs[idx] == nil, pageStates[idx] != .loading {
-                startPageLoad(idx, delay: 0)
-            }
-        }
-        // Behind pages — in case user scrolls back
-        for offset in 1...preloadBehind {
-            let idx = center - offset
-            if pageLinks.indices.contains(idx), imageURLs[idx] == nil, pageStates[idx] != .loading {
-                startPageLoad(idx, delay: 0)
-            }
+    /// Checks if we need to batch-resolve more URLs. Triggers when the current
+    /// page is within `resolveBatchSize/2` pages of the last resolved URL.
+    func triggerBatchResolveIfNeeded(around center: Int) {
+        guard !isBatchResolving, pageLinks.indices.contains(center) else { return }
+        // If current page is past the resolved boundary, we need more URLs
+        let resolveThreshold = resolvedUpTo - resolveBatchSize / 2
+        if center > resolveThreshold {
+            let startIdx = max(0, resolvedUpTo + 1)
+            let endIdx = min(pageLinks.count, startIdx + resolveBatchSize)
+            guard startIdx < endIdx else { return }
+            Task { await batchResolveURLs(startIdx..<endIdx) }
         }
     }
 
-    /// Ensures a single page is loading. No artificial delay.
+    /// Resolves image URLs for a range of pages IN PARALLEL using TaskGroup.
+    /// This is the key optimization: 20 URLs resolve in ~3s (6 concurrent),
+    /// vs 20s if done one-by-one.
+    func batchResolveURLs(_ range: Range<Int>) async {
+        guard !isBatchResolving else { return }
+        isBatchResolving = true
+        defer { isBatchResolving = false }
+
+        let cookie = session.cookieHeader()
+        let referer = gallery.sourceURL
+        let pages = pageLinks
+
+        // Mark all as loading
+        await MainActor.run {
+            for i in range {
+                if pageStates[i] != .loaded { pageStates[i] = .loading }
+            }
+        }
+
+        // Resolve URLs in parallel with TaskGroup (6 concurrent)
+        await withTaskGroup(of: (Int, URL?).self) { group in
+            var next = range.lowerBound
+            func addNext() {
+                guard next < range.upperBound, pages.indices.contains(next) else { return }
+                let idx = next
+                let pageURL = pages[idx]
+                next += 1
+                group.addTask {
+                    do {
+                        let url = try await SiteClient.shared.imageURL(pageURL: pageURL, cookieHeader: cookie, referer: referer)
+                        return (idx, url)
+                    } catch {
+                        return (idx, nil)
+                    }
+                }
+            }
+            // Start 6 concurrent resolution tasks
+            for _ in 0..<min(6, range.count) { addNext() }
+            while let (idx, url) = await group.next() {
+                if let url {
+                    await MainActor.run {
+                        imageURLs[idx] = url
+                        pageStates[idx] = .loaded
+                        ImageURLCache.shared.setImage(url, gallery: gallery, index: idx)
+                    }
+                } else {
+                    await MainActor.run {
+                        pageStates[idx] = .failed
+                    }
+                    // Retry failed page after 1.5s
+                    Task { try? await Task.sleep(for: .seconds(1.5)); await loadPage(idx, force: false) }
+                }
+                addNext()
+            }
+        }
+
+        await MainActor.run {
+            resolvedUpTo = max(resolvedUpTo, range.upperBound - 1)
+        }
+    }
+
+    // MARK: - Page Loading
+
     func ensurePageLoaded(_ index: Int) {
         guard pageLinks.indices.contains(index) else { return }
         if imageURLs[index] != nil {
@@ -213,68 +268,47 @@ struct OnlineReaderView: View {
             return
         }
         let state = pageState(for: index)
-        if state == .waiting || state == .failed || (state == .loading && imageURLs[index] == nil) {
+        if state == .waiting || state == .failed {
             startPageLoad(index, delay: 0)
         }
     }
 
-    /// Starts loading a page with optional retry delay.
     func startPageLoad(_ index: Int, delay: TimeInterval) {
-        autoRetryWorkItems[index]?.cancel()
-        autoRetryWorkItems[index] = Task {
+        Task {
             if delay > 0 {
                 try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
-                guard !Task.isCancelled else { return }
             }
-            await MainActor.run {
-                let current = pageState(for: index)
-                if current == .waiting || current == .failed || (current == .loading && imageURLs[index] == nil) {
-                    setPageState(for: index, .loading)
-                    Task { await loadPage(index, force: current == .failed) }
-                }
-            }
+            await loadPage(index, force: false)
         }
     }
 
-    // MARK: - Page Loading
-
     private func loadPage(_ index: Int, force: Bool = false) async {
-        guard pageLinks.indices.contains(index), force || imageURLs[index] == nil else {
-            if imageURLs[index] != nil { setPageState(for: index, .loaded) }
+        guard pageLinks.indices.contains(index) else { return }
+        if !force, imageURLs[index] != nil {
+            await MainActor.run { setPageState(for: index, .loaded) }
             return
         }
-        setPageState(for: index, .loading)
+        await MainActor.run { setPageState(for: index, .loading) }
         do {
             let resolved: URL
             if force {
                 ImageURLCache.shared.removeImage(for: gallery, at: index)
-                imageURLs[index] = nil
+                await MainActor.run { imageURLs[index] = nil }
                 resolved = try await resolveImageURL(index: index, refreshPage: true)
             } else if let cached = imageURLs[index] {
                 resolved = cached
             } else {
                 resolved = try await resolveImageURL(index: index, refreshPage: false)
             }
-            imageURLs[index] = resolved
-            setPageState(for: index, .loaded)
-            ImageURLCache.shared.setImage(resolved, gallery: gallery, index: index)
-            // After loading, extend the preload window forward
-            extendPreload(from: index)
-        } catch {
-            setPageState(for: index, .failed)
-            // Schedule a retry with backoff
-            startPageLoad(index, delay: 1.5)
-            if imageURLs.isEmpty { loadError = error.localizedDescription }
-        }
-    }
-
-    /// After a page loads, preload the next few pages that haven't started yet.
-    func extendPreload(from index: Int) {
-        for offset in 1...preloadAhead {
-            let idx = index + offset
-            if pageLinks.indices.contains(idx), imageURLs[idx] == nil, pageStates[idx] != .loading {
-                startPageLoad(idx, delay: 0)
+            await MainActor.run {
+                imageURLs[index] = resolved
+                setPageState(for: index, .loaded)
+                resolvedUpTo = max(resolvedUpTo, index)
             }
+            ImageURLCache.shared.setImage(resolved, gallery: gallery, index: index)
+        } catch {
+            await MainActor.run { setPageState(for: index, .failed) }
+            Task { try? await Task.sleep(for: .seconds(1.5)); await loadPage(index, force: false) }
         }
     }
 
@@ -307,17 +341,15 @@ struct OnlineReaderView: View {
             let fresh = batch.filter { !known.contains($0.absoluteString) }
             guard !fresh.isEmpty else { hasMorePages = false; return }
             let oldCount = pageLinks.count
-            pageLinks.append(contentsOf: fresh)
-            pageLinks.sort { pageNumber($0) < pageNumber($1) }
-            // Mark new pages as waiting
-            for i in oldCount..<pageLinks.count {
-                pageStates[i] = .waiting
+            await MainActor.run {
+                pageLinks.append(contentsOf: fresh)
+                pageLinks.sort { pageNumber($0) < pageNumber($1) }
+                for i in oldCount..<pageLinks.count { pageStates[i] = .waiting }
             }
             ImageURLCache.shared.appendPages(fresh, gallery: gallery)
             nextBatch += 1
             if pageLinks.count >= gallery.pageCount && gallery.pageCount > 0 { hasMorePages = false }
-            // Preload the new window
-            preloadWindow(around: currentPage)
+            await MainActor.run { triggerBatchResolveIfNeeded(around: currentPage) }
         } catch {
             hasMorePages = true
         }
@@ -337,10 +369,6 @@ struct OnlineReaderView: View {
 
     private func setPageState(for index: Int, _ state: PageState) {
         pageStates[index] = state
-        if state == .loading {
-            autoRetryWorkItems[index]?.cancel()
-            autoRetryWorkItems[index] = nil
-        }
     }
 
     private func refreshPageLinksIfNeeded() async {
@@ -350,10 +378,12 @@ struct OnlineReaderView: View {
         do {
             let detail = try await SiteClient.shared.detail(gallery, cookieHeader: session.cookieHeader())
             guard !detail.pageLinks.isEmpty else { return }
-            pageLinks = detail.pageLinks
-            pageStates = Dictionary(uniqueKeysWithValues: detail.pageLinks.indices.map { ($0, .waiting) })
+            await MainActor.run {
+                pageLinks = detail.pageLinks
+                pageStates = Dictionary(uniqueKeysWithValues: detail.pageLinks.indices.map { ($0, .waiting) })
+            }
             ImageURLCache.shared.setPages(detail.pageLinks, gallery: gallery)
-            preloadWindow(around: currentPage)
+            triggerBatchResolveIfNeeded(around: currentPage)
         } catch { }
     }
 }
