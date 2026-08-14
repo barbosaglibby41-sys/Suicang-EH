@@ -828,9 +828,10 @@ struct GalleryDetailView: View {
         let grouped = Dictionary(grouping: item.tags) { $0.namespace.lowercased() }
         let known = Set(order)
         let extra = grouped.keys.filter { !known.contains($0) }.sorted()
-        let result = (order + extra).compactMap { ns in
-            guard let list = grouped[ns], !list.isEmpty else { return nil }
-            return (sectionTitle(ns), list, ns)
+        var result: [(String, [GalleryTag], String)] = []
+        for ns in (order + extra) {
+            guard let list = grouped[ns], !list.isEmpty else { continue }
+            result.append((sectionTitle(ns), list, ns))
         }
         cachedGroupedTags = result
         return result
