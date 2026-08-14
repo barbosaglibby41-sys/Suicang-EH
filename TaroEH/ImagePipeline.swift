@@ -67,6 +67,19 @@ actor ImagePipeline {
         return value
     }
 
+    private static func decodeImage(data: Data, maxPixelSize: Int) -> UIImage? {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceThumbnailMaxPixelSize: maxPixelSize,
+            kCGImageSourceCreateThumbnailWithTransform: true
+        ]
+        guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
+            return UIImage(data: data)
+        }
+        return UIImage(cgImage: cgImage)
+    }
+
     private func canStartRequest() -> Bool { activeRequests < maxConcurrentRequests }
     private func beginRequest() { activeRequests += 1 }
     private func endRequest() { activeRequests = max(0, activeRequests - 1) }
