@@ -73,14 +73,26 @@ struct SharedReaderView<Source: View>: View {
         .navigationBarBackButtonHidden(true)
         .ignoresSafeArea(.container, edges: [.top, .bottom])
         .safeAreaInset(edge: .top, spacing: 0) {
-            if showUI { topBar }
+            if showUI {
+                topBar
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if showUI { bottomBar }
+            if showUI {
+                bottomBar
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
         }
+        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: showUI)
         .onAppear {
             UIApplication.shared.isIdleTimerDisabled = keepScreenOn
             sliderIndex = index
+            // Show UI briefly on entry, then auto-hide
+            showUI = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
+                withAnimation(.easeInOut(duration: 0.3)) { showUI = false }
+            }
         }
         .onDisappear {
             UIApplication.shared.isIdleTimerDisabled = false
@@ -89,6 +101,7 @@ struct SharedReaderView<Source: View>: View {
             sliderIndex = value
             reading.save(gallery: gallery, pageIndex: index)
             onIndexChange(value)
+            Haptics.light()
         }
     }
 
@@ -127,8 +140,8 @@ struct SharedReaderView<Source: View>: View {
                     }
                 }
             }
-            .onTapGesture(count: 2) { withAnimation { scale = scale == 1 ? 2 : 1 } }
-            .onTapGesture(count: 1) { withAnimation(.easeInOut(duration: 0.2)) { showUI.toggle() } }
+            .onTapGesture(count: 2) { withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { scale = scale == 1 ? 2 : 1 } }
+            .onTapGesture(count: 1) { withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) { showUI.toggle() } }
         } else {
             TabView(selection: $index) {
                 ForEach(0..<pageCount, id: \.self) { i in
@@ -138,8 +151,8 @@ struct SharedReaderView<Source: View>: View {
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
-            .onTapGesture(count: 2) { withAnimation { scale = scale == 1 ? 2 : 1 } }
-            .onTapGesture(count: 1) { withAnimation(.easeInOut(duration: 0.2)) { showUI.toggle() } }
+            .onTapGesture(count: 2) { withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { scale = scale == 1 ? 2 : 1 } }
+            .onTapGesture(count: 1) { withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) { showUI.toggle() } }
         }
     }
 
@@ -161,9 +174,11 @@ struct SharedReaderView<Source: View>: View {
                 .multilineTextAlignment(.center)
 
             Menu {
-                Button(direction == "horizontal" ? "切换为纵向滚动" : "切换为横向分页") { direction = direction == "horizontal" ? "vertical" : "horizontal" }
+                Button(direction == "horizontal" ? "切换为纵向滚动" : "切换为横向分页") {
+                    withAnimation(.easeInOut(duration: 0.25)) { direction = direction == "horizontal" ? "vertical" : "horizontal" }
+                }
                 Button(fit ? "切换为填充模式" : "切换为适应模式") { fit.toggle() }
-                Button(scale == 1 ? "放大页面" : "还原页面") { withAnimation { scale = scale == 1 ? 2 : 1 } }
+                Button(scale == 1 ? "放大页面" : "还原页面") { withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { scale = scale == 1 ? 2 : 1 } }
             } label: {
                 Image(systemName: "ellipsis.circle")
                     .font(.title3)
@@ -175,21 +190,24 @@ struct SharedReaderView<Source: View>: View {
         .foregroundStyle(.white)
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .background(Color.black)
+        .background(
+            Color.black.opacity(0.85)
+                .background(.ultraThinMaterial)
+        )
         .overlay(alignment: .bottom) {
-            Rectangle().fill(Color.white.opacity(0.12)).frame(height: 0.5)
+            Rectangle().fill(Color.white.opacity(0.1)).frame(height: 0.5)
         }
     }
 
     private var bottomBar: some View {
         VStack(spacing: 8) {
             HStack {
-                Text(direction == "vertical" ? "第 \(index + 1) / \(pageCount) 页" : "第 \(index + 1) / \(pageCount) 页")
+                Text("第 \(index + 1) / \(pageCount) 页")
                     .font(.caption.weight(.medium))
                 Spacer()
                 Text("\(progressPercent)%")
                     .font(.caption)
-                    .foregroundStyle(.white.opacity(0.78))
+                    .foregroundStyle(.white.opacity(0.6))
             }
             Slider(value: Binding(get: { Double(sliderIndex) }, set: { value in
                 let next = min(max(0, Int(value.rounded())), max(0, pageCount - 1))
@@ -201,15 +219,17 @@ struct SharedReaderView<Source: View>: View {
         .foregroundStyle(.white)
         .padding(.horizontal, 18)
         .padding(.vertical, 10)
-        .background(Color.black)
+        .background(
+            Color.black.opacity(0.85)
+                .background(.ultraThinMaterial)
+        )
         .overlay(alignment: .top) {
-            Rectangle().fill(Color.white.opacity(0.12)).frame(height: 0.5)
+            Rectangle().fill(Color.white.opacity(0.1)).frame(height: 0.5)
         }
     }
 
     private func updateVerticalProgress(_ offsets: [ReaderPageOffset]) {
         guard direction == "vertical", !isProgrammaticScroll, !offsets.isEmpty else { return }
-        // The page nearest the top reading line is the current page.
         let candidate = offsets
             .filter { $0.minY <= 140 }
             .max { $0.minY < $1.minY }

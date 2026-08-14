@@ -16,18 +16,22 @@ struct OnlineReaderView: View {
     @State private var loadingPageIndices: Set<Int> = []
     @State private var refreshingPageLinks = false
     @State private var autoRetryWorkItems: [Int: Task<Void, Never>] = [:]
+    @State private var setupPhase: SetupPhase = .fetching
+
+    enum SetupPhase: Equatable {
+        case fetching
+        case ready
+        case error
+    }
 
     var body: some View {
         Group {
-            if let loadError {
-                VStack(spacing: 14) {
-                    Image(systemName: "exclamationmark.triangle").font(.largeTitle).foregroundStyle(.orange)
-                    Text("无法加载在线页面").font(.headline)
-                    Text(loadError).font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center).padding(.horizontal, 24)
-                    Button("重试") { Task { await setup() } }.buttonStyle(.borderedProminent)
-                }
-            } else if pageLinks.isEmpty {
-                ProgressView("正在获取阅读目录…").tint(.white)
+            if setupPhase == .error, let loadError {
+                errorView(message: loadError)
+                    .transition(.opacity)
+            } else if setupPhase == .fetching || pageLinks.isEmpty {
+                initialLoadingView
+                    .transition(.opacity)
             } else {
                 SharedReaderView(gallery: gallery, title: gallery.title, pageCount: pageLinks.count, initialIndex: min(startIndex, max(0, pageLinks.count - 1)), onIndexChange: { index in
                     reading.save(gallery: gallery, pageIndex: index)
@@ -60,17 +64,86 @@ struct OnlineReaderView: View {
                     )
                     .onAppear { scheduleAutoRetryIfNeeded(for: index) }
                 }
+                .transition(.opacity.combined(with: .scale(scale: 0.98)))
             }
         }
+        .animation(.easeInOut(duration: 0.3), value: setupPhase)
+        .animation(.easeInOut(duration: 0.3), value: pageLinks.isEmpty)
         .onChange(of: pageLinks.count) { _, _ in refreshVisibleLoadSchedules() }
         .task { await setup() }
     }
+
+    // MARK: - Initial Loading
+
+    private var initialLoadingView: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+            VStack(spacing: 20) {
+                // Gallery cover as faded backdrop context
+                if let coverURL = gallery.thumbnailURL {
+                    GalleryCover(url: coverURL, cookieHeader: session.cookieHeader())
+                        .frame(width: 120, height: 160)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .opacity(0.35)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .strokeBorder(Color.white.opacity(0.08), lineWidth: 0.5)
+                        )
+                }
+
+                VStack(spacing: 10) {
+                    Text(gallery.title)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.white.opacity(0.7))
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 32)
+
+                    HStack(spacing: 8) {
+                        ProgressView()
+                            .tint(.white.opacity(0.6))
+                            .controlSize(.regular)
+                        Text("正在获取阅读目录…")
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.45))
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Error View
+
+    private func errorView(message: String) -> some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+            VStack(spacing: 16) {
+                Image(systemName: "exclamationmark.triangle")
+                    .font(.largeTitle)
+                    .foregroundStyle(.orange.opacity(0.8))
+                Text("无法加载在线页面")
+                    .font(.headline)
+                    .foregroundStyle(.white.opacity(0.85))
+                Text(message)
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.5))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+                Button("重试") { Task { await setup() } }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.orange)
+            }
+        }
+    }
+
+    // MARK: - Setup
 
     private func setup() async {
         let cache = ImageURLCache.shared
         pageLinks = cache.pages(for: gallery)
         pageStates = Dictionary(uniqueKeysWithValues: pageLinks.indices.map { ($0, .waiting) })
         do {
+            setupPhase = .fetching
             if pageLinks.isEmpty {
                 let detail = try await SiteClient.shared.detail(gallery, cookieHeader: session.cookieHeader())
                 pageLinks = detail.pageLinks
@@ -78,11 +151,17 @@ struct OnlineReaderView: View {
                 cache.setPages(detail.pageLinks, gallery: gallery)
             }
             imageURLs = Dictionary(uniqueKeysWithValues: pageLinks.indices.compactMap { index in cache.image(for: gallery, at: index).map { (index, $0) } })
-            if pageLinks.isEmpty { loadError = "未能从页面中提取图片目录。" }
+            if pageLinks.isEmpty {
+                loadError = "未能从页面中提取图片目录。"
+                setupPhase = .error
+                return
+            }
             nextBatch = max(1, (pageLinks.count + 19) / 20)
             lastLoadedPage = max(0, pageLinks.count - 1)
+            setupPhase = .ready
         } catch {
             loadError = error.localizedDescription
+            setupPhase = .error
         }
         refreshVisibleLoadSchedules()
         for index in pageLinks.indices.prefix(3) where imageURLs[index] == nil {
@@ -187,9 +266,12 @@ struct OnlineReaderView: View {
     }
 
     private func scheduleLoadAheadIfNeeded(after index: Int) {
-        let next = index + 1
-        if pageLinks.indices.contains(next), imageURLs[next] == nil {
-            scheduleAutoRetryIfNeeded(for: next)
+        // Preload next 2 pages for smooth reading
+        for ahead in 1...2 {
+            let next = index + ahead
+            if pageLinks.indices.contains(next), imageURLs[next] == nil {
+                scheduleAutoRetryIfNeeded(for: next)
+            }
         }
     }
 
@@ -217,18 +299,5 @@ struct OnlineReaderView: View {
             ImageURLCache.shared.setPages(detail.pageLinks, gallery: gallery)
             refreshVisibleLoadSchedules()
         } catch { }
-    }
-
-}
-
-private struct OnlinePage: View {
-    let url: URL?
-    let fit: Bool
-    let scale: CGFloat
-    @EnvironmentObject private var session: SessionStore
-    var body: some View {
-        PipelineImage(url: url, cookieHeader: session.cookieHeader(), contentMode: fit ? .fit : .fill)
-            .scaleEffect(scale)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
