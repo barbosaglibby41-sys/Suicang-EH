@@ -231,6 +231,32 @@ final class SiteClient {
         return output.compactMap { $0 }
     }
 
+    func validateAccount(source: EHSource, cookieHeader: String?) async throws -> AccountValidationResult {
+        let data = try await request(source.baseURL, cookieHeader: cookieHeader)
+        guard let html = String(data: data, encoding: .utf8) else { throw SiteError.parseFailed }
+        let authenticated = SiteParser.isAuthenticatedAccountPage(html)
+        let username = SiteParser.accountUsername(from: html)
+        return AccountValidationResult(authenticated: authenticated, username: username, site: source, message: authenticated ? "\(source.title) 会话有效" : "\(source.title) 拒绝了当前会话")
+    }
+
+    func refreshExHentaiCookie(cookieHeader: String?) async throws -> String? {
+        var request = URLRequest(url: EHSource.exHentai.baseURL)
+        applyHeaders(to: &request, cookieHeader: cookieHeader, referer: EHSource.eHentai.baseURL)
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse, 200..<400 ~= http.statusCode else { throw SiteError.accessDenied }
+        var values = cookieHeader?.split(separator: ";").map { $0.trimmingCharacters(in: .whitespaces) } ?? []
+        if let fields = http.allHeaderFields as? [String: String], let setCookie = fields.first(where: { $0.key.lowercased() == "set-cookie" })?.value {
+            for cookie in setCookie.split(separator: ",") {
+                let pair = cookie.split(separator: ";", maxSplits: 1).first.map(String.init) ?? ""
+                if pair.lowercased().hasPrefix("igneous=") {
+                    values.removeAll { $0.lowercased().hasPrefix("igneous=") }
+                    values.append(pair)
+                }
+            }
+        }
+        guard let html = String(data: data, encoding: .utf8), SiteParser.isAuthenticatedAccountPage(html) else { return nil }
+        return values.joined(separator: "; ")
+    }
     func cloudFavorites(source: EHSource, category: Int, cookieHeader: String?) async throws -> CloudFavoritePage {
         var components = URLComponents(url: source.baseURL.appendingPathComponent("favorites.php"), resolvingAgainstBaseURL: false)!
         components.queryItems = [URLQueryItem(name: "favcat", value: String(category))]
@@ -246,22 +272,37 @@ final class SiteClient {
 
     func setCloudFavorite(gallery: Gallery, category: Int, cookieHeader: String?) async throws {
         guard let detailURL = gallery.sourceURL else { throw SiteError.invalidResponse }
-        let data = try await request(detailURL, cookieHeader: cookieHeader)
-        guard let html = String(data: data, encoding: .utf8) else { throw SiteError.parseFailed }
-        let token = SiteParser.favoriteToken(from: html)
+        let tokenFromURL = detailURL.path.split(separator: "/").dropFirst().dropFirst().first.map(String.init)
+        let token: String
+        if let tokenFromURL, !tokenFromURL.isEmpty {
+            token = tokenFromURL
+        } else {
+            let data = try await request(detailURL, cookieHeader: cookieHeader)
+            guard let html = String(data: data, encoding: .utf8), let parsed = SiteParser.favoriteToken(from: html) else { throw SiteError.parseFailed }
+            token = parsed
+        }
         var components = URLComponents(url: gallery.source.baseURL, resolvingAgainstBaseURL: false)!
         components.path = "/gallerypopups.php"
-        components.queryItems = [URLQueryItem(name: "gid", value: String(gallery.id)), URLQueryItem(name: "t", value: token ?? ""), URLQueryItem(name: "act", value: "addfav")]
+        components.queryItems = [URLQueryItem(name: "gid", value: String(gallery.id)), URLQueryItem(name: "t", value: token), URLQueryItem(name: "act", value: "addfav")]
         guard let url = components.url else { throw SiteError.invalidResponse }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded; charset=utf-8", forHTTPHeaderField: "Content-Type")
         request.setValue(detailURL.absoluteString, forHTTPHeaderField: "Referer")
-        request.httpBody = "favcat=\(category)&favnote=&submit=Apply+Changes&update=1".data(using: .utf8)
+        let favoriteCategory = category == -1 ? "favdel" : String(max(0, min(9, category)))
+        let apply = category == -1 ? "Apply Changes" : "Add to Favorites"
+        let form = URLComponents(queryItems: [
+            URLQueryItem(name: "favcat", value: favoriteCategory),
+            URLQueryItem(name: "favnote", value: ""),
+            URLQueryItem(name: "apply", value: apply),
+            URLQueryItem(name: "update", value: "1")
+        ]).percentEncodedQuery ?? ""
+        request.httpBody = form.data(using: .utf8)
         applyHeaders(to: &request, cookieHeader: cookieHeader, referer: detailURL)
         let (_, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse, 200..<400 ~= http.statusCode else { throw SiteError.invalidResponse }
     }
+    /// Posts a new comment to the gallery. Returns the re-fetched detail page
     /// so the caller can refresh the comment list.
     func postComment(gallery: Gallery, content: String, cookieHeader: String?) async throws -> NetworkGalleryDetail {
         guard let url = gallery.sourceURL else { throw SiteError.invalidResponse }

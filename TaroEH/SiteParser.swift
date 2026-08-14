@@ -148,6 +148,17 @@ enum SiteParser {
     static func galleriesPage(from html: String, source: EHSource, baseURL: URL?) -> (galleries: [Gallery], nextCursor: Int?) {
         (galleries(from: html, source: source, baseURL: baseURL), nextGalleryCursor(from: html))
     }
+    static func accountUsername(from html: String) -> String? {
+        first(#"id=[\"']userlink[\"'][^>]*>(.*?)</"#, in: html).map(clean)
+            ?? first(#"class=[\"'][^\"']*(?:username|usn)[^\"']*[\"'][^>]*>(.*?)</"#, in: html).map(clean)
+    }
+
+    static func isAuthenticatedAccountPage(_ html: String) -> Bool {
+        let lower = html.lowercased()
+        if lower.contains("this page requires you to log on") || lower.contains("sad panda") { return false }
+        return lower.contains("logout") || lower.contains("id=\"userlink\"") || lower.contains("id='userlink'")
+    }
+
     static func favoriteToken(from html: String) -> String? {
         first(#"(?:gallerypopups\.php\?gid=\d+&t=|[?&]t=)([0-9a-zA-Z]+)"#, in: html)
             ?? first(#"name=[\"']token[\"'][^>]+value=[\"']([^\"']+)[\"']"#, in: html)

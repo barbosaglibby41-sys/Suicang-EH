@@ -14,7 +14,6 @@ struct ContentView: View {
     @EnvironmentObject private var session: SessionStore
     @Environment(\.modelContext) private var modelContext
     @StateObject private var library = LibraryStore()
-    @StateObject private var cloudFavorites = CloudFavoritesStore()
     @State private var path = NavigationPath()
     @State private var selectedTab = 0
     @State private var bottomBarVisible = true
@@ -61,7 +60,6 @@ struct ContentView: View {
         .animation(.easeInOut(duration: 0.22), value: bottomBarVisible)
         .environmentObject(session)
         .environmentObject(library)
-        .environmentObject(cloudFavorites)
         .tint(.purple)
         .onReceive(NotificationCenter.default.publisher(for: .taroSearchTag)) { notification in
             guard let raw = notification.userInfo?["tag"] as? String, !raw.isEmpty else { return }
@@ -1020,7 +1018,10 @@ struct ShelfView: View {
     @EnvironmentObject private var session: SessionStore
     private var offline: [OfflineTask] { downloads.tasks.filter { $0.state == .complete } }
     var body: some View { List {
-        if session.isLoggedIn { Section("账户") { NavigationLink { CloudFavoritesView() } label: { Label("账户收藏", systemImage: "cloud.fill"); Spacer(); Text("同步").font(.caption).foregroundStyle(.secondary) } } }
+        if session.isLoggedIn { Section("账户") {
+            NavigationLink { AccountCenterView() } label: { Label("账户中心", systemImage: "person.crop.circle.badge.checkmark") }
+            NavigationLink { CloudFavoritesView() } label: { Label("账户收藏", systemImage: "cloud.fill"); Spacer(); Text("同步").font(.caption).foregroundStyle(.secondary) }
+        } }
         if let recent = library.history.first, reading.page(for: recent) > 0 { Section("继续阅读") { ContinueReadingCard(gallery: recent) } }
         Section("离线作品 · \(offline.count)") { if offline.isEmpty { Text("完成下载的作品会显示在这里").foregroundStyle(.secondary) }; ForEach(offline) { task in NavigationLink { OfflineReaderView(gallery: task.gallery) } label: { GalleryRow(gallery: task.gallery) } } }
         Section("本地收藏 · \(library.favorites.count)") {

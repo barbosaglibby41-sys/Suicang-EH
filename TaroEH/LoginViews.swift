@@ -7,8 +7,11 @@ struct WebLoginView: View {
     @AppStorage("taro.eh.source") private var sourceRaw = EHSource.eHentai.rawValue
     var body: some View {
         WebLoginRepresentable(source: EHSource(rawValue: sourceRaw) ?? .eHentai) { cookie in
-            session.save(cookie: cookie)
-            dismiss()
+            Task { @MainActor in
+                session.save(cookie: cookie)
+                await session.validate(source: EHSource(rawValue: sourceRaw) ?? .eHentai)
+                if session.isLoggedIn { dismiss() }
+            }
         }
         .ignoresSafeArea(edges: .bottom)
         .navigationTitle("网页登录")
@@ -44,21 +47,50 @@ struct WebLoginRepresentable: UIViewRepresentable {
 
 struct CookieImportView: View {
     @EnvironmentObject private var session: SessionStore
+    @Environment(\.dismiss) private var dismiss
     @State private var text = ""
     @State private var showingAlert = false
+    @State private var isSaving = false
+    @State private var errorMessage: String?
+    @AppStorage("taro.eh.source") private var sourceRaw = EHSource.eHentai.rawValue
     var body: some View {
         Form {
             Section("Cookie 文本") {
                 TextEditor(text: $text).frame(minHeight: 140)
-                Text("粘贴 name=value; name2=value2 格式。不要把 Cookie 发给他人。")
+                Text("支持 name=value; name2=value2，也支持从浏览器导出的 Cookie 文本。至少需要 ipb_member_id 和 ipb_pass_hash。")
                     .font(.footnote).foregroundStyle(.secondary)
             }
-            Button("保存到本机 Keychain") {
-                guard text.contains("=") else { showingAlert = true; return }
-                session.save(cookie: text); text = ""
-            }
+            if let errorMessage { Text(errorMessage).font(.footnote).foregroundStyle(.orange) }
+            Button {
+                let normalized = CookieTextParser.normalize(text)
+                guard CookieTextParser.isUsable(normalized) else { showingAlert = true; return }
+                isSaving = true
+                session.save(cookie: normalized)
+                Task {
+                    await session.validate(source: EHSource(rawValue: sourceRaw) ?? .eHentai)
+                    isSaving = false
+                    if session.isLoggedIn { dismiss() } else { errorMessage = session.lastValidationMessage ?? "Cookie 验证失败" }
+                }
+            } label: {
+                HStack { Text("保存并验证"); Spacer(); if isSaving { ProgressView().controlSize(.small) } }
+            }.disabled(isSaving)
         }
         .navigationTitle("导入 Cookie")
         .alert("Cookie 格式似乎不正确", isPresented: $showingAlert) { Button("好", role: .cancel) {} }
     }
+}
+
+private enum CookieTextParser {
+    static func normalize(_ text: String) -> String {
+        let names = ["ipb_member_id", "ipb_pass_hash", "igneous", "sk", "nw", "datatags"]
+        var result: [String] = []
+        for name in names {
+            let pattern = "(?:^|[;\\n\\t ])" + name + "\\s*[=:]\\s*([^;\\n\\t ]+)"
+            if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive), let match = regex.firstMatch(in: text, range: NSRange(location: 0, length: text.utf16.count)), let range = Range(match.range(at: 1), in: text) {
+                result.append("\(name)=\(String(text[range]))")
+            }
+        }
+        return result.joined(separator: "; ")
+    }
+    static func isUsable(_ text: String) -> Bool { text.contains("ipb_member_id=") && text.contains("ipb_pass_hash=") }
 }
