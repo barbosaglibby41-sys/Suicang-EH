@@ -33,7 +33,7 @@ struct SharedReaderView<Source: View>: View {
     @AppStorage("taro.eh.reader.fit") private var fit = true
     @AppStorage("taro.eh.reader.keepScreenOn") private var keepScreenOn = true
     @State private var index: Int
-    @State private var showUI = true
+    @State private var showUI = false
     @State private var scale: CGFloat = 1
     @State private var sliderIndex = 0
 
@@ -55,11 +55,15 @@ struct SharedReaderView<Source: View>: View {
         }
         .foregroundStyle(.white)
         .statusBarHidden(!showUI)
+        .toolbar(showUI ? .visible : .hidden, for: .navigationBar, .tabBar)
+        .ignoresSafeArea(.container, edges: [.top, .bottom])
         .onAppear {
             UIApplication.shared.isIdleTimerDisabled = keepScreenOn
             sliderIndex = index
         }
-        .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
+        .onDisappear {
+            UIApplication.shared.isIdleTimerDisabled = false
+        }
         .onChange(of: index) { _, value in
             sliderIndex = value
             onIndexChange(value)
