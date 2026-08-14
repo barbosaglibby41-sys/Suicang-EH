@@ -93,7 +93,23 @@ final class SessionStore: ObservableObject {
         status = .checking
         defer { isChecking = false }
         do {
-            let result = try await SiteClient.shared.validateAccount(source: source, cookieHeader: cookieHeader())
+            var result = try await SiteClient.shared.validateAccount(source: source, cookieHeader: cookieHeader())
+
+            if source == .exHentai && !result.authenticated {
+                do {
+                    if let refreshed = try await SiteClient.shared.refreshExHentaiCookie(cookieHeader: cookieHeader()) {
+                        let cleaned = refreshed.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if !cleaned.isEmpty {
+                            KeychainStore.write(key: key, value: cleaned)
+                            installCookies(from: cleaned)
+                            result = try await SiteClient.shared.validateAccount(source: source, cookieHeader: cookieHeader())
+                        }
+                    }
+                } catch {
+                    // Keep the original validation result and expose it below.
+                }
+            }
+
             if source == .exHentai { exAccess = result.authenticated }
             if result.authenticated {
                 isLoggedIn = true
@@ -116,12 +132,12 @@ final class SessionStore: ObservableObject {
     func refreshExHentaiCookie() async {
         guard hasCredentials, let header = cookieHeader() else { return }
         do {
-            if let refreshed = try await SiteClient.shared.refreshExHentaiCookie(cookieHeader: header) {
-                save(cookie: refreshed)
-                await validate(source: .exHentai)
-            } else {
-                lastValidationMessage = "未获取到新的 igneous，可能需要重新网页登录。"
+            guard let refreshed = try await SiteClient.shared.refreshExHentaiCookie(cookieHeader: header) else {
+                lastValidationMessage = "未获取到新的 igneous。请确认 E-Hentai Cookie 有效，或重新网页登录后再试。"
+                return
             }
+            save(cookie: refreshed)
+            await validate(source: .exHentai)
         } catch {
             lastValidationMessage = "刷新 igneous 失败：\(error.localizedDescription)"
         }

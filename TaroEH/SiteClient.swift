@@ -40,7 +40,10 @@ final class SiteClient {
             }
         }
         if let url = request.url, let storageCookies = HTTPCookieStorage.shared.cookies(for: url) {
-            for cookie in storageCookies {
+            // Use the persisted logical jar as the authority, just like
+            // JHenTai's EHCookieManager. Native storage is only a fallback;
+            // otherwise stale igneous=mystery can overwrite a refreshed value.
+            for cookie in storageCookies where allCookies[cookie.name] == nil {
                 allCookies[cookie.name] = cookie.value
             }
         }
@@ -231,7 +234,7 @@ final class SiteClient {
             }
         }
         if let url = r.url, let storageCookies = HTTPCookieStorage.shared.cookies(for: url) {
-            for cookie in storageCookies {
+            for cookie in storageCookies where allCookies[cookie.name] == nil {
                 allCookies[cookie.name] = cookie.value
             }
         }
@@ -273,54 +276,103 @@ final class SiteClient {
     }
 
     func refreshExHentaiCookie(cookieHeader: String?) async throws -> String? {
-        // Fetch E-Hentai homepage first to ensure we have `sk` (Session Key) in HTTPCookieStorage
-        // This mirrors JHenTai's `requestHomePage()` before auth to prevent `igneous=mystery`.
-        var preReq = URLRequest(url: EHSource.eHentai.baseURL)
-        applyHeaders(to: &preReq, cookieHeader: cookieHeader, referer: nil)
-        _ = try? await session.data(for: preReq)
-        
-        // Replicate any newly acquired e-hentai.org cookies (like sk, datatags) to exhentai.org
-        // so that the ExHentai request receives them, matching JHenTai's shared cookie pool logic.
-        if let cookies = HTTPCookieStorage.shared.cookies {
-            for cookie in cookies where cookie.domain.contains("e-hentai.org") {
-                var props = cookie.properties ?? [:]
-                props[.domain] = "exhentai.org"
-                if let newCookie = HTTPCookie(properties: props) {
-                    HTTPCookieStorage.shared.setCookie(newCookie)
-                }
-            }
+        // JHenTai keeps one logical EH cookie jar. It first requests the E-Hentai
+        // home page, persists all Set-Cookie values, then sends that complete jar
+        // to ExHentai. In particular, `sk`, `nw` and `datatags` must accompany
+        // ipb_member_id/ipb_pass_hash; sending only the two login cookies makes
+        // ExHentai answer with igneous=mystery.
+        removeCookie(named: "igneous")
+
+        var homeHeader = parseCookieHeader(cookieHeader)
+        homeHeader["nw"] = homeHeader["nw"] ?? "1"
+        homeHeader["datatags"] = homeHeader["datatags"] ?? "1"
+        homeHeader.removeValue(forKey: "igneous")
+        var homeRequest = URLRequest(url: EHSource.eHentai.baseURL)
+        applyHeaders(to: &homeRequest, cookieHeader: cookieHeaderString(homeHeader), referer: nil)
+        let (_, homeResponse) = try await session.data(for: homeRequest)
+        guard let homeHTTP = homeResponse as? HTTPURLResponse, 200..<400 ~= homeHTTP.statusCode else {
+            throw SiteError.accessDenied
         }
 
-        // E-Hentai sometimes sets igneous=mystery for invalid attempts. 
-        // We must strip any existing igneous cookie from native storage and headers 
-        // to force the server to issue a new valid igneous token.
-        if let cookies = HTTPCookieStorage.shared.cookies {
-            for cookie in cookies where cookie.name.lowercased() == "igneous" {
-                HTTPCookieStorage.shared.deleteCookie(cookie)
-            }
+        // URLSession normally stores these automatically. Parse the response too
+        // because iOS versions differ in when HTTPCookieStorage is updated.
+        absorbResponseCookies(homeResponse, url: EHSource.eHentai.baseURL)
+        let eCookies = HTTPCookieStorage.shared.cookies(for: EHSource.eHentai.baseURL) ?? []
+        for cookie in eCookies where cookie.name.lowercased() != "igneous" {
+            cloneCookie(cookie, to: "exhentai.org")
+            homeHeader[cookie.name] = cookie.value
         }
-        var values = cookieHeader?.split(separator: ";").map { $0.trimmingCharacters(in: .whitespaces) } ?? []
-        values.removeAll { $0.lowercased().hasPrefix("igneous=") }
-        let cleanHeader = values.joined(separator: "; ")
 
-        var request = URLRequest(url: EHSource.exHentai.baseURL)
-        applyHeaders(to: &request, cookieHeader: cleanHeader, referer: EHSource.eHentai.baseURL)
-        let (data, response) = try await session.data(for: request)
-        guard let http = response as? HTTPURLResponse, 200..<400 ~= http.statusCode else { throw SiteError.accessDenied }
-        var resultValues = values
-        var gotValidIgneous = false
-        if let cookies = HTTPCookieStorage.shared.cookies {
-            for cookie in cookies where cookie.name.lowercased() == "igneous" {
-                resultValues.removeAll { $0.lowercased().hasPrefix("igneous=") }
-                let val = cookie.value.lowercased()
-                if val != "mystery" && val != "deleted" && !val.isEmpty {
-                    resultValues.append("\(cookie.name)=\(cookie.value)")
-                    gotValidIgneous = true
-                }
-            }
+        removeCookie(named: "igneous")
+        var exHeader = homeHeader
+        exHeader.removeValue(forKey: "igneous")
+        var exRequest = URLRequest(url: EHSource.exHentai.baseURL)
+        applyHeaders(to: &exRequest, cookieHeader: cookieHeaderString(exHeader), referer: EHSource.eHentai.baseURL)
+        let (exData, exResponse) = try await session.data(for: exRequest)
+        guard let exHTTP = exResponse as? HTTPURLResponse, 200..<400 ~= exHTTP.statusCode else {
+            throw SiteError.accessDenied
         }
-        guard gotValidIgneous else { return nil }
-        return resultValues.joined(separator: "; ")
+
+        absorbResponseCookies(exResponse, url: EHSource.exHentai.baseURL)
+        var result = exHeader
+        let exCookies = HTTPCookieStorage.shared.cookies(for: EHSource.exHentai.baseURL) ?? []
+        var igneousValue: String?
+        for cookie in exCookies {
+            if cookie.name.lowercased() == "igneous" {
+                let value = cookie.value.lowercased()
+                if value != "mystery" && value != "deleted" && !value.isEmpty { igneousValue = cookie.value }
+            }
+            if cookie.name.lowercased() != "igneous" { result[cookie.name] = cookie.value }
+        }
+        if igneousValue == nil {
+            // A valid token may be present only in Set-Cookie on some iOS builds.
+            let responseCookieList = responseCookies(exResponse, url: EHSource.exHentai.baseURL)
+            igneousValue = responseCookieList.first(where: { $0.name.lowercased() == "igneous" && $0.value.lowercased() != "mystery" && $0.value.lowercased() != "deleted" })?.value
+        }
+        guard let igneousValue, !igneousValue.isEmpty else {
+            _ = exData
+            return nil
+        }
+        result["igneous"] = igneousValue
+        return cookieHeaderString(result)
+    }
+
+    private func parseCookieHeader(_ header: String?) -> [String: String] {
+        var result: [String: String] = [:]
+        for pair in (header ?? "").split(separator: ";") {
+            let parts = pair.split(separator: "=", maxSplits: 1).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            if parts.count == 2 && !parts[0].isEmpty { result[parts[0]] = parts[1] }
+        }
+        return result
+    }
+
+    private func cookieHeaderString(_ values: [String: String]) -> String {
+        values.keys.sorted().compactMap { key in values[key].map { "\(key)=\($0)" } }.joined(separator: "; ")
+    }
+
+    private func removeCookie(named name: String) {
+        for cookie in HTTPCookieStorage.shared.cookies ?? [] where cookie.name.caseInsensitiveCompare(name) == .orderedSame {
+            HTTPCookieStorage.shared.deleteCookie(cookie)
+        }
+    }
+
+    private func cloneCookie(_ cookie: HTTPCookie, to domain: String) {
+        var properties = cookie.properties ?? [:]
+        properties[.domain] = domain
+        properties[.path] = cookie.path.isEmpty ? "/" : cookie.path
+        if let clone = HTTPCookie(properties: properties) { HTTPCookieStorage.shared.setCookie(clone) }
+    }
+
+    private func responseCookies(_ response: URLResponse, url: URL) -> [HTTPCookie] {
+        guard let http = response as? HTTPURLResponse else { return [] }
+        let fields = http.allHeaderFields.reduce(into: [String: String]()) { output, item in
+            if let key = item.key as? String, let value = item.value as? String { output[key] = value }
+        }
+        return HTTPCookie.cookies(withResponseHeaderFields: fields, for: url)
+    }
+
+    private func absorbResponseCookies(_ response: URLResponse, url: URL) {
+        for cookie in responseCookies(response, url: url) { HTTPCookieStorage.shared.setCookie(cookie) }
     }
     func cloudFavorites(source: EHSource, category: Int, cookieHeader: String?) async throws -> CloudFavoritePage {
         var components = URLComponents(url: source.baseURL.appendingPathComponent("favorites.php"), resolvingAgainstBaseURL: false)!
