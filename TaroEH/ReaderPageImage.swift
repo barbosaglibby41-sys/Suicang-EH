@@ -62,8 +62,7 @@ struct ReaderPageImage: View {
         .frame(maxWidth: .infinity, minHeight: status == .loaded ? 0 : 260)
         .clipped()
         .onChange(of: status) { _, newValue in
-            if newValue == .failed && !failed { failed = true }
-            if newValue == .loading && url != nil { failed = false }
+            if newValue == .loaded { failed = false }
         }
         .onChange(of: url) { _, newValue in
             if newValue != nil { failed = false }
