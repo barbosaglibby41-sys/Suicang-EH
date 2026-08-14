@@ -1,8 +1,19 @@
 import SwiftUI
 import UIKit
 
-/// Picks the right reader for a gallery: online when a source URL exists,
-/// offline when a complete local copy exists, otherwise a fallback message.
+private struct ReaderPageOffset: Equatable {
+    let index: Int
+    let minY: CGFloat
+}
+
+private struct ReaderPageOffsetKey: PreferenceKey {
+    static var defaultValue: [ReaderPageOffset] = []
+    static func reduce(value: inout [ReaderPageOffset], nextValue: () -> [ReaderPageOffset]) {
+        value.append(contentsOf: nextValue())
+    }
+}
+
+/// Picks the right reader for a gallery.
 enum ReaderDestination {
     @ViewBuilder
     static func view(for gallery: Gallery) -> some View {
@@ -35,6 +46,7 @@ struct SharedReaderView<Source: View>: View {
     @State private var showUI = false
     @State private var scale: CGFloat = 1
     @State private var sliderIndex = 0
+    @State private var isProgrammaticScroll = false
 
     init(title: String, pageCount: Int, initialIndex: Int = 0, onIndexChange: @escaping (Int) -> Void = { _ in }, onPageAppear: @escaping (Int) -> Void = { _ in }, @ViewBuilder source: @escaping (Int, Bool, CGFloat) -> Source) {
         self.title = title
@@ -57,8 +69,6 @@ struct SharedReaderView<Source: View>: View {
         .toolbar(.hidden, for: .navigationBar, .tabBar)
         .navigationBarBackButtonHidden(true)
         .ignoresSafeArea(.container, edges: [.top, .bottom])
-        // safeAreaInset is deliberately used instead of GeometryReader:
-        // UIKit supplies the correct inset for Dynamic Island, notch and rotation.
         .safeAreaInset(edge: .top, spacing: 0) {
             if showUI { topBar }
         }
@@ -86,13 +96,31 @@ struct SharedReaderView<Source: View>: View {
                         ForEach(0..<pageCount, id: \.self) { i in
                             source(i, fit, scale)
                                 .id(i)
+                                .background {
+                                    GeometryReader { geo in
+                                        Color.clear.preference(
+                                            key: ReaderPageOffsetKey.self,
+                                            value: [ReaderPageOffset(index: i, minY: geo.frame(in: .named("reader-scroll")).minY)]
+                                        )
+                                    }
+                                }
                                 .onAppear { onPageAppear(i) }
                         }
                     }
                 }
+                .coordinateSpace(name: "reader-scroll")
+                .onPreferenceChange(ReaderPageOffsetKey.self) { offsets in
+                    updateVerticalProgress(offsets)
+                }
                 .onChange(of: sliderIndex) { _, value in
                     guard value != index else { return }
-                    withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo(value, anchor: .top) }
+                    isProgrammaticScroll = true
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        proxy.scrollTo(value, anchor: .top)
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                        isProgrammaticScroll = false
+                    }
                 }
             }
             .onTapGesture(count: 2) { withAnimation { scale = scale == 1 ? 2 : 1 } }
@@ -152,17 +180,17 @@ struct SharedReaderView<Source: View>: View {
     private var bottomBar: some View {
         VStack(spacing: 8) {
             HStack {
-                Text(direction == "vertical" ? "连续滚动" : "第 \(index + 1) / \(pageCount) 页")
+                Text(direction == "vertical" ? "第 \(index + 1) / \(pageCount) 页" : "第 \(index + 1) / \(pageCount) 页")
                     .font(.caption.weight(.medium))
                 Spacer()
                 Text("\(progressPercent)%")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.white.opacity(0.78))
             }
             Slider(value: Binding(get: { Double(sliderIndex) }, set: { value in
                 let next = min(max(0, Int(value.rounded())), max(0, pageCount - 1))
                 sliderIndex = next
-                if direction == "horizontal" { index = next }
+                index = next
             }), in: 0...Double(max(0, pageCount - 1)), step: 1)
                 .tint(.white)
         }
@@ -173,6 +201,20 @@ struct SharedReaderView<Source: View>: View {
         .overlay(alignment: .top) {
             Rectangle().fill(Color.white.opacity(0.12)).frame(height: 0.5)
         }
+    }
+
+    private func updateVerticalProgress(_ offsets: [ReaderPageOffset]) {
+        guard direction == "vertical", !isProgrammaticScroll, !offsets.isEmpty else { return }
+        // The page nearest the top reading line is the current page.
+        let candidate = offsets
+            .filter { $0.minY <= 140 }
+            .max { $0.minY < $1.minY }
+            ?? offsets.min { abs($0.minY - 140) < abs($1.minY - 140) }
+        guard let candidate else { return }
+        let next = min(max(candidate.index, 0), max(0, pageCount - 1))
+        guard next != index else { return }
+        index = next
+        sliderIndex = next
     }
 
     private var progressPercent: Int {
