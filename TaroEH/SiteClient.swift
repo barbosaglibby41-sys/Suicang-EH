@@ -12,6 +12,7 @@ final class SiteClient {
         config.httpCookieStorage = .shared
         config.requestCachePolicy = .reloadIgnoringLocalCacheData
         config.timeoutIntervalForRequest = 25
+        config.httpMaximumConnectionsPerHost = 10
         session = URLSession(configuration: config)
     }
 

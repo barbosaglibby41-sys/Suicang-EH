@@ -7,7 +7,7 @@ actor ImagePipeline {
     private let memory = NSCache<NSString, UIImage>()
     private var inFlight: [String: Task<UIImage, Error>] = [:]
     private var activeRequests = 0
-    private let maxConcurrentRequests = 6
+    private let maxConcurrentRequests = 10
 
     private init() {
         let config = URLSessionConfiguration.default
@@ -15,7 +15,7 @@ actor ImagePipeline {
         config.requestCachePolicy = .returnCacheDataElseLoad
         config.waitsForConnectivity = true
         config.timeoutIntervalForRequest = 30
-        config.httpMaximumConnectionsPerHost = 6
+        config.httpMaximumConnectionsPerHost = 10
         session = URLSession(configuration: config)
         memory.countLimit = 180
         memory.totalCostLimit = 120 * 1024 * 1024
