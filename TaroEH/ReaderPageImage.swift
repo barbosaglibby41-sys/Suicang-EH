@@ -50,7 +50,7 @@ struct ReaderPageImage: View {
                 }
             }
         }
-        .frame(maxWidth: .infinity, minHeight: 260)
+        .frame(maxWidth: .infinity, minHeight: image == nil ? 260 : 0)
         .clipped()
         .task(id: "\(url?.absoluteString ?? "nil")-\(retryToken)") {
             guard let url else { return }

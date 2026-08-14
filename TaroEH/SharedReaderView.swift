@@ -69,7 +69,7 @@ struct SharedReaderView<Source: View>: View {
         if direction == "vertical" {
             ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVStack(spacing: 6) {
+                    LazyVStack(spacing: 0) {
                         ForEach(0..<pageCount, id: \.self) { i in
                             source(i, fit, scale)
                                 .id(i)
