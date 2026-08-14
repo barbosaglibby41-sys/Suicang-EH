@@ -568,7 +568,6 @@ struct GalleryCard: View {
     let gallery: Gallery
     var showTags: Bool = true
     private let coverHeight: CGFloat = 220
-    private let cardHeight: CGFloat = 302
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -594,27 +593,30 @@ struct GalleryCard: View {
 
             if showTags && !gallery.tags.isEmpty {
                 GalleryTagPreview(tags: gallery.tags, maxTags: 3, maxRows: 2)
-                    .frame(height: 40, alignment: .topLeading)
-            } else {
-                Spacer(minLength: 0).frame(height: 40)
+                    .frame(maxWidth: .infinity, height: 40, alignment: .topLeading)
             }
 
             HStack(spacing: 8) {
                 Label(gallery.uploader.isEmpty ? "未知作者" : gallery.uploader, systemImage: "person")
+                    .lineLimit(1)
+                    .layoutPriority(1)
                 Label(gallery.pageCount > 0 ? "\(gallery.pageCount) 页" : "页数未知", systemImage: "book.pages")
+                    .lineLimit(1)
                 if let rating = gallery.rating, rating > 0 {
                     Label(String(format: "%.1f", rating), systemImage: "star.fill")
                         .foregroundStyle(.yellow)
+                        .lineLimit(1)
                 } else {
                     Label("暂无评分", systemImage: "star")
+                        .lineLimit(1)
                 }
             }
-            .lineLimit(1)
             .font(.caption)
             .foregroundStyle(.secondary)
-            .frame(height: 18, alignment: .leading)
+            .minimumScaleFactor(0.8)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(maxWidth: .infinity, minHeight: cardHeight, maxHeight: cardHeight, alignment: .topLeading)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
         .contentShape(Rectangle())
     }
 }
