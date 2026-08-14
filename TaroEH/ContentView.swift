@@ -601,6 +601,7 @@ struct GalleryDetailView: View {
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var downloads: DownloadStore
     @EnvironmentObject private var reading: ReadingStore
+    @State private var item: Gallery
     @State private var detailError: String?
     @State private var showCommentEditor = false
     @State private var commentDraft = ""

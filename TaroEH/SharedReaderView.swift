@@ -39,6 +39,7 @@ struct SharedReaderView<Source: View>: View {
     let onIndexChange: (Int) -> Void
     let onPageAppear: (Int) -> Void
     @ViewBuilder let source: (Int, Bool, CGFloat) -> Source
+    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var reading: ReadingStore
     @AppStorage("taro.eh.reader.direction") private var direction = "horizontal"
     @AppStorage("taro.eh.reader.fit") private var fit = true
