@@ -80,6 +80,12 @@ actor ImagePipeline {
     private func endRequest() { activeRequests = max(0, activeRequests - 1) }
 
     func removeAllMemory() { memory.removeAllObjects() }
+
+    /// Starts an image request and stores the decoded bitmap in the memory cache.
+    /// The in-flight table deduplicates this with the reader's visible request.
+    func prefetch(url: URL, cookieHeader: String? = nil, referer: URL? = nil) async {
+        _ = try? await image(for: url, cookieHeader: cookieHeader, referer: referer)
+    }
 }
 
 // MARK: - Shimmer Placeholder

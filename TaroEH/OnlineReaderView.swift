@@ -13,6 +13,7 @@ struct OnlineReaderView: View {
     @State private var hasMorePages = true
     @State private var setupPhase: SetupPhase = .fetching
     @State private var currentPage = 0
+    @State private var resolvingIndices: Set<Int> = []
 
     enum SetupPhase: Equatable {
         case fetching
@@ -178,16 +179,17 @@ struct OnlineReaderView: View {
     }
 
     func preloadAround(_ center: Int) {
-        // Preload 5 pages ahead and 2 behind
-        for offset in 0...5 {
+        // Resolve URLs and download/decode the actual bitmaps ahead of time.
+        // The visible reader then normally hits ImagePipeline.memory directly.
+        for offset in 0...8 {
             let idx = center + offset
-            if pageLinks.indices.contains(idx), imageURLs[idx] == nil {
+            if pageLinks.indices.contains(idx) {
                 Task { await resolveAndStore(index: idx) }
             }
         }
         for offset in 1...2 {
             let idx = center - offset
-            if pageLinks.indices.contains(idx), imageURLs[idx] == nil {
+            if pageLinks.indices.contains(idx) {
                 Task { await resolveAndStore(index: idx) }
             }
         }
@@ -195,13 +197,20 @@ struct OnlineReaderView: View {
 
     private func resolveAndStore(index: Int, force: Bool = false) async {
         guard pageLinks.indices.contains(index) else { return }
-        if !force, imageURLs[index] != nil { return }
+        guard force || !resolvingIndices.contains(index) else { return }
+        if !force, imageURLs[index] != nil {
+            await prefetchBitmap(index: index)
+            return
+        }
+        await MainActor.run { resolvingIndices.insert(index) }
+        defer { Task { @MainActor in resolvingIndices.remove(index) } }
         if force {
             ImageURLCache.shared.removeImage(for: gallery, at: index)
             await MainActor.run { imageURLs[index] = nil }
         }
         if !force, let cached = ImageURLCache.shared.image(for: gallery, at: index) {
             await MainActor.run { imageURLs[index] = cached }
+            await prefetchBitmap(index: index)
             return
         }
         do {
@@ -214,11 +223,22 @@ struct OnlineReaderView: View {
             )
             ImageURLCache.shared.setImage(url, gallery: gallery, index: index)
             await MainActor.run { imageURLs[index] = url }
+            // Do not wait for the visible cell; download and decode now.
+            await prefetchBitmap(index: index, url: url)
         } catch {
-            // One final fresh request with a cache-busting query.
             guard !force else { return }
             await resolveAndStore(index: index, force: true)
         }
+    }
+
+    private func prefetchBitmap(index: Int, url: URL? = nil) async {
+        let target = url ?? imageURLs[index]
+        guard let target else { return }
+        await ImagePipeline.shared.prefetch(
+            url: target,
+            cookieHeader: session.cookieHeader(),
+            referer: nil
+        )
     }
 
     // MARK: - More Pages
