@@ -76,11 +76,13 @@ struct SharedReaderView<Source: View>: View {
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: showUI)
         .onAppear {
+            NotificationCenter.default.post(name: .taroReaderVisibility, object: nil, userInfo: ["visible": false])
             UIApplication.shared.isIdleTimerDisabled = keepScreenOn
             sliderIndex = index
             showUIWithAutoHide()
         }
         .onDisappear {
+            NotificationCenter.default.post(name: .taroReaderVisibility, object: nil, userInfo: ["visible": true])
             UIApplication.shared.isIdleTimerDisabled = false
             autoHideWorkItem?.cancel()
             reading.flush()

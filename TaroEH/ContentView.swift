@@ -3,6 +3,7 @@ import UIKit
 
 extension Notification.Name {
     static let taroSearchTag = Notification.Name("taro.eh.searchTag")
+    static let taroReaderVisibility = Notification.Name("taro.eh.readerVisibility")
 }
 
 private struct DiscoverSearchDestination: Hashable {
@@ -15,6 +16,7 @@ struct ContentView: View {
     @StateObject private var library = LibraryStore()
     @State private var path = NavigationPath()
     @State private var selectedTab = 0
+    @State private var bottomBarVisible = true
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -42,19 +44,20 @@ struct ContentView: View {
         }
         .toolbar(.hidden, for: .tabBar)
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            TaroTabBar(selection: $selectedTab) { tab in
-                // Tapping the active discovery tab returns to its root, which
-                // matches the expected home-tab behavior without rebuilding
-                // the other navigation stacks.
-                if tab == selectedTab, tab == 0 {
-                    path = NavigationPath()
-                } else {
-                    withAnimation(.easeOut(duration: 0.18)) {
-                        selectedTab = tab
+            if bottomBarVisible {
+                TaroTabBar(selection: $selectedTab) { tab in
+                    if tab == selectedTab, tab == 0 {
+                        path = NavigationPath()
+                    } else {
+                        withAnimation(.easeOut(duration: 0.18)) {
+                            selectedTab = tab
+                        }
                     }
                 }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
+        .animation(.easeInOut(duration: 0.22), value: bottomBarVisible)
         .environmentObject(session)
         .environmentObject(library)
         .tint(.purple)
@@ -63,6 +66,12 @@ struct ContentView: View {
             if selectedTab != 0 { path = NavigationPath() }
             selectedTab = 0
             path.append(DiscoverSearchDestination(query: raw))
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .taroReaderVisibility)) { notification in
+            let visible = notification.userInfo?["visible"] as? Bool ?? true
+            withAnimation(.easeInOut(duration: 0.22)) {
+                bottomBarVisible = visible
+            }
         }
         .task { library.configure(modelContext) }
     }
