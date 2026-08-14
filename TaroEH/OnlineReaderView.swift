@@ -12,6 +12,7 @@ struct OnlineReaderView: View {
     @State private var isLoadingMore = false
     @State private var hasMorePages = true
     @State private var lastLoadedPage = 0
+    @State private var loadingPageIndices: Set<Int> = []
 
     var body: some View {
         Group {
@@ -94,7 +95,9 @@ struct OnlineReaderView: View {
         return Int(name[name.index(after: dash)...]) ?? Int.max
     }
     private func loadPage(_ index: Int, force: Bool = false) async {
-        guard pageLinks.indices.contains(index), force || imageURLs[index] == nil else { return }
+        guard pageLinks.indices.contains(index), force || imageURLs[index] == nil, !loadingPageIndices.contains(index) else { return }
+        loadingPageIndices.insert(index)
+        defer { loadingPageIndices.remove(index) }
         do {
             let url = try await SiteClient.shared.imageURL(pageURL: pageLinks[index], cookieHeader: session.cookieHeader())
             imageURLs[index] = url

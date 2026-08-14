@@ -6,6 +6,8 @@ actor ImagePipeline {
     private let session: URLSession
     private let memory = NSCache<NSURL, UIImage>()
     private var inFlight: [URL: Task<UIImage, Error>] = [:]
+    private var activeRequests = 0
+    private let maxConcurrentRequests = 3
 
     private init() {
         let config = URLSessionConfiguration.default
@@ -23,6 +25,11 @@ actor ImagePipeline {
         if let cached = memory.object(forKey: url as NSURL) { return cached }
         if let task = inFlight[url] { return try await task.value }
         let task = Task<UIImage, Error> {
+            while await self.canStartRequest() == false {
+                try await Task.sleep(for: .milliseconds(40))
+            }
+            await self.beginRequest()
+            defer { Task { await self.endRequest() } }
             if url.isFileURL {
                 let data = try Data(contentsOf: url, options: [.mappedIfSafe])
                 guard let image = UIImage(data: data) else { throw SiteError.parseFailed }
@@ -41,6 +48,10 @@ actor ImagePipeline {
         memory.setObject(value, forKey: url as NSURL, cost: value.jpegData(compressionQuality: 0.75)?.count ?? 1)
         return value
     }
+
+    private func canStartRequest() -> Bool { activeRequests < maxConcurrentRequests }
+    private func beginRequest() { activeRequests += 1 }
+    private func endRequest() { activeRequests = max(0, activeRequests - 1) }
 
     func removeAllMemory() { memory.removeAllObjects() }
 }
