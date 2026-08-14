@@ -13,7 +13,7 @@ struct OnlineReaderView: View {
     @State private var isLoadingMore = false
     @State private var hasMorePages = true
     @State private var lastLoadedPage = 0
-    @State private var loadingPageIndices: Set<Int> = [:]
+    @State private var loadingPageIndices: Set<Int> = []
     @State private var refreshingPageLinks = false
     @State private var autoRetryWorkItems: [Int: Task<Void, Never>] = [:]
 

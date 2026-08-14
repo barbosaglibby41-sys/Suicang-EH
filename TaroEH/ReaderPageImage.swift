@@ -63,7 +63,7 @@ struct ReaderPageImage: View {
         .clipped()
         .onChange(of: status) { _, newValue in
             if newValue == .failed && !failed { failed = true }
-            if newValue == .loading { failed = false }
+            if newValue == .loading && url != nil { failed = false }
         }
         .onChange(of: url) { _, newValue in
             if newValue != nil { failed = false }
