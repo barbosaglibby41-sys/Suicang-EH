@@ -66,6 +66,7 @@ struct DiscoverView: View {
     @EnvironmentObject private var tagTranslations: TagTranslationStore
     @EnvironmentObject private var rankings: RankingStore
     @AppStorage("taro.eh.siteURL") private var siteAddress = "https://e-hentai.org/"
+    @AppStorage("taro.eh.source") private var sourceRaw = EHSource.eHentai.rawValue
     @AppStorage("taro.eh.gallery.listStyle") private var galleryListStyleRaw = GalleryListStyle.card.rawValue
     private var galleryListStyle: GalleryListStyle { GalleryListStyle(rawValue: galleryListStyleRaw) ?? .card }
     @State private var query = ""
@@ -271,7 +272,9 @@ struct DiscoverView: View {
         if isRandomFeed { loadMoreRandomGalleries() }
         else if selectedFeed == .latest || selectedFeed == .popular || isSearchResults { loadMoreDiscovery() }
     }
-
+    private func dismissSearchDestination() {
+        dismiss()
+    }
 
     private var feedSelector: some View {
         ScrollView(.horizontal, showsIndicators: false) {
