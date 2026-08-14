@@ -20,6 +20,7 @@ struct NetworkSettingsView: View {
     @State private var showDiagnostics = false
     @State private var diagnostics: [DiagnosticResult] = []
     @State private var isRunningDiagnostics = false
+    @StateObject private var netConfig = NetworkConfig.shared
 
     private var source: Binding<EHSource> {
         Binding(get: { EHSource(rawValue: sourceRaw) ?? .eHentai }, set: { value in sourceRaw = value.rawValue; siteURL = value.baseURL.absoluteString })
@@ -33,6 +34,21 @@ struct NetworkSettingsView: View {
             cacheSection
             advancedSection
             diagnosticsSection
+            if let result = netConfig.applyResult {
+                Section {
+                    HStack(alignment: .top, spacing: 10) {
+                        if netConfig.isApplying {
+                            ProgressView().controlSize(.small)
+                        } else {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(.green)
+                        }
+                        Text(result)
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
         }
         .navigationTitle("网络")
         .sheet(isPresented: $showDiagnostics) {
@@ -290,8 +306,11 @@ struct DiagnosticsDetailView: View {
 @MainActor
 final class NetworkConfig: ObservableObject {
     static let shared = NetworkConfig()
+    @Published var applyResult: String?
+    @Published var isApplying = false
 
     func applySettings() {
+        isApplying = true
         let defaults = UserDefaults.standard
         let connectTimeout = defaults.integer(forKey: "taro.eh.network.connectTimeout")
         let receiveTimeout = defaults.integer(forKey: "taro.eh.network.receiveTimeout")
@@ -302,11 +321,30 @@ final class NetworkConfig: ObservableObject {
                 receiveTimeout: TimeInterval(receiveTimeout) / 1000,
                 maxConnections: maxConn
             )
+            await MainActor.run {
+                isApplying = false
+                applyResult = "✅ 网络参数已更新\n连接超时: \(connectTimeout)ms\n接收超时: \(receiveTimeout)ms\n最大并发: \(maxConn)"
+            }
         }
     }
 
     func applyProxy() {
+        isApplying = true
         URLCache.shared.removeAllCachedResponses()
-        Task { await ImagePipeline.shared.removeAllMemory() }
+        Task {
+            await ImagePipeline.shared.removeAllMemory()
+            await MainActor.run {
+                isApplying = false
+                let proxyType = UserDefaults.standard.string(forKey: "taro.eh.network.proxyType") ?? "system"
+                let proxyHost = UserDefaults.standard.string(forKey: "taro.eh.network.proxyHost") ?? ""
+                let proxyPort = UserDefaults.standard.string(forKey: "taro.eh.network.proxyPort") ?? ""
+                switch proxyType {
+                case "system": applyResult = "✅ 已重置网络\n使用系统代理\n缓存已清除，下次请求将使用新配置"
+                case "http": applyResult = "✅ 已重置网络\nHTTP 代理: \(proxyHost):\(proxyPort)\n缓存已清除，下次请求将使用新配置"
+                case "socks5": applyResult = "✅ 已重置网络\nSOCKS5 代理: \(proxyHost):\(proxyPort)\n缓存已清除，下次请求将使用新配置"
+                default: applyResult = "✅ 已重置网络\n缓存已清除"
+                }
+            }
+        }
     }
 }

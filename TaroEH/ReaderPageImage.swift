@@ -82,7 +82,7 @@ struct ReaderPageImage: View {
                     lastError = error
                 }
             }
-            if image == nil, lastError != nil, !Task.isCancelled, status != .loaded {
+            if image == nil, lastError != nil, !Task.isCancelled {
                 withAnimation(.easeInOut(duration: 0.3)) { failed = true }
                 onAutoRetry()
             }
