@@ -170,8 +170,11 @@ enum SiteParser {
 
     private static func pageNumber(in url: URL) -> Int {
         let component = url.path.split(separator: "/").last.map(String.init) ?? ""
-        let leading = component.split(separator: "-", maxSplits: 1).first.map(String.init) ?? component
-        return Int(leading) ?? Int.max
+        // E-Hentai page links end with <galleryID>-<page>, e.g. 4111359-10.
+        // The suffix after the final hyphen is the actual page number.
+        guard let separator = component.lastIndex(of: "-") else { return Int.max }
+        let suffix = component[component.index(after: separator)...]
+        return Int(suffix) ?? Int.max
     }
     private static func listMetadata(from html: String, baseURL: URL?) -> [Int: GalleryListMetadata] {
         let idPattern = #"id=[\"']it(\d+)[\"']"#
