@@ -9,6 +9,7 @@ struct ReaderPageImage: View {
     let fit: Bool
     let scale: CGFloat
     let onRetry: () -> Void
+    let onFailure: () -> Void
     @EnvironmentObject private var session: SessionStore
     @State private var image: UIImage?
     @State private var failed = false
@@ -71,6 +72,7 @@ struct ReaderPageImage: View {
                 }
             }
             if image == nil, lastError != nil, !Task.isCancelled {
+                onFailure()
                 withAnimation { failed = true }
             }
         }

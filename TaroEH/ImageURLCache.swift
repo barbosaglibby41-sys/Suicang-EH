@@ -39,7 +39,22 @@ struct ImageURLCacheEntry: Codable { var pageLinks: [URL]; var imageURLs: [Int: 
         save()
     }
 
-    func clear(gallery: Gallery) { entries.removeValue(forKey: gallery.stableKey); save() }
+    func removeImage(for gallery: Gallery, at index: Int) {
+        guard var v = entries[gallery.stableKey] else { return }
+        v.imageURLs.removeValue(forKey: index)
+        v.updatedAt = .now
+        entries[gallery.stableKey] = v
+        save()
+    }
+
+    func clearImageURLs(for gallery: Gallery) {
+        guard var v = entries[gallery.stableKey] else { return }
+        v.imageURLs = [:]
+        v.updatedAt = .now
+        entries[gallery.stableKey] = v
+        save()
+    }
+
     func clearAll() { entries = [:]; save() }
     func removeExpired() { entries = entries.filter { Date.now.timeIntervalSince($0.value.updatedAt) < lifetime }; save() }
     var count: Int { entries.count }

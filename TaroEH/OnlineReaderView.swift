@@ -40,6 +40,9 @@ struct OnlineReaderView: View {
                 }) { index, fit, scale in
                     ReaderPageImage(url: imageURLs[index], pageNumber: index + 1, fit: fit, scale: scale, onRetry: {
                         Task { await loadPage(index, force: true) }
+                    }, onFailure: {
+                        ImageURLCache.shared.removeImage(for: gallery, at: index)
+                        imageURLs[index] = nil
                     })
                     .task { await loadPage(index) }
                 }
@@ -99,10 +102,18 @@ struct OnlineReaderView: View {
         loadingPageIndices.insert(index)
         defer { loadingPageIndices.remove(index) }
         do {
-            let url = try await SiteClient.shared.imageURL(pageURL: pageLinks[index], cookieHeader: session.cookieHeader())
+            let url: URL
+            if force {
+                ImageURLCache.shared.removeImage(for: gallery, at: index)
+                imageURLs[index] = nil
+                url = try await SiteClient.shared.imageURL(pageURL: pageLinks[index], cookieHeader: session.cookieHeader())
+            } else if let cached = imageURLs[index] {
+                url = cached
+            } else {
+                url = try await SiteClient.shared.imageURL(pageURL: pageLinks[index], cookieHeader: session.cookieHeader())
+            }
             imageURLs[index] = url
             ImageURLCache.shared.setImage(url, gallery: gallery, index: index)
-            // Warm only the immediate next page to avoid request bursts.
             let next = index + 1
             if pageLinks.indices.contains(next), imageURLs[next] == nil {
                 Task { await loadPage(next) }
