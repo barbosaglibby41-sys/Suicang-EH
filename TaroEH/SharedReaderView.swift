@@ -140,9 +140,13 @@ struct SharedReaderView<Source: View>: View {
             }
             .frame(width: 46)
         }
+        .foregroundStyle(.white)
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .background(.black.opacity(0.86))
+        .background(Color.black)
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(Color.white.opacity(0.12)).frame(height: 0.5)
+        }
     }
 
     private var bottomBar: some View {
@@ -162,9 +166,13 @@ struct SharedReaderView<Source: View>: View {
             }), in: 0...Double(max(0, pageCount - 1)), step: 1)
                 .tint(.white)
         }
+        .foregroundStyle(.white)
         .padding(.horizontal, 18)
         .padding(.vertical, 10)
-        .background(.black.opacity(0.86))
+        .background(Color.black)
+        .overlay(alignment: .top) {
+            Rectangle().fill(Color.white.opacity(0.12)).frame(height: 0.5)
+        }
     }
 
     private var progressPercent: Int {
