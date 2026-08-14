@@ -291,12 +291,14 @@ final class SiteClient {
         request.setValue(detailURL.absoluteString, forHTTPHeaderField: "Referer")
         let favoriteCategory = category == -1 ? "favdel" : String(max(0, min(9, category)))
         let apply = category == -1 ? "Apply Changes" : "Add to Favorites"
-        let form = URLComponents(queryItems: [
+        var formComponents = URLComponents()
+        formComponents.queryItems = [
             URLQueryItem(name: "favcat", value: favoriteCategory),
             URLQueryItem(name: "favnote", value: ""),
             URLQueryItem(name: "apply", value: apply),
             URLQueryItem(name: "update", value: "1")
-        ]).percentEncodedQuery ?? ""
+        ]
+        let form = formComponents.percentEncodedQuery ?? ""
         request.httpBody = form.data(using: .utf8)
         applyHeaders(to: &request, cookieHeader: cookieHeader, referer: detailURL)
         let (_, response) = try await session.data(for: request)
