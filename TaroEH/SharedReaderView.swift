@@ -55,7 +55,8 @@ struct SharedReaderView<Source: View>: View {
         }
         .foregroundStyle(.white)
         .statusBarHidden(!showUI)
-        .toolbar(showUI ? .visible : .hidden, for: .navigationBar, .tabBar)
+        .toolbar(.hidden, for: .navigationBar, .tabBar)
+        .navigationBarBackButtonHidden(true)
         .ignoresSafeArea(.container, edges: [.top, .bottom])
         .onAppear {
             UIApplication.shared.isIdleTimerDisabled = keepScreenOn
