@@ -86,7 +86,9 @@ struct SharedReaderView<Source: View>: View {
         } else {
             TabView(selection: $index) {
                 ForEach(0..<pageCount, id: \.self) { i in
-                    source(i, fit, scale).tag(i)
+                    source(i, fit, scale)
+                        .tag(i)
+                        .onAppear { onPageAppear(i) }
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .never))

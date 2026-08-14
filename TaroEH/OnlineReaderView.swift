@@ -37,7 +37,10 @@ struct OnlineReaderView: View {
                         Task { await loadMorePagesIfNeeded() }
                     }
                 }) { index, fit, scale in
-                    OnlinePage(url: imageURLs[index], fit: fit, scale: scale).task { await loadPage(index) }
+                    ReaderPageImage(url: imageURLs[index], pageNumber: index + 1, fit: fit, scale: scale, onRetry: {
+                        Task { await loadPage(index, force: true) }
+                    })
+                    .task { await loadPage(index) }
                 }
             }
         }.task { await setup() }
@@ -90,12 +93,18 @@ struct OnlineReaderView: View {
         guard let dash = name.lastIndex(of: "-") else { return Int.max }
         return Int(name[name.index(after: dash)...]) ?? Int.max
     }
-    private func loadPage(_ index: Int) async {
-        guard pageLinks.indices.contains(index), imageURLs[index] == nil else { return }
+    private func loadPage(_ index: Int, force: Bool = false) async {
+        guard pageLinks.indices.contains(index), force || imageURLs[index] == nil else { return }
         do {
             let url = try await SiteClient.shared.imageURL(pageURL: pageLinks[index], cookieHeader: session.cookieHeader())
             imageURLs[index] = url
             ImageURLCache.shared.setImage(url, gallery: gallery, index: index)
+            // Warm the next two image URLs so the following page has less blank time.
+            for offset in 1...2 {
+                let next = index + offset
+                guard pageLinks.indices.contains(next), imageURLs[next] == nil else { continue }
+                Task { await loadPage(next) }
+            }
         } catch {
             if imageURLs.isEmpty { loadError = error.localizedDescription }
         }
