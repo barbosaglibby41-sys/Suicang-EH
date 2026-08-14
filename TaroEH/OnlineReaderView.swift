@@ -71,12 +71,12 @@ struct OnlineReaderView: View {
     private func setup() async {
         let cache = ImageURLCache.shared
         pageLinks = cache.pages(for: gallery)
-        pageStates = Dictionary(uniqueKeysWithValues: pageLinks.indices.map { ($0, .idle) })
+        pageStates = Dictionary(uniqueKeysWithValues: pageLinks.indices.map { ($0, .waiting) })
         do {
             if pageLinks.isEmpty {
                 let detail = try await SiteClient.shared.detail(gallery, cookieHeader: session.cookieHeader())
                 pageLinks = detail.pageLinks
-                pageStates = Dictionary(uniqueKeysWithValues: detail.pageLinks.indices.map { ($0, .idle) })
+                pageStates = Dictionary(uniqueKeysWithValues: detail.pageLinks.indices.map { ($0, .waiting) })
                 cache.setPages(detail.pageLinks, gallery: gallery)
             }
             imageURLs = Dictionary(uniqueKeysWithValues: pageLinks.indices.compactMap { index in cache.image(for: gallery, at: index).map { (index, $0) } })
@@ -109,7 +109,7 @@ struct OnlineReaderView: View {
             pageLinks.append(contentsOf: fresh)
             pageLinks.sort { pageNumber($0) < pageNumber($1) }
             let existing = pageStates.count
-            pageStates = Dictionary(uniqueKeysWithValues: pageLinks.indices.map { ($0, $0 < existing ? pageStates[$0] ?? .idle : .idle) })
+            pageStates = Dictionary(uniqueKeysWithValues: pageLinks.indices.map { ($0, $0 < existing ? pageStates[$0] ?? .waiting : .waiting) })
             ImageURLCache.shared.appendPages(fresh, gallery: gallery)
             nextBatch += 1
             if pageLinks.count >= gallery.pageCount && gallery.pageCount > 0 { hasMorePages = false }
@@ -125,7 +125,7 @@ struct OnlineReaderView: View {
     }
 
     private func pageState(for index: Int) -> PageState {
-        pageLinks.indices.contains(index) ? pageStates[index] ?? .idle : .empty
+        pageLinks.indices.contains(index) ? pageStates[index] ?? .waiting : .empty
     }
 
     private func setPageState(for index: Int, _ state: PageState) {
@@ -215,7 +215,7 @@ struct OnlineReaderView: View {
             let detail = try await SiteClient.shared.detail(gallery, cookieHeader: session.cookieHeader())
             guard !detail.pageLinks.isEmpty else { return }
             pageLinks = detail.pageLinks
-            pageStates = Dictionary(uniqueKeysWithValues: detail.pageLinks.indices.map { ($0, .idle) })
+            pageStates = Dictionary(uniqueKeysWithValues: detail.pageLinks.indices.map { ($0, .waiting) })
             ImageURLCache.shared.setPages(detail.pageLinks, gallery: gallery)
             refreshVisibleLoadSchedules()
         } catch { }
