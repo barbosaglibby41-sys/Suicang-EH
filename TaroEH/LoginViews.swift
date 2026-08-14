@@ -25,21 +25,38 @@ struct WebLoginRepresentable: UIViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(onLogin: onLogin) }
     func makeUIView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
+        let store = WKWebsiteDataStore.nonPersistent()
+        config.websiteDataStore = store
         let web = WKWebView(frame: .zero, configuration: config)
         web.navigationDelegate = context.coordinator
-        web.load(URLRequest(url: source.baseURL))
+        web.customUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15"
+        let request = URLRequest(url: URL(string: "https://forums.e-hentai.org/index.php?act=Login&CODE=00")!)
+        web.load(request)
         return web
     }
     func updateUIView(_ web: WKWebView, context: Context) {}
     final class Coordinator: NSObject, WKNavigationDelegate {
         let onLogin: (String) -> Void
         init(onLogin: @escaping (String) -> Void) { self.onLogin = onLogin }
+        
+        func webView(_ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse, decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
+            webView.configuration.websiteDataStore.httpCookieStore.getAllCookies { cookies in
+                let valid = cookies.filter { $0.domain.contains("e-hentai.org") || $0.domain.contains("exhentai.org") }
+                if valid.contains(where: { $0.name == "ipb_member_id" }) && valid.contains(where: { $0.name == "ipb_pass_hash" }) {
+                    let text = valid.map { "\($0.name)=\($0.value)" }.joined(separator: "; ")
+                    DispatchQueue.main.async { self.onLogin(text) }
+                }
+            }
+            decisionHandler(.allow)
+        }
+        
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             webView.configuration.websiteDataStore.httpCookieStore.getAllCookies { cookies in
                 let valid = cookies.filter { $0.domain.contains("e-hentai.org") || $0.domain.contains("exhentai.org") }
-                guard !valid.isEmpty else { return }
-                let text = valid.map { "\($0.name)=\($0.value)" }.joined(separator: "; ")
-                DispatchQueue.main.async { self.onLogin(text) }
+                if valid.contains(where: { $0.name == "ipb_member_id" }) && valid.contains(where: { $0.name == "ipb_pass_hash" }) {
+                    let text = valid.map { "\($0.name)=\($0.value)" }.joined(separator: "; ")
+                    DispatchQueue.main.async { self.onLogin(text) }
+                }
             }
         }
     }
