@@ -85,6 +85,8 @@ struct DiscoverView: View {
     @State private var sort: GallerySort = .recent
     @State private var randomOrder: [Int] = []
     @State private var advanced = AdvancedSearchConfig()
+    @State private var cachedFiltered: [Gallery] = []
+    @State private var filteredVersion = 0
     @FocusState private var searchFocused: Bool
     private let initialQuery: String?
     private let autoSearch: Bool
@@ -101,6 +103,10 @@ struct DiscoverView: View {
 
     private var currentSource: EHSource { EHSource(rawValue: sourceRaw) ?? .eHentai }
     private var filtered: [Gallery] {
+        let currentVersion = results.count ^ sort.hashValue ^ randomOrder.count ^ advanced.hashValue ^ isSearchResults.hashValue ^ selectedFeed.hashValue
+        if filteredVersion == currentVersion && !cachedFiltered.isEmpty {
+            return cachedFiltered
+        }
         var config = advanced
         if isSearchResults {
             config.keyword = ""
@@ -111,17 +117,26 @@ struct DiscoverView: View {
         let matched = results.filter { config.matches($0) }
         // Random feed preserves the server-provided random order and does not
         // participate in the result sorting menu.
-        guard selectedFeed != .random else { return matched }
+        guard selectedFeed != .random else {
+            cachedFiltered = matched
+            filteredVersion = currentVersion
+            return matched
+        }
+        var result: [Gallery] = matched
         switch sort {
-        case .recent: return matched
-        case .popular: return matched.sorted { ($0.rating ?? 0) > ($1.rating ?? 0) }
+        case .recent: result = matched
+        case .popular: result = matched.sorted { ($0.rating ?? 0) > ($1.rating ?? 0) }
         case .random:
             let order = randomOrder.isEmpty ? matched.map(\.id).shuffled() : randomOrder
             let byID = Dictionary(uniqueKeysWithValues: matched.map { ($0.id, $0) })
-            return order.compactMap { byID[$0] } + matched.filter { !order.contains($0.id) }
-        case .pages: return matched.sorted { $0.pageCount > $1.pageCount }
-        case .title: return matched.sorted { $0.title < $1.title }
+            result = order.compactMap { byID[$0] } + matched.filter { !order.contains($0.id) }
+        case .pages: result = matched.sorted { $0.pageCount > $1.pageCount }
+        case .title: result = matched.sorted { $0.title < $1.title }
+        default: break
         }
+        cachedFiltered = result
+        filteredVersion = currentVersion
+        return result
     }
 
     var body: some View {
@@ -205,7 +220,7 @@ struct DiscoverView: View {
             }.padding()
         }
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isLoading)
-        .animation(.easeInOut(duration: 0.25), value: filtered.count)
+        .animation(.easeInOut(duration: 0.2), value: filtered.count)
         .navigationBarHidden(true)
         .sheet(isPresented: $showFilters) { FilterView(sort: $sort, config: $advanced) }
         .sheet(isPresented: $showAllRankings) { RankingListView() }
@@ -639,6 +654,7 @@ struct GalleryCard: View {
         .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .shadow(color: .black.opacity(0.06), radius: 3, x: 0, y: 1)
         .contentShape(Rectangle())
+        .drawingGroup()
     }
 }
 
@@ -670,10 +686,14 @@ struct GalleryDetailView: View {
     @State private var commentDraft = ""
     @State private var isPostingComment = false
     @State private var offlineAvailable = false
+    @State private var cachedGroupedTags: [(String, [GalleryTag], String)] = []
     init(gallery: Gallery) { self.gallery = gallery; _item = State(initialValue: gallery) }
     var body: some View {
         ScrollView { LazyVStack(alignment: .leading, spacing: 18) {
-            PipelineImage(url: item.thumbnailURL, cookieHeader: session.cookieHeader(), contentMode: .fit).frame(maxWidth: .infinity).frame(height: 300)
+            GalleryCover(url: item.thumbnailURL, cookieHeader: session.cookieHeader())
+                .frame(maxWidth: .infinity)
+                .frame(height: 300)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             HStack(alignment: .top) { VStack(alignment: .leading) { Text(item.title).font(.title2.bold()); Text("\(item.uploader) · \(item.pageCount) 页").foregroundStyle(.secondary); if let postedAt = item.postedAt, !postedAt.isEmpty { Label("发布于 \(postedAt)", systemImage: "calendar").font(.caption).foregroundStyle(.secondary) } }; Spacer(); Button { library.toggleFavorite(item) } label: { Image(systemName: library.isFavorite(item) ? "star.fill" : "star").font(.title2) } }
             GalleryInfoCard(gallery: item)
             if let detailError { Text(detailError).font(.caption).foregroundStyle(.orange) }
@@ -720,7 +740,7 @@ struct GalleryDetailView: View {
             }
             commentsSection
         }.padding() }
-        .navigationTitle("详情").navigationBarTitleDisplayMode(.inline).onAppear { offlineAvailable = OfflineLibrary.hasCompleteCopy(item); library.record(item) }.task { await hydrate() }
+        .navigationTitle("详情").navigationBarTitleDisplayMode(.inline).onAppear { library.record(item) }.task { offlineAvailable = OfflineLibrary.hasCompleteCopy(item); await hydrate() }
         .sheet(isPresented: $showCommentEditor) {
             NavigationStack {
                 VStack(alignment: .leading, spacing: 12) {
@@ -801,18 +821,23 @@ struct GalleryDetailView: View {
     }
 
     private var groupedTags: [(String, [GalleryTag], String)] {
+        if cachedGroupedTags.count == item.tags.count || (cachedGroupedTags.isEmpty && item.tags.isEmpty) {
+            return cachedGroupedTags
+        }
         let order = ["language", "parody", "group", "artist", "character", "female", "male", "mixed", "cosplayer", "reclass", "location", "temp", "other"]
         let grouped = Dictionary(grouping: item.tags) { $0.namespace.lowercased() }
         let known = Set(order)
         let extra = grouped.keys.filter { !known.contains($0) }.sorted()
-        return (order + extra).compactMap { ns in
+        let result = (order + extra).compactMap { ns in
             guard let list = grouped[ns], !list.isEmpty else { return nil }
             return (sectionTitle(ns), list, ns)
         }
+        cachedGroupedTags = result
+        return result
     }
 
 
-    private func hydrate() async { guard item.sourceURL != nil else { return }; do { item = try await SiteClient.shared.detailMetadata(item, cookieHeader: session.cookieHeader()); library.record(item) } catch { detailError = "详情加载失败：\(error.localizedDescription)" } }
+    private func hydrate() async { guard item.sourceURL != nil else { return }; do { let resolved = try await SiteClient.shared.detailMetadata(item, cookieHeader: session.cookieHeader()); item = resolved; cachedGroupedTags = []; library.record(item) } catch { detailError = "详情加载失败：\(error.localizedDescription)" } }
 
     private func downloadOnline() { Task { do { guard item.sourceURL != nil else { detailError = "该作品缺少在线地址，无法下载。"; return }; let detail = try await SiteClient.shared.detail(item, cookieHeader: session.cookieHeader()); let urls = try await SiteClient.shared.imageURLs(for: detail, cookieHeader: session.cookieHeader()); guard !urls.isEmpty else { detailError = "未解析到可下载图片。"; return }; item = detail.gallery; if !downloads.enqueue(item, imageURLs: urls) { detailError = "下载任务创建失败，请检查网络后重试。" } } catch { detailError = "无法创建下载任务：\(error.localizedDescription)" } } }
 }
@@ -928,5 +953,5 @@ struct ShelfView: View {
 
 struct GalleryRow: View {
     let gallery: Gallery
-    var body: some View { HStack { PipelineImage(url: gallery.thumbnailURL, contentMode: .fill).frame(width: 48, height: 66).clipShape(RoundedRectangle(cornerRadius: 7)); VStack(alignment: .leading) { Text(gallery.title).lineLimit(2); Text("\(gallery.pageCount) 页 · \(gallery.category)").font(.caption).foregroundStyle(.secondary) } } }
+    var body: some View { HStack { PipelineImage(url: gallery.thumbnailURL, contentMode: .fill).frame(width: 48, height: 66).clipShape(RoundedRectangle(cornerRadius: 7)); VStack(alignment: .leading) { Text(gallery.title).lineLimit(2); Text("\(gallery.pageCount) 页 · \(gallery.category)").font(.caption).foregroundStyle(.secondary) } }.drawingGroup() }
 }

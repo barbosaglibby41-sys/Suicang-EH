@@ -45,13 +45,13 @@ enum GalleryListStyle: String, CaseIterable, Identifiable {
 // MARK: - Press Scale Button Style
 
 struct PressScaleStyle: ButtonStyle {
-    var scale: CGFloat = 0.96
-    var opacity: Double = 0.9
+    var scale: CGFloat = 0.97
+    var opacity: Double = 0.85
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? scale : 1)
             .opacity(configuration.isPressed ? opacity : 1)
-            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: configuration.isPressed)
+            .animation(.spring(response: 0.25, dampingFraction: 0.75), value: configuration.isPressed)
     }
 }
 
@@ -182,7 +182,7 @@ struct GalleryWaterfallCard: View {
             if showTags && !gallery.tags.isEmpty { GalleryTagPreview(tags: gallery.tags, maxTags: 3, maxRows: 2) }
         }
         .padding(8)
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
         .drawingGroup()
     }
 }

@@ -89,6 +89,7 @@ struct RankingRow: View {
         }
         .frame(minHeight: 92)
         .contentShape(Rectangle())
+        .drawingGroup()
     }
 }
 
