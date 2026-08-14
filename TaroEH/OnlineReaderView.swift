@@ -25,7 +25,9 @@ struct OnlineReaderView: View {
     }
 
     var body: some View {
-        Group {
+        ZStack {
+            Color.black.ignoresSafeArea()
+
             if setupPhase == .error, let loadError {
                 errorView(message: loadError)
                     .transition(.opacity)
@@ -64,11 +66,11 @@ struct OnlineReaderView: View {
                     )
                     .onAppear { scheduleAutoRetryIfNeeded(for: index) }
                 }
-                .transition(.opacity.combined(with: .scale(scale: 0.98)))
+                .transition(.opacity)
             }
         }
-        .animation(.easeInOut(duration: 0.3), value: setupPhase)
-        .animation(.easeInOut(duration: 0.3), value: pageLinks.isEmpty)
+        .animation(.easeInOut(duration: 0.35), value: setupPhase)
+        .animation(.easeInOut(duration: 0.35), value: pageLinks.isEmpty)
         .onChange(of: pageLinks.count) { _, _ in refreshVisibleLoadSchedules() }
         .task { await setup() }
     }
@@ -76,37 +78,35 @@ struct OnlineReaderView: View {
     // MARK: - Initial Loading
 
     private var initialLoadingView: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
-            VStack(spacing: 20) {
-                // Gallery cover as faded backdrop context
-                if let coverURL = gallery.thumbnailURL {
-                    GalleryCover(url: coverURL, cookieHeader: session.cookieHeader())
-                        .frame(width: 120, height: 160)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                        .opacity(0.35)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .strokeBorder(Color.white.opacity(0.08), lineWidth: 0.5)
-                        )
-                }
+        VStack(spacing: 24) {
+            // Gallery cover as faded backdrop context
+            if let coverURL = gallery.thumbnailURL {
+                GalleryCover(url: coverURL, cookieHeader: session.cookieHeader())
+                    .frame(width: 130, height: 175)
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .opacity(0.4)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .strokeBorder(Color.white.opacity(0.06), lineWidth: 0.5)
+                    )
+                    .shadow(color: .black.opacity(0.3), radius: 8, y: 4)
+            }
 
-                VStack(spacing: 10) {
-                    Text(gallery.title)
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.white.opacity(0.7))
-                        .lineLimit(2)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 32)
+            VStack(spacing: 12) {
+                Text(gallery.title)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.white.opacity(0.65))
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 36)
 
-                    HStack(spacing: 8) {
-                        ProgressView()
-                            .tint(.white.opacity(0.6))
-                            .controlSize(.regular)
-                        Text("正在获取阅读目录…")
-                            .font(.caption)
-                            .foregroundStyle(.white.opacity(0.45))
-                    }
+                HStack(spacing: 8) {
+                    ProgressView()
+                        .tint(.white.opacity(0.5))
+                        .controlSize(.small)
+                    Text("正在获取阅读目录…")
+                        .font(.system(size: 12, weight: .light))
+                        .foregroundStyle(.white.opacity(0.4))
                 }
             }
         }
@@ -115,24 +115,27 @@ struct OnlineReaderView: View {
     // MARK: - Error View
 
     private func errorView(message: String) -> some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
-            VStack(spacing: 16) {
-                Image(systemName: "exclamationmark.triangle")
-                    .font(.largeTitle)
-                    .foregroundStyle(.orange.opacity(0.8))
-                Text("无法加载在线页面")
-                    .font(.headline)
-                    .foregroundStyle(.white.opacity(0.85))
-                Text(message)
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.5))
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
-                Button("重试") { Task { await setup() } }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.orange)
+        VStack(spacing: 16) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 36, weight: .light))
+                .foregroundStyle(.orange.opacity(0.7))
+            Text("无法加载在线页面")
+                .font(.headline)
+                .foregroundStyle(.white.opacity(0.8))
+            Text(message)
+                .font(.caption)
+                .foregroundStyle(.white.opacity(0.45))
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 36)
+            Button("重试") {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    setupPhase = .fetching
+                    loadError = nil
+                }
+                Task { await setup() }
             }
+            .buttonStyle(.borderedProminent)
+            .tint(.orange.opacity(0.8))
         }
     }
 
@@ -158,12 +161,15 @@ struct OnlineReaderView: View {
             }
             nextBatch = max(1, (pageLinks.count + 19) / 20)
             lastLoadedPage = max(0, pageLinks.count - 1)
-            setupPhase = .ready
+            withAnimation(.easeInOut(duration: 0.35)) {
+                setupPhase = .ready
+            }
         } catch {
             loadError = error.localizedDescription
             setupPhase = .error
         }
         refreshVisibleLoadSchedules()
+        // Preload first 3 pages
         for index in pageLinks.indices.prefix(3) where imageURLs[index] == nil {
             Task { await loadPage(index) }
         }
@@ -216,7 +222,7 @@ struct OnlineReaderView: View {
     private func scheduleAutoRetryIfNeeded(for index: Int) {
         let state = pageState(for: index)
         guard state == .waiting || state == .failed || (state == .loading && imageURLs[index] == nil) else { return }
-        let delay = state == .failed ? 1.6 : 0.15
+        let delay = state == .failed ? 1.5 : 0.1
         autoRetryWorkItems[index]?.cancel()
         autoRetryWorkItems[index] = Task {
             try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
@@ -266,8 +272,8 @@ struct OnlineReaderView: View {
     }
 
     private func scheduleLoadAheadIfNeeded(after index: Int) {
-        // Preload next 2 pages for smooth reading
-        for ahead in 1...2 {
+        // Preload next 3 pages for smooth continuous reading
+        for ahead in 1...3 {
             let next = index + ahead
             if pageLinks.indices.contains(next), imageURLs[next] == nil {
                 scheduleAutoRetryIfNeeded(for: next)

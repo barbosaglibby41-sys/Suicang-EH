@@ -28,20 +28,21 @@ struct ReaderPageImage: View {
         ZStack {
             Color.black
 
-            // Loading layer — stays visible until image is ready, then crossfades
+            // Loading layer — stays visible until image is ready, then crossfades out
             if image == nil && !failed {
                 loadingView
-                    .transition(.opacity)
+                    .opacity(appeared ? 0 : 1)
+                    .animation(.easeInOut(duration: 0.35), value: appeared)
             }
 
-            // Image layer — fades in on top of loading view
+            // Image layer — fades in on top
             if let image {
                 Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: fit ? .fit : .fill)
                     .scaleEffect(scale)
                     .opacity(appeared ? 1 : 0)
-                    .animation(.easeOut(duration: 0.3), value: appeared)
+                    .animation(.easeInOut(duration: 0.35), value: appeared)
             }
 
             // Failed layer
@@ -52,8 +53,8 @@ struct ReaderPageImage: View {
         }
         .frame(maxWidth: .infinity, minHeight: image == nil && !failed ? 320 : 0)
         .clipped()
-        .animation(.easeInOut(duration: 0.25), value: image != nil)
-        .animation(.easeInOut(duration: 0.25), value: failed)
+        .animation(.easeInOut(duration: 0.3), value: image != nil)
+        .animation(.easeInOut(duration: 0.3), value: failed)
         .onChange(of: status) { _, newValue in
             if newValue == .loaded { failed = false }
         }
@@ -68,12 +69,12 @@ struct ReaderPageImage: View {
                     if attempt > 0 { try await Task.sleep(for: .milliseconds(400)) }
                     let value = try await ImagePipeline.shared.image(for: url, cookieHeader: session.cookieHeader(), referer: referer)
                     guard !Task.isCancelled else { return }
-                    appeared = false
+                    // Set image first, then trigger crossfade on next runloop
                     image = value
                     failed = false
-                    // Trigger fade-in on next runloop for smooth crossfade
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.03) {
-                        withAnimation(.easeOut(duration: 0.3)) { appeared = true }
+                    appeared = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) {
+                        withAnimation(.easeInOut(duration: 0.35)) { appeared = true }
                     }
                     lastError = nil
                     break
@@ -82,7 +83,7 @@ struct ReaderPageImage: View {
                 }
             }
             if image == nil, lastError != nil, !Task.isCancelled, status != .loaded {
-                withAnimation(.easeInOut(duration: 0.25)) { failed = true }
+                withAnimation(.easeInOut(duration: 0.3)) { failed = true }
                 onAutoRetry()
             }
         }
@@ -91,20 +92,29 @@ struct ReaderPageImage: View {
     // MARK: - Loading View
 
     private var loadingView: some View {
-        VStack(spacing: 16) {
-            // Large page number as subtle context
-            Text("\(pageNumber)")
-                .font(.system(size: 52, weight: .light, design: .rounded))
-                .foregroundStyle(.white.opacity(0.12))
+        VStack(spacing: 18) {
+            // Subtle shimmer background
+            ZStack {
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(Color.white.opacity(0.03))
+                    .frame(maxWidth: 220, maxHeight: 300)
 
-            VStack(spacing: 8) {
-                ProgressView()
-                    .tint(.white.opacity(0.6))
-                    .controlSize(.regular)
-                Text(progressText)
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.45))
+                // Large faded page number as context
+                Text("\(pageNumber)")
+                    .font(.system(size: 56, weight: .ultraLight, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.1))
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            VStack(spacing: 6) {
+                ProgressView()
+                    .tint(.white.opacity(0.5))
+                    .controlSize(.small)
+                Text(progressText)
+                    .font(.system(size: 11, weight: .light))
+                    .foregroundStyle(.white.opacity(0.35))
+            }
+            .padding(.bottom, 30)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -115,31 +125,32 @@ struct ReaderPageImage: View {
         VStack(spacing: 14) {
             Image(systemName: "exclamationmark.octagon")
                 .font(.title2)
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(.white.opacity(0.4))
             Text("第 \(pageNumber) 页加载失败")
                 .font(.caption)
-                .foregroundStyle(.white.opacity(0.6))
+                .foregroundStyle(.white.opacity(0.55))
             Button("重试") {
                 withAnimation(.easeOut(duration: 0.2)) {
                     failed = false
                     image = nil
+                    appeared = false
                 }
                 retryToken += 1
                 onRetry()
             }
             .buttonStyle(.bordered)
-            .tint(.white.opacity(0.7))
+            .tint(.white.opacity(0.6))
             .controlSize(.small)
         }
     }
 
     private var progressText: String {
         switch status {
-        case .waiting: return "等待中…"
-        case .loading: return url == nil ? "准备中…" : "加载中…"
+        case .waiting: return "等待中"
+        case .loading: return url == nil ? "准备中" : "加载中"
         case .loaded: return ""
         case .failed: return ""
-        case .empty: return "准备中…"
+        case .empty: return "准备中"
         }
     }
 }

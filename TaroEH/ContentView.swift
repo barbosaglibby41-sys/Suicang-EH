@@ -32,9 +32,6 @@ struct ContentView: View {
         .environmentObject(session)
         .environmentObject(library)
         .tint(.purple)
-        .onChange(of: selectedTab) { _, _ in
-            Haptics.light()
-        }
         .onReceive(NotificationCenter.default.publisher(for: .taroSearchTag)) { notification in
             guard let raw = notification.userInfo?["tag"] as? String, !raw.isEmpty else { return }
             // From the shelf, reset any stale discovery path first. From a
@@ -908,7 +905,7 @@ struct ReaderView: View {
     @State private var showUI = true
     @State private var fit = true
     var pages: [GalleryPage] { DemoData.pages(for: gallery) }
-    var body: some View { ZStack { Color.black.ignoresSafeArea(); TabView(selection: $index) { ForEach(Array(pages.enumerated()), id: \.element.id) { i, page in PipelineImage(url: page.imageURL, cookieHeader: session.cookieHeader(), contentMode: fit ? .fit : .fill).frame(maxWidth: .infinity, maxHeight: .infinity).clipped().tag(i) } }.tabViewStyle(.page(indexDisplayMode: .never)).onTapGesture { withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) { showUI.toggle() } }; if showUI { VStack { HStack { Button { dismiss() } label: { Image(systemName: "chevron.down") }; Spacer(); Text(gallery.title).lineLimit(1); Spacer(); Button { fit.toggle() } label: { Image(systemName: "arrow.up.left.and.arrow.down.right") } }.padding().background(.black.opacity(0.75)); Spacer(); Text("第 \(index + 1) / \(pages.count) 页").font(.caption).padding().background(.black.opacity(0.75)) }.transition(.move(edge: .top).combined(with: .opacity)) } }.foregroundStyle(.white).statusBarHidden(!showUI).onAppear { index = min(reading.page(for: gallery), max(0, pages.count - 1)) }.onChange(of: index) { _, value in reading.save(gallery: gallery, pageIndex: value); Haptics.light() } }
+    var body: some View { ZStack { Color.black.ignoresSafeArea(); TabView(selection: $index) { ForEach(Array(pages.enumerated()), id: \.element.id) { i, page in PipelineImage(url: page.imageURL, cookieHeader: session.cookieHeader(), contentMode: fit ? .fit : .fill).frame(maxWidth: .infinity, maxHeight: .infinity).clipped().tag(i) } }.tabViewStyle(.page(indexDisplayMode: .never)).onTapGesture { withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) { showUI.toggle() } }; if showUI { VStack { HStack { Button { dismiss() } label: { Image(systemName: "chevron.down") }; Spacer(); Text(gallery.title).lineLimit(1); Spacer(); Button { fit.toggle() } label: { Image(systemName: "arrow.up.left.and.arrow.down.right") } }.padding().background(.ultraThinMaterial.opacity(0.92)); Spacer(); Text("第 \(index + 1) / \(pages.count) 页").font(.caption).padding().background(.ultraThinMaterial.opacity(0.92)) }.transition(.move(edge: .top).combined(with: .opacity)) } }.foregroundStyle(.white).statusBarHidden(!showUI).onAppear { index = min(reading.page(for: gallery), max(0, pages.count - 1)) }.onChange(of: index) { _, value in reading.save(gallery: gallery, pageIndex: value) } }
 }
 
 struct ShelfView: View {

@@ -1,30 +1,6 @@
 import SwiftUI
 import UIKit
 
-/// Lightweight haptic feedback helpers.
-enum Haptics {
-    static func light() {
-        guard !SettingsState.reduceMotion else { return }
-        let generator = UIImpactFeedbackGenerator(style: .light)
-        generator.impactOccurred()
-    }
-    static func medium() {
-        guard !SettingsState.reduceMotion else { return }
-        let generator = UIImpactFeedbackGenerator(style: .medium)
-        generator.impactOccurred()
-    }
-    static func success() {
-        guard !SettingsState.reduceMotion else { return }
-        let generator = UINotificationFeedbackGenerator()
-        generator.notificationOccurred(.success)
-    }
-    static func warning() {
-        guard !SettingsState.reduceMotion else { return }
-        let generator = UINotificationFeedbackGenerator()
-        generator.notificationOccurred(.warning)
-    }
-}
-
 /// Global settings state for feature flags.
 enum SettingsState {
     static var reduceMotion: Bool {

@@ -49,6 +49,7 @@ struct SharedReaderView<Source: View>: View {
     @State private var scale: CGFloat = 1
     @State private var sliderIndex = 0
     @State private var isProgrammaticScroll = false
+    @State private var autoHideWorkItem: Task<Void, Never>?
 
     init(gallery: Gallery, title: String, pageCount: Int, initialIndex: Int = 0, onIndexChange: @escaping (Int) -> Void = { _ in }, onPageAppear: @escaping (Int) -> Void = { _ in }, @ViewBuilder source: @escaping (Int, Bool, CGFloat) -> Source) {
         self.gallery = gallery
@@ -88,20 +89,32 @@ struct SharedReaderView<Source: View>: View {
         .onAppear {
             UIApplication.shared.isIdleTimerDisabled = keepScreenOn
             sliderIndex = index
-            // Show UI briefly on entry, then auto-hide
-            showUI = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
-                withAnimation(.easeInOut(duration: 0.3)) { showUI = false }
-            }
+            showUIWithAutoHide()
         }
         .onDisappear {
             UIApplication.shared.isIdleTimerDisabled = false
+            autoHideWorkItem?.cancel()
         }
         .onChange(of: index) { _, value in
             sliderIndex = value
             reading.save(gallery: gallery, pageIndex: index)
             onIndexChange(value)
-            Haptics.light()
+            // Re-show UI briefly when changing pages if it was visible
+            if showUI { showUIWithAutoHide() }
+        }
+    }
+
+    private func showUIWithAutoHide() {
+        autoHideWorkItem?.cancel()
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+            showUI = true
+        }
+        autoHideWorkItem = Task {
+            try? await Task.sleep(nanoseconds: 1_800_000_000)
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                withAnimation(.easeInOut(duration: 0.3)) { showUI = false }
+            }
         }
     }
 
@@ -141,7 +154,14 @@ struct SharedReaderView<Source: View>: View {
                 }
             }
             .onTapGesture(count: 2) { withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { scale = scale == 1 ? 2 : 1 } }
-            .onTapGesture(count: 1) { withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) { showUI.toggle() } }
+            .onTapGesture(count: 1) {
+                if showUI {
+                    autoHideWorkItem?.cancel()
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) { showUI = false }
+                } else {
+                    showUIWithAutoHide()
+                }
+            }
         } else {
             TabView(selection: $index) {
                 ForEach(0..<pageCount, id: \.self) { i in
@@ -152,7 +172,14 @@ struct SharedReaderView<Source: View>: View {
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
             .onTapGesture(count: 2) { withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { scale = scale == 1 ? 2 : 1 } }
-            .onTapGesture(count: 1) { withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) { showUI.toggle() } }
+            .onTapGesture(count: 1) {
+                if showUI {
+                    autoHideWorkItem?.cancel()
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) { showUI = false }
+                } else {
+                    showUIWithAutoHide()
+                }
+            }
         }
     }
 
@@ -190,12 +217,9 @@ struct SharedReaderView<Source: View>: View {
         .foregroundStyle(.white)
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .background(
-            Color.black.opacity(0.85)
-                .background(.ultraThinMaterial)
-        )
+        .background(.ultraThinMaterial.opacity(0.92))
         .overlay(alignment: .bottom) {
-            Rectangle().fill(Color.white.opacity(0.1)).frame(height: 0.5)
+            Rectangle().fill(Color.white.opacity(0.08)).frame(height: 0.5)
         }
     }
 
@@ -207,24 +231,21 @@ struct SharedReaderView<Source: View>: View {
                 Spacer()
                 Text("\(progressPercent)%")
                     .font(.caption)
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(.white.opacity(0.55))
             }
             Slider(value: Binding(get: { Double(sliderIndex) }, set: { value in
                 let next = min(max(0, Int(value.rounded())), max(0, pageCount - 1))
                 sliderIndex = next
                 index = next
             }), in: 0...Double(max(0, pageCount - 1)), step: 1)
-                .tint(.white)
+                .tint(.white.opacity(0.85))
         }
         .foregroundStyle(.white)
         .padding(.horizontal, 18)
         .padding(.vertical, 10)
-        .background(
-            Color.black.opacity(0.85)
-                .background(.ultraThinMaterial)
-        )
+        .background(.ultraThinMaterial.opacity(0.92))
         .overlay(alignment: .top) {
-            Rectangle().fill(Color.white.opacity(0.1)).frame(height: 0.5)
+            Rectangle().fill(Color.white.opacity(0.08)).frame(height: 0.5)
         }
     }
 
