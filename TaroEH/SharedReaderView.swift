@@ -3,7 +3,6 @@ import UIKit
 
 /// Picks the right reader for a gallery: online when a source URL exists,
 /// offline when a complete local copy exists, otherwise a fallback message.
-/// Never falls back to the demo reader for real galleries.
 enum ReaderDestination {
     @ViewBuilder
     static func view(for gallery: Gallery) -> some View {
@@ -15,6 +14,7 @@ enum ReaderDestination {
             ContentUnavailableView("无法阅读", systemImage: "book", description: Text("该作品缺少在线地址，且没有离线副本。"))
         }
     }
+
     static func canRead(_ gallery: Gallery) -> Bool {
         gallery.sourceURL != nil || OfflineLibrary.hasCompleteCopy(gallery)
     }
@@ -28,7 +28,6 @@ struct SharedReaderView<Source: View>: View {
     let onPageAppear: (Int) -> Void
     @ViewBuilder let source: (Int, Bool, CGFloat) -> Source
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var reading: ReadingStore
     @AppStorage("taro.eh.reader.direction") private var direction = "horizontal"
     @AppStorage("taro.eh.reader.fit") private var fit = true
     @AppStorage("taro.eh.reader.keepScreenOn") private var keepScreenOn = true
@@ -47,17 +46,25 @@ struct SharedReaderView<Source: View>: View {
         _index = State(initialValue: min(max(0, initialIndex), max(0, pageCount - 1)))
         _sliderIndex = State(initialValue: min(max(0, initialIndex), max(0, pageCount - 1)))
     }
+
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
             content
-            if showUI { overlay }
         }
         .foregroundStyle(.white)
         .statusBarHidden(true)
         .toolbar(.hidden, for: .navigationBar, .tabBar)
         .navigationBarBackButtonHidden(true)
         .ignoresSafeArea(.container, edges: [.top, .bottom])
+        // safeAreaInset is deliberately used instead of GeometryReader:
+        // UIKit supplies the correct inset for Dynamic Island, notch and rotation.
+        .safeAreaInset(edge: .top, spacing: 0) {
+            if showUI { topBar }
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if showUI { bottomBar }
+        }
         .onAppear {
             UIApplication.shared.isIdleTimerDisabled = keepScreenOn
             sliderIndex = index
@@ -70,6 +77,7 @@ struct SharedReaderView<Source: View>: View {
             onIndexChange(value)
         }
     }
+
     @ViewBuilder private var content: some View {
         if direction == "vertical" {
             ScrollViewReader { proxy in
@@ -103,65 +111,60 @@ struct SharedReaderView<Source: View>: View {
         }
     }
 
-    private var overlay: some View {
-        GeometryReader { proxy in
-            VStack(spacing: 0) {
-                HStack(spacing: 10) {
-                    Button { dismiss() } label: {
-                        Image(systemName: "chevron.down")
-                            .font(.headline)
-                            .frame(width: 42, height: 38)
-                            .contentShape(Rectangle())
-                    }
-                    .frame(width: 46)
-
-                    Text(title)
-                        .font(.subheadline.weight(.semibold))
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                        .frame(maxWidth: .infinity)
-                        .multilineTextAlignment(.center)
-
-                    Menu {
-                        Button(direction == "horizontal" ? "切换为纵向滚动" : "切换为横向分页") { direction = direction == "horizontal" ? "vertical" : "horizontal" }
-                        Button(fit ? "切换为填充模式" : "切换为适应模式") { fit.toggle() }
-                        Button(scale == 1 ? "放大页面" : "还原页面") { withAnimation { scale = scale == 1 ? 2 : 1 } }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .font(.title3)
-                            .frame(width: 42, height: 38)
-                            .contentShape(Rectangle())
-                    }
-                    .frame(width: 46)
-                }
-                .padding(.horizontal, 14)
-                .padding(.top, proxy.safeAreaInsets.top + 8)
-                .padding(.bottom, 10)
-                .background(.black.opacity(0.82))
-
-                Spacer()
-
-                VStack(spacing: 8) {
-                    HStack {
-                        Text(direction == "vertical" ? "连续滚动" : "第 \(index + 1) / \(pageCount) 页").font(.caption.weight(.medium))
-                        Spacer()
-                        Text("\(progressPercent)%").font(.caption).foregroundStyle(.secondary)
-                    }
-                    Slider(value: Binding(get: { Double(sliderIndex) }, set: { value in
-                        let next = min(max(0, Int(value.rounded())), max(0, pageCount - 1))
-                        sliderIndex = next
-                        if direction == "horizontal" { index = next }
-                    }), in: 0...Double(max(0, pageCount - 1)), step: 1)
-                        .tint(.white)
-                }
-                .padding(.horizontal, 18)
-                .padding(.top, 10)
-                .padding(.bottom, proxy.safeAreaInsets.bottom + 10)
-                .background(.black.opacity(0.82))
+    private var topBar: some View {
+        HStack(spacing: 10) {
+            Button { dismiss() } label: {
+                Image(systemName: "chevron.down")
+                    .font(.headline)
+                    .frame(width: 42, height: 38)
+                    .contentShape(Rectangle())
             }
-            .frame(width: proxy.size.width, height: proxy.size.height)
+            .frame(width: 46)
+
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .frame(maxWidth: .infinity)
+                .multilineTextAlignment(.center)
+
+            Menu {
+                Button(direction == "horizontal" ? "切换为纵向滚动" : "切换为横向分页") { direction = direction == "horizontal" ? "vertical" : "horizontal" }
+                Button(fit ? "切换为填充模式" : "切换为适应模式") { fit.toggle() }
+                Button(scale == 1 ? "放大页面" : "还原页面") { withAnimation { scale = scale == 1 ? 2 : 1 } }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+                    .font(.title3)
+                    .frame(width: 42, height: 38)
+                    .contentShape(Rectangle())
+            }
+            .frame(width: 46)
         }
-        .ignoresSafeArea()
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(.black.opacity(0.86))
+    }
+
+    private var bottomBar: some View {
+        VStack(spacing: 8) {
+            HStack {
+                Text(direction == "vertical" ? "连续滚动" : "第 \(index + 1) / \(pageCount) 页")
+                    .font(.caption.weight(.medium))
+                Spacer()
+                Text("\(progressPercent)%")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Slider(value: Binding(get: { Double(sliderIndex) }, set: { value in
+                let next = min(max(0, Int(value.rounded())), max(0, pageCount - 1))
+                sliderIndex = next
+                if direction == "horizontal" { index = next }
+            }), in: 0...Double(max(0, pageCount - 1)), step: 1)
+                .tint(.white)
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 10)
+        .background(.black.opacity(0.86))
     }
 
     private var progressPercent: Int {
