@@ -626,7 +626,11 @@ struct GalleryDetailView: View {
             ForEach(groupedTags, id: \.0) { section in
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 6) {
-                        Circle().fill(TagStyle.background(for: sectionNamespace(section))).frame(width: 8, height: 8)
+                        Image(systemName: sectionIcon(section.2))
+                            .font(.subheadline)
+                            .foregroundStyle(TagStyle.foreground(for: section.2))
+                            .frame(width: 22, height: 22)
+                            .background(TagStyle.background(for: section.2), in: Circle())
                         Text(section.0).font(.subheadline.bold())
                         Text("\(section.1.count)").font(.caption).foregroundStyle(.secondary)
                     }
@@ -697,17 +701,39 @@ struct GalleryDetailView: View {
             }
         }
     }
-    private func sectionNamespace(_ section: (String, [GalleryTag])) -> String {
-        section.1.first?.namespace ?? ""
-    }
-    private var groupedTags: [(String, [GalleryTag])] {
-        let order = ["female", "male", "mixed", "artist", "parody", "character", "group", "language", "reclass", "cosplayer", "location", "other"]
-        let grouped = Dictionary(grouping: item.tags) { $0.namespace.lowercased() }
-        return order.compactMap { ns in
-            guard let list = grouped[ns], !list.isEmpty else { return nil }
-            return (TagTranslationStore.namespaceName(ns), list)
+    private func sectionIcon(_ namespace: String) -> String {
+        switch namespace.lowercased() {
+        case "artist": return "person.fill"
+        case "group": return "person.3.fill"
+        case "parody": return "book.closed.fill"
+        case "character": return "person.crop.square.fill"
+        case "language": return "globe"
+        case "female": return "figure.stand.dress"
+        case "male": return "figure.stand"
+        case "mixed": return "person.2.fill"
+        case "cosplayer": return "camera.fill"
+        case "location": return "mappin.and.ellipse"
+        case "reclass": return "arrow.triangle.2.circlepath"
+        default: return "tag.fill"
         }
     }
+
+    private func sectionTitle(_ namespace: String) -> String {
+        TagTranslationStore.namespaceName(namespace)
+    }
+
+    private var groupedTags: [(String, [GalleryTag], String)] {
+        let order = ["language", "parody", "group", "artist", "character", "female", "male", "mixed", "cosplayer", "reclass", "location", "temp", "other"]
+        let grouped = Dictionary(grouping: item.tags) { $0.namespace.lowercased() }
+        let known = Set(order)
+        let extra = grouped.keys.filter { !known.contains($0) }.sorted()
+        return (order + extra).compactMap { ns in
+            guard let list = grouped[ns], !list.isEmpty else { return nil }
+            return (sectionTitle(ns), list, ns)
+        }
+    }
+
+
     private func hydrate() async { guard item.sourceURL != nil else { return }; do { item = try await SiteClient.shared.detailMetadata(item, cookieHeader: session.cookieHeader()); library.record(item) } catch { detailError = "详情加载失败：\(error.localizedDescription)" } }
 
     private func downloadOnline() { Task { do { guard item.sourceURL != nil else { detailError = "该作品缺少在线地址，无法下载。"; return }; let detail = try await SiteClient.shared.detail(item, cookieHeader: session.cookieHeader()); let urls = try await SiteClient.shared.imageURLs(for: detail, cookieHeader: session.cookieHeader()); guard !urls.isEmpty else { detailError = "未解析到可下载图片。"; return }; item = detail.gallery; if !downloads.enqueue(item, imageURLs: urls) { detailError = "下载任务创建失败，请检查网络后重试。" } } catch { detailError = "无法创建下载任务：\(error.localizedDescription)" } } }

@@ -8,7 +8,7 @@ enum TagStyle {
 
     private static let palette: [String: Color] = [
         "language": Color(red: 0.96, green: 0.87, blue: 0.96),
-        "artist": Color(red: 0.80, green: 0.85, blue: 0.80),
+        "artist": Color(red: 0.72, green: 0.88, blue: 0.72),
         "character": Color(red: 0.78, green: 0.78, blue: 0.90),
         "female": Color(red: 0.86, green: 0.81, blue: 0.93),
         "male": Color(red: 0.99, green: 0.84, blue: 0.84),

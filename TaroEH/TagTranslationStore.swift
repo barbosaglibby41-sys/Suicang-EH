@@ -80,7 +80,7 @@ final class TagTranslationStore: ObservableObject {
         case "female": return "女性"
         case "male": return "男性"
         case "mixed": return "混合"
-        case "artist": return "艺术家"
+        case "artist": return "作者"
         case "parody": return "原作"
         case "character": return "角色"
         case "group": return "团队"
