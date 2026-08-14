@@ -54,7 +54,7 @@ struct SharedReaderView<Source: View>: View {
             if showUI { overlay }
         }
         .foregroundStyle(.white)
-        .statusBarHidden(!showUI)
+        .statusBarHidden(true)
         .toolbar(.hidden, for: .navigationBar, .tabBar)
         .navigationBarBackButtonHidden(true)
         .ignoresSafeArea(.container, edges: [.top, .bottom])
@@ -106,17 +106,33 @@ struct SharedReaderView<Source: View>: View {
     private var overlay: some View {
         GeometryReader { proxy in
             VStack(spacing: 0) {
-                HStack(spacing: 14) {
+                HStack(spacing: 10) {
                     Button { dismiss() } label: {
-                        Image(systemName: "chevron.down").font(.headline).frame(width: 34, height: 34)
+                        Image(systemName: "chevron.down")
+                            .font(.headline)
+                            .frame(width: 42, height: 38)
+                            .contentShape(Rectangle())
                     }
-                    Text(title).font(.subheadline.weight(.semibold)).lineLimit(1)
-                    Spacer()
+                    .frame(width: 46)
+
+                    Text(title)
+                        .font(.subheadline.weight(.semibold))
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .frame(maxWidth: .infinity)
+                        .multilineTextAlignment(.center)
+
                     Menu {
                         Button(direction == "horizontal" ? "切换为纵向滚动" : "切换为横向分页") { direction = direction == "horizontal" ? "vertical" : "horizontal" }
                         Button(fit ? "切换为填充模式" : "切换为适应模式") { fit.toggle() }
                         Button(scale == 1 ? "放大页面" : "还原页面") { withAnimation { scale = scale == 1 ? 2 : 1 } }
-                    } label: { Image(systemName: "ellipsis.circle").font(.title3) }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                            .font(.title3)
+                            .frame(width: 42, height: 38)
+                            .contentShape(Rectangle())
+                    }
+                    .frame(width: 46)
                 }
                 .padding(.horizontal, 14)
                 .padding(.top, proxy.safeAreaInsets.top + 8)
