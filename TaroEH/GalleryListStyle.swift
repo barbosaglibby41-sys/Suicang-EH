@@ -119,12 +119,13 @@ struct GalleryTagPreview: View {
     let tags: [GalleryTag]
     var maxTags: Int = 3
     var maxRows: Int = 1
+    @EnvironmentObject private var translations: TagTranslationStore
 
     var body: some View {
         let rows = max(1, maxRows)
         FlowLayout(spacing: 5) {
             ForEach(Array(tags.prefix(maxTags))) { tag in
-                Text(tag.translatedName ?? tag.key)
+                Text(translations.displayName(for: tag.rawName))
                     .font(.caption2)
                     .lineLimit(1)
                     .padding(.horizontal, 6)

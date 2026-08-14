@@ -13,6 +13,7 @@ private struct GalleryListMetadata {
     var category = ""
     var postedAt: String?
     var uploader = ""
+    var tags: [GalleryTag] = []
 }
 
 enum SiteParser {
@@ -40,7 +41,7 @@ enum SiteParser {
                 thumbnailURL: item.thumbnailURL,
                 sourceURL: URL(string: href),
                 pageCount: item.pageCount,
-                tags: [GalleryTag](),
+                tags: item.tags,
                 rating: item.rating,
                 postedAt: item.postedAt
             )
@@ -203,13 +204,16 @@ enum SiteParser {
             let category = first(#"class=[\"'][^\"']*cn[^\"']*[\"'][^>]*>(.*?)</div>"#, in: block).map(clean) ?? ""
             let postedAt = first(#"id=[\"']postedpop_\d+[\"'][^>]*>(.*?)</div>"#, in: block).map(clean)
             let uploader = first(#"class=[\"']gl4c[^\"']*[\"'][^>]*>.*?<a[^>]*>(.*?)</a>"#, in: row).map(clean) ?? ""
+            let rawTags = all(#"class=[\"'][^\"']*gt[^\"']*[\"'][^>]*title=[\"']([^\"']+)[\"']"#, in: row)
+            let tags = Array(Set(rawTags.map { GalleryTag.parse(decode($0)) })).sorted { $0.rawName < $1.rawName }
             values[id] = GalleryListMetadata(
                 thumbnailURL: thumbnailURL,
                 pageCount: pageCount,
                 rating: spriteRating(from: block),
                 category: category,
                 postedAt: postedAt,
-                uploader: uploader
+                uploader: uploader,
+                tags: tags
             )
         }
         return values
