@@ -333,7 +333,7 @@ struct DiscoverView: View {
                 Button { query = ""; results = []; isSearchResults = false; searchFocused = true; loadFrontPage() } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary) }.accessibilityLabel("清空搜索")
                 Button { searchFocused = false; onlineSearch() } label: { Image(systemName: "arrow.right.circle.fill").foregroundStyle(.purple) }.accessibilityLabel("执行搜索")
             }
-        }.padding(13).background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
+        }.padding(13).background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
     }
 
     @ViewBuilder private var suggestions: some View {
@@ -366,7 +366,7 @@ struct DiscoverView: View {
                     }
                 }
                 .frame(maxHeight: 360)
-            }.padding(12).background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
+            }.padding(12).background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
         }
     }
 
@@ -941,5 +941,5 @@ struct ShelfView: View {
 
 struct GalleryRow: View {
     let gallery: Gallery
-    var body: some View { HStack { PipelineImage(url: gallery.thumbnailURL, contentMode: .fill).frame(width: 48, height: 66).clipShape(RoundedRectangle(cornerRadius: 7)); VStack(alignment: .leading) { Text(gallery.title).lineLimit(2); Text("\(gallery.pageCount) 页 · \(gallery.category)").font(.caption).foregroundStyle(.secondary) } }.drawingGroup() }
+    var body: some View { HStack { PipelineImage(url: gallery.thumbnailURL, contentMode: .fill).frame(width: 48, height: 66).clipShape(RoundedRectangle(cornerRadius: 7)); VStack(alignment: .leading) { Text(gallery.title).lineLimit(2); Text("\(gallery.pageCount) 页 · \(gallery.category)").font(.caption).foregroundStyle(.secondary) } } }
 }

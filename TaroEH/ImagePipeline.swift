@@ -89,31 +89,12 @@ actor ImagePipeline {
     }
 }
 
-// MARK: - Shimmer Placeholder
-
+// Static placeholder keeps scrolling cheap; the reader's actual bitmap
+// prefetch is responsible for perceived loading smoothness.
 struct ShimmerView: View {
-    @State private var phase: CGFloat = -1
     var body: some View {
-        GeometryReader { proxy in
-            let w = proxy.size.width
-            Rectangle()
-                .fill(Color.secondary.opacity(0.1))
-                .overlay(
-                    LinearGradient(
-                        colors: [.clear, Color.white.opacity(0.15), .clear],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                    .frame(width: w * 0.6)
-                    .offset(x: phase * w * 1.6)
-                )
-                .clipped()
-        }
-        .onAppear {
-            withAnimation(.linear(duration: 1.2).repeatForever(autoreverses: false)) {
-                phase = 1
-            }
-        }
+        Rectangle()
+            .fill(Color.secondary.opacity(0.1))
     }
 }
 
@@ -138,15 +119,12 @@ private struct PipelineImageContent: View {
     let contentMode: ContentMode
     @State private var image: UIImage?
     @State private var failed = false
-    @State private var appeared = false
     var body: some View {
         Group {
             if let image {
                 Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: contentMode)
-                    .opacity(appeared ? 1 : 0)
-                    .animation(.easeOut(duration: 0.25), value: appeared)
             } else if failed {
                 Image(systemName: "photo.badge.exclamationmark")
                     .foregroundStyle(.secondary)
@@ -162,8 +140,6 @@ private struct PipelineImageContent: View {
                         if attempt > 0 { try await Task.sleep(for: .milliseconds(300 * attempt)) }
                         image = try await ImagePipeline.shared.image(for: url, cookieHeader: cookieHeader)
                         lastError = nil
-                        appeared = false
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) { appeared = true }
                         break
                     } catch { lastError = error }
                 }
@@ -179,7 +155,6 @@ struct GalleryCover: View {
     var cookieHeader: String? = nil
     @State private var image: UIImage?
     @State private var failed = false
-    @State private var appeared = false
 
     var body: some View {
         GeometryReader { proxy in
@@ -188,10 +163,7 @@ struct GalleryCover: View {
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFill()
-                        .frame(width: proxy.size.width, height: proxy.size.height)
                         .clipped()
-                        .opacity(appeared ? 1 : 0)
-                        .animation(.easeOut(duration: 0.25), value: appeared)
                 } else if failed {
                     Image(systemName: "photo.badge.exclamationmark")
                         .foregroundStyle(.secondary)
@@ -205,11 +177,9 @@ struct GalleryCover: View {
         .task(id: url) {
             image = nil
             failed = false
-            appeared = false
             guard let url else { return }
             do {
                 image = try await ImagePipeline.shared.image(for: url, cookieHeader: cookieHeader)
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) { appeared = true }
             } catch { failed = true }
         }
     }

@@ -1,18 +1,6 @@
 import SwiftUI
 import UIKit
 
-private struct ReaderPageOffset: Equatable {
-    let index: Int
-    let minY: CGFloat
-}
-
-private struct ReaderPageOffsetKey: PreferenceKey {
-    static var defaultValue: [ReaderPageOffset] = []
-    static func reduce(value: inout [ReaderPageOffset], nextValue: () -> [ReaderPageOffset]) {
-        value.append(contentsOf: nextValue())
-    }
-}
-
 /// Picks the right reader for a gallery.
 enum ReaderDestination {
     @ViewBuilder
