@@ -25,7 +25,10 @@ struct DownloadsView: View {
 struct OfflineReaderView: View {
     let gallery: Gallery
     @EnvironmentObject private var reading: ReadingStore
-    let startIndex: Int = 0
-    private var pages: [URL] { OfflineLibrary.pageURLs(for: gallery) }
+    let startIndex: Int
+    init(gallery: Gallery, startIndex: Int = 0) {
+        self.gallery = gallery
+        self.startIndex = startIndex
+    } { OfflineLibrary.pageURLs(for: gallery) }
     var body: some View { if pages.isEmpty { ContentUnavailableView("没有可读页面", systemImage: "photo") } else { SharedReaderView(gallery: gallery, title: gallery.title, pageCount: pages.count, initialIndex: min(startIndex, max(0, pages.count - 1)), onIndexChange: { index in reading.save(gallery: gallery, pageIndex: index) }, onPageAppear: { _ in }) { i, fit, scale in ReaderPageImage(url: pages[i], referer: nil, pageNumber: i + 1, status: .loaded, fit: fit, scale: scale, onRetry: {}, onAutoRetry: {}).frame(maxWidth: .infinity) } } }
 }
