@@ -593,7 +593,7 @@ struct GalleryCard: View {
 
             if showTags && !gallery.tags.isEmpty {
                 GalleryTagPreview(tags: gallery.tags, maxTags: 3, maxRows: 2)
-                    .frame(maxWidth: .infinity, height: 40, alignment: .topLeading)
+                    .frame(maxWidth: .infinity, minHeight: 40, maxHeight: 40, alignment: .topLeading)
             }
 
             HStack(spacing: 8) {
