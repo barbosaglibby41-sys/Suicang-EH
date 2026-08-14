@@ -54,8 +54,6 @@ struct OnlineReaderView: View {
                             Task { await loadPage(index, force: true) }
                         },
                         onAutoRetry: {
-                            ImageURLCache.shared.removeImage(for: gallery, at: index)
-                            imageURLs[index] = nil
                             setPageState(for: index, .loading)
                             Task { await loadPage(index, force: false) }
                         }

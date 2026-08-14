@@ -85,7 +85,7 @@ struct ReaderPageImage: View {
                     lastError = error
                 }
             }
-            if image == nil, lastError != nil, !Task.isCancelled {
+            if image == nil, lastError != nil, !Task.isCancelled, status != .loaded {
                 failed = true
                 onAutoRetry()
             }
