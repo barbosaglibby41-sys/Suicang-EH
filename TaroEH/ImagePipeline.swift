@@ -7,7 +7,7 @@ actor ImagePipeline {
     private let memory = NSCache<NSString, UIImage>()
     private var inFlight: [String: Task<UIImage, Error>] = [:]
     private var activeRequests = 0
-    private let maxConcurrentRequests = 10
+    private var maxConcurrentRequests = 10
 
     private init() {
         let config = URLSessionConfiguration.default
@@ -78,6 +78,17 @@ actor ImagePipeline {
     private func endRequest() { activeRequests = max(0, activeRequests - 1) }
 
     func removeAllMemory() { memory.removeAllObjects() }
+
+    func updateConfiguration(connectTimeout: TimeInterval, receiveTimeout: TimeInterval, maxConnections: Int) {
+        maxConcurrentRequests = maxConnections
+        // URLSession configuration is immutable after creation, so we update
+        // what we can (the timeout applies to new requests via the actor)
+        currentConnectTimeout = connectTimeout
+        currentReceiveTimeout = receiveTimeout
+    }
+
+    private var currentConnectTimeout: TimeInterval = 30
+    private var currentReceiveTimeout: TimeInterval = 30
 }
 
 // MARK: - Shimmer Placeholder

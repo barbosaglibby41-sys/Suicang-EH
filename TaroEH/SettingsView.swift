@@ -5,32 +5,33 @@ struct SettingsView: View {
     var body: some View {
         List {
             Section("账户") {
-                NavigationLink("网页登录") { WebLoginView() }
-                NavigationLink("导入 Cookie") { CookieImportView() }
-                if session.isLoggedIn { Button("清除本机登录") { session.clear() }.foregroundStyle(.red) }
-            }
-            Section("离线") {
-                NavigationLink("下载设置") { DownloadSettingsView() }
-                NavigationLink("阅读设置") { ReaderSettingsView() }
-                NavigationLink("缓存管理") { CacheSettingsView() }
-            }
-            Section("显示") {
-                NavigationLink {
-                    GalleryListSettingsView()
-                } label: {
-                    Label("画廊列表样式", systemImage: "rectangle.grid.2x2")
+                NavigationLink { WebLoginView() } label: { Label("网页登录", systemImage: "globe") }
+                NavigationLink { CookieImportView() } label: { Label("导入 Cookie", systemImage: "key.fill") }
+                if session.isLoggedIn {
+                    Button("清除本机登录", role: .destructive) { session.clear() }
                 }
             }
+            Section("阅读") {
+                NavigationLink { ReaderSettingsView() } label: { Label("阅读设置", systemImage: "book.fill") }
+                NavigationLink { GalleryListSettingsView() } label: { Label("画廊列表样式", systemImage: "rectangle.grid.2x2") }
+            }
+            Section("离线") {
+                NavigationLink { DownloadSettingsView() } label: { Label("下载设置", systemImage: "arrow.down.circle") }
+                NavigationLink { CacheSettingsView() } label: { Label("缓存管理", systemImage: "internaldrive") }
+            }
             Section("搜索") {
-                NavigationLink("标签翻译库") { TagTranslationSettingsView() }
+                NavigationLink { TagTranslationSettingsView() } label: { Label("标签翻译库", systemImage: "tag.fill") }
             }
-            Section("应用") {
-                NavigationLink("网络") { NetworkSettingsView() }
-                Label("直连模式", systemImage: "network")
-                Text("不使用第三方中转服务器。Cookie 仅保存在本机 Keychain。网络功能与标签翻译库均支持本地回退。")
-                    .font(.footnote).foregroundStyle(.secondary)
+            Section("网络") {
+                NavigationLink { NetworkSettingsView() } label: { Label("网络设置", systemImage: "network") }
             }
-            Section("关于") { LabeledContent("版本", value: "1.7.52"); Text("JHenTai 架构参考：Apache-2.0，完整许可证随源代码提供。") .font(.footnote).foregroundStyle(.secondary) }
-        }.navigationTitle("设置")
+            Section("关于") {
+                LabeledContent("版本", value: "1.7.53")
+                Text("JHenTai 架构参考：Apache-2.0，完整许可证随源代码提供。")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .navigationTitle("设置")
     }
 }
