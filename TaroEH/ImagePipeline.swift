@@ -4,8 +4,8 @@ import UIKit
 actor ImagePipeline {
     static let shared = ImagePipeline()
     private let session: URLSession
-    private let memory = NSCache<NSURL, UIImage>()
-    private var inFlight: [URL: Task<UIImage, Error>] = [:]
+    private let memory = NSCache<NSString, UIImage>()
+    private var inFlight: [String: Task<UIImage, Error>] = [:]
     private var activeRequests = 0
     private let maxConcurrentRequests = 3
 
@@ -22,8 +22,10 @@ actor ImagePipeline {
     }
 
     func image(for url: URL, cookieHeader: String? = nil, referer: URL? = nil) async throws -> UIImage {
-        if let cached = memory.object(forKey: url as NSURL) { return cached }
-        if let task = inFlight[url] { return try await task.value }
+        let cacheKey = url.absoluteString + "\n" + (referer?.absoluteString ?? "")
+        let nsKey = cacheKey as NSString
+        if let cached = memory.object(forKey: nsKey) { return cached }
+        if let task = inFlight[cacheKey] { return try await task.value }
         let task = Task<UIImage, Error> {
             while await self.canStartRequest() == false {
                 try await Task.sleep(for: .milliseconds(40))
@@ -37,16 +39,18 @@ actor ImagePipeline {
             }
             var request = URLRequest(url: url)
             request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15", forHTTPHeaderField: "User-Agent")
+            request.setValue("image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8", forHTTPHeaderField: "Accept")
+            request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
             if let cookieHeader, !cookieHeader.isEmpty { request.setValue(cookieHeader, forHTTPHeaderField: "Cookie") }
             if let referer { request.setValue(referer.absoluteString, forHTTPHeaderField: "Referer") }
             let (data, response) = try await session.data(for: request)
             guard let http = response as? HTTPURLResponse, 200..<400 ~= http.statusCode, let image = UIImage(data: data) else { throw SiteError.invalidResponse }
             return image
         }
-        inFlight[url] = task
-        defer { inFlight[url] = nil }
+        inFlight[cacheKey] = task
+        defer { inFlight[cacheKey] = nil }
         let value = try await task.value
-        memory.setObject(value, forKey: url as NSURL, cost: value.jpegData(compressionQuality: 0.75)?.count ?? 1)
+        memory.setObject(value, forKey: nsKey, cost: value.jpegData(compressionQuality: 0.75)?.count ?? 1)
         return value
     }
 

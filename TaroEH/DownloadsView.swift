@@ -26,5 +26,5 @@ struct OfflineReaderView: View {
     let gallery: Gallery
     @EnvironmentObject private var reading: ReadingStore
     private var pages: [URL] { OfflineLibrary.pageURLs(for: gallery) }
-    var body: some View { if pages.isEmpty { ContentUnavailableView("没有可读页面", systemImage: "photo") } else { SharedReaderView(title: gallery.title, pageCount: pages.count, initialIndex: min(reading.page(for: gallery), max(0, pages.count - 1)), onIndexChange: { index in reading.save(gallery: gallery, pageIndex: index) }, onPageAppear: { _ in }) { i, fit, scale in ReaderPageImage(url: pages[i], referer: nil, pageNumber: i + 1, fit: fit, scale: scale, onRetry: {}, onFailure: {}).frame(maxWidth: .infinity) } } }
+    var body: some View { if pages.isEmpty { ContentUnavailableView("没有可读页面", systemImage: "photo") } else { SharedReaderView(title: gallery.title, pageCount: pages.count, initialIndex: min(reading.page(for: gallery), max(0, pages.count - 1)), onIndexChange: { index in reading.save(gallery: gallery, pageIndex: index) }, onPageAppear: { _ in }) { i, fit, scale in ReaderPageImage(url: pages[i], referer: nil, pageNumber: i + 1, status: .loaded, fit: fit, scale: scale, onRetry: {}, onAutoRetry: {}).frame(maxWidth: .infinity) } } }
 }

@@ -10,16 +10,14 @@ final class SiteClient {
     private init() {
         let config = URLSessionConfiguration.default
         config.httpCookieStorage = .shared
-        config.requestCachePolicy = .reloadRevalidatingCacheData
+        config.requestCachePolicy = .reloadIgnoringLocalCacheData
         config.timeoutIntervalForRequest = 25
         session = URLSession(configuration: config)
     }
 
-    func request(_ url: URL, cookieHeader: String?) async throws -> Data {
+    func request(_ url: URL, cookieHeader: String?, referer: URL? = nil) async throws -> Data {
         var request = URLRequest(url: url)
-        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile", forHTTPHeaderField: "User-Agent")
-        request.setValue("zh-CN,zh;q=0.9", forHTTPHeaderField: "Accept-Language")
-        if let cookieHeader, !cookieHeader.isEmpty { request.setValue(cookieHeader, forHTTPHeaderField: "Cookie") }
+        applyHeaders(to: &request, cookieHeader: cookieHeader, referer: referer)
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw SiteError.invalidResponse }
         if http.statusCode == 401 || http.statusCode == 403 { throw SiteError.accessDenied }
@@ -27,6 +25,13 @@ final class SiteClient {
         return data
     }
 
+    private func applyHeaders(to request: inout URLRequest, cookieHeader: String?, referer: URL?) {
+        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile", forHTTPHeaderField: "User-Agent")
+        request.setValue("text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8", forHTTPHeaderField: "Accept")
+        request.setValue("zh-CN,zh;q=0.9", forHTTPHeaderField: "Accept-Language")
+        if let referer { request.setValue(referer.absoluteString, forHTTPHeaderField: "Referer") }
+        if let cookieHeader, !cookieHeader.isEmpty { request.setValue(cookieHeader, forHTTPHeaderField: "Cookie") }
+    }
     func search(config: AdvancedSearchConfig, cookieHeader: String?, baseURL: URL, source: EHSource? = nil, translatedQuery: String? = nil) async throws -> [Gallery] {
         try await searchPage(config: config, cookieHeader: cookieHeader, baseURL: baseURL, source: source, translatedQuery: translatedQuery).galleries
     }
@@ -181,10 +186,31 @@ final class SiteClient {
         guard let html = String(data: data, encoding: .utf8) else { return nil }
         return SiteParser.torrentURL(from: html)
     }
-    func imageURL(pageURL: URL, cookieHeader: String?) async throws -> URL {
-        let data = try await request(pageURL, cookieHeader: cookieHeader)
+    func imageURL(pageURL: URL, cookieHeader: String?, referer: URL? = nil, forceReload: Bool = false) async throws -> URL {
+        var target = pageURL
+        if forceReload {
+            var components = URLComponents(url: pageURL, resolvingAgainstBaseURL: false)
+            var items = components?.queryItems ?? []
+            items.removeAll { $0.name == "nl" }
+            items.append(URLQueryItem(name: "nl", value: String(Int(Date().timeIntervalSince1970))))
+            components?.queryItems = items
+            target = components?.url ?? pageURL
+        }
+        let data = try await request(target, cookieHeader: cookieHeader, referer: referer)
         guard let html = String(data: data, encoding: .utf8), let image = SiteParser.imageURL(from: html) else { throw SiteError.parseFailed }
         return image
+    }
+
+    private func request(_ request: URLRequest, cookieHeader: String?) async throws -> Data {
+        var r = request
+        r.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile", forHTTPHeaderField: "User-Agent")
+        r.setValue("zh-CN,zh;q=0.9", forHTTPHeaderField: "Accept-Language")
+        if let cookieHeader, !cookieHeader.isEmpty { r.setValue(cookieHeader, forHTTPHeaderField: "Cookie") }
+        let (data, response) = try await session.data(for: r)
+        guard let http = response as? HTTPURLResponse else { throw SiteError.invalidResponse }
+        if http.statusCode == 401 || http.statusCode == 403 { throw SiteError.accessDenied }
+        guard 200..<400 ~= http.statusCode else { throw SiteError.invalidResponse }
+        return data
     }
 
     func imageURLs(for detail: NetworkGalleryDetail, cookieHeader: String?) async throws -> [URL] {

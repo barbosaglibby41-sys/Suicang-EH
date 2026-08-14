@@ -7,12 +7,15 @@ struct OnlineReaderView: View {
     @EnvironmentObject private var reading: ReadingStore
     @State private var pageLinks: [URL] = []
     @State private var imageURLs: [Int: URL] = [:]
+    @State private var pageStates: [Int: PageState] = [:]
     @State private var loadError: String?
     @State private var nextBatch = 1
     @State private var isLoadingMore = false
     @State private var hasMorePages = true
     @State private var lastLoadedPage = 0
-    @State private var loadingPageIndices: Set<Int> = []
+    @State private var loadingPageIndices: Set<Int> = [:]
+    @State private var refreshingPageLinks = false
+    @State private var autoRetryWorkItems: [Int: Task<Void, Never>] = [:]
 
     var body: some View {
         Group {
@@ -34,30 +37,47 @@ struct OnlineReaderView: View {
                     }
                 }, onPageAppear: { index in
                     lastLoadedPage = max(lastLoadedPage, index)
+                    scheduleAutoRetryIfNeeded(for: index)
                     if index >= pageLinks.count - 3 {
                         Task { await loadMorePagesIfNeeded() }
                     }
                 }) { index, fit, scale in
-                    ReaderPageImage(url: imageURLs[index], referer: pageLinks.indices.contains(index) ? pageLinks[index] : gallery.sourceURL, pageNumber: index + 1, fit: fit, scale: scale, onRetry: {
-                        Task { await loadPage(index, force: true) }
-                    }, onFailure: {
-                        ImageURLCache.shared.removeImage(for: gallery, at: index)
-                        imageURLs[index] = nil
-                    })
-                    .task { await loadPage(index) }
+                    ReaderPageImage(
+                        url: imageURLs[index],
+                        referer: pageLinks.indices.contains(index) ? pageLinks[index] : gallery.sourceURL,
+                        pageNumber: index + 1,
+                        status: pageState(for: index),
+                        fit: fit,
+                        scale: scale,
+                        onRetry: {
+                            setPageState(for: index, .loading)
+                            Task { await loadPage(index, force: true) }
+                        },
+                        onAutoRetry: {
+                            ImageURLCache.shared.removeImage(for: gallery, at: index)
+                            imageURLs[index] = nil
+                            setPageState(for: index, .loading)
+                            Task { await loadPage(index, force: false) }
+                        }
+                    )
+                    .onAppear { scheduleAutoRetryIfNeeded(for: index) }
                 }
             }
-        }.task { await setup() }
+        }
+        .onChange(of: pageLinks.count) { _, _ in refreshVisibleLoadSchedules() }
+        .task { await setup() }
     }
 
     private func setup() async {
         let cache = ImageURLCache.shared
         pageLinks = cache.pages(for: gallery)
+        pageStates = Dictionary(uniqueKeysWithValues: pageLinks.indices.map { ($0, .idle) })
         do {
             if pageLinks.isEmpty {
                 let detail = try await SiteClient.shared.detail(gallery, cookieHeader: session.cookieHeader())
                 pageLinks = detail.pageLinks
-                cache.setPages(pageLinks, gallery: gallery)
+                pageStates = Dictionary(uniqueKeysWithValues: detail.pageLinks.indices.map { ($0, .idle) })
+                cache.setPages(detail.pageLinks, gallery: gallery)
             }
             imageURLs = Dictionary(uniqueKeysWithValues: pageLinks.indices.compactMap { index in cache.image(for: gallery, at: index).map { (index, $0) } })
             if pageLinks.isEmpty { loadError = "未能从页面中提取图片目录。" }
@@ -65,6 +85,10 @@ struct OnlineReaderView: View {
             lastLoadedPage = max(0, pageLinks.count - 1)
         } catch {
             loadError = error.localizedDescription
+        }
+        refreshVisibleLoadSchedules()
+        for index in pageLinks.indices.prefix(3) where imageURLs[index] == nil {
+            Task { await loadPage(index) }
         }
     }
 
@@ -84,11 +108,13 @@ struct OnlineReaderView: View {
             guard !fresh.isEmpty else { hasMorePages = false; return }
             pageLinks.append(contentsOf: fresh)
             pageLinks.sort { pageNumber($0) < pageNumber($1) }
+            let existing = pageStates.count
+            pageStates = Dictionary(uniqueKeysWithValues: pageLinks.indices.map { ($0, $0 < existing ? pageStates[$0] ?? .idle : .idle) })
             ImageURLCache.shared.appendPages(fresh, gallery: gallery)
             nextBatch += 1
             if pageLinks.count >= gallery.pageCount && gallery.pageCount > 0 { hasMorePages = false }
         } catch {
-            // Keep hasMorePages true so the next threshold crossing retries.
+            hasMorePages = true
         }
     }
 
@@ -97,30 +123,102 @@ struct OnlineReaderView: View {
         guard let dash = name.lastIndex(of: "-") else { return Int.max }
         return Int(name[name.index(after: dash)...]) ?? Int.max
     }
+
+    private func pageState(for index: Int) -> PageState {
+        pageLinks.indices.contains(index) ? pageStates[index] ?? .idle : .empty
+    }
+
+    private func setPageState(for index: Int, _ state: PageState) {
+        pageStates[index] = state
+        if state == .loading {
+            autoRetryWorkItems[index]?.cancel()
+            autoRetryWorkItems[index] = nil
+        }
+    }
+
+    private func scheduleAutoRetryIfNeeded(for index: Int) {
+        let state = pageState(for: index)
+        guard state == .waiting || state == .failed || (state == .loading && imageURLs[index] == nil) else { return }
+        let delay = state == .failed ? 1.6 : 0.15
+        autoRetryWorkItems[index]?.cancel()
+        autoRetryWorkItems[index] = Task {
+            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                let current = pageState(for: index)
+                if current == .waiting || current == .failed || (current == .loading && imageURLs[index] == nil) {
+                    setPageState(for: index, .loading)
+                    Task { await loadPage(index, force: current == .failed) }
+                }
+            }
+        }
+    }
+
+    private func refreshVisibleLoadSchedules() {
+        pageLinks.indices.prefix(6).forEach { scheduleAutoRetryIfNeeded(for: $0) }
+    }
+
     private func loadPage(_ index: Int, force: Bool = false) async {
-        guard pageLinks.indices.contains(index), force || imageURLs[index] == nil, !loadingPageIndices.contains(index) else { return }
+        guard pageLinks.indices.contains(index), force || imageURLs[index] == nil else {
+            if imageURLs[index] != nil { setPageState(for: index, .loaded) }
+            return
+        }
+        setPageState(for: index, .loading)
         loadingPageIndices.insert(index)
         defer { loadingPageIndices.remove(index) }
         do {
-            let url: URL
+            let resolved: URL
             if force {
                 ImageURLCache.shared.removeImage(for: gallery, at: index)
                 imageURLs[index] = nil
-                url = try await SiteClient.shared.imageURL(pageURL: pageLinks[index], cookieHeader: session.cookieHeader())
+                resolved = try await resolveImageURL(index: index, refreshPage: true)
             } else if let cached = imageURLs[index] {
-                url = cached
+                resolved = cached
             } else {
-                url = try await SiteClient.shared.imageURL(pageURL: pageLinks[index], cookieHeader: session.cookieHeader())
+                resolved = try await resolveImageURL(index: index, refreshPage: false)
             }
-            imageURLs[index] = url
-            ImageURLCache.shared.setImage(url, gallery: gallery, index: index)
-            let next = index + 1
-            if pageLinks.indices.contains(next), imageURLs[next] == nil {
-                Task { await loadPage(next) }
-            }
+            imageURLs[index] = resolved
+            setPageState(for: index, .loaded)
+            ImageURLCache.shared.setImage(resolved, gallery: gallery, index: index)
+            scheduleLoadAheadIfNeeded(after: index)
         } catch {
+            setPageState(for: index, .failed)
+            if force { await refreshPageLinksIfNeeded() }
             if imageURLs.isEmpty { loadError = error.localizedDescription }
         }
+    }
+
+    private func scheduleLoadAheadIfNeeded(after index: Int) {
+        let next = index + 1
+        if pageLinks.indices.contains(next), imageURLs[next] == nil {
+            scheduleAutoRetryIfNeeded(for: next)
+        }
+    }
+
+    private func resolveImageURL(index: Int, refreshPage: Bool) async throws -> URL {
+        guard pageLinks.indices.contains(index) else { throw SiteError.invalidResponse }
+        let page = pageLinks[index]
+        let detailURL = gallery.sourceURL
+        do {
+            return try await SiteClient.shared.imageURL(pageURL: page, cookieHeader: session.cookieHeader(), referer: detailURL, forceReload: refreshPage)
+        } catch {
+            guard !refreshPage else { throw error }
+            return try await SiteClient.shared.imageURL(pageURL: page, cookieHeader: session.cookieHeader(), referer: detailURL, forceReload: true)
+        }
+    }
+
+    private func refreshPageLinksIfNeeded() async {
+        guard !refreshingPageLinks, let source = gallery.sourceURL else { return }
+        refreshingPageLinks = true
+        defer { refreshingPageLinks = false }
+        do {
+            let detail = try await SiteClient.shared.detail(gallery, cookieHeader: session.cookieHeader())
+            guard !detail.pageLinks.isEmpty else { return }
+            pageLinks = detail.pageLinks
+            pageStates = Dictionary(uniqueKeysWithValues: detail.pageLinks.indices.map { ($0, .idle) })
+            ImageURLCache.shared.setPages(detail.pageLinks, gallery: gallery)
+            refreshVisibleLoadSchedules()
+        } catch { }
     }
 
 }

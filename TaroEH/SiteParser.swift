@@ -164,9 +164,10 @@ enum SiteParser {
         }
     }
 
-    static func imageURL(from html: String) -> URL? {
-        first(#"id=[\"']img[\"'][^>]+src=[\"']([^\"']+)[\"']"#, in: html).flatMap { URL(string: decode($0)) }
+    static func imageReloadKey(from html: String) -> String? {
+        first(#"id=[\"']loadfail[\"'][^>]+onclick=[\"'][^\"']*nl\\(\\'([^\\']+)\\'\\)[^\"']*[\"']"#, in: html)
     }
+
 
     private static func pageNumber(in url: URL) -> Int {
         let component = url.path.split(separator: "/").last.map(String.init) ?? ""
