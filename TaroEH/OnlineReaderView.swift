@@ -11,6 +11,7 @@ struct OnlineReaderView: View {
     @State private var nextBatch = 1
     @State private var isLoadingMore = false
     @State private var hasMorePages = true
+    @State private var lastLoadedPage = 0
 
     var body: some View {
         Group {
@@ -26,6 +27,12 @@ struct OnlineReaderView: View {
             } else {
                 SharedReaderView(title: gallery.title, pageCount: pageLinks.count, initialIndex: min(startIndex, max(0, pageLinks.count - 1)), onIndexChange: { index in
                     reading.save(gallery: gallery, pageIndex: index)
+                    lastLoadedPage = max(lastLoadedPage, index)
+                    if index >= pageLinks.count - 3 {
+                        Task { await loadMorePagesIfNeeded() }
+                    }
+                }, onPageAppear: { index in
+                    lastLoadedPage = max(lastLoadedPage, index)
                     if index >= pageLinks.count - 3 {
                         Task { await loadMorePagesIfNeeded() }
                     }
@@ -48,6 +55,7 @@ struct OnlineReaderView: View {
             imageURLs = Dictionary(uniqueKeysWithValues: pageLinks.indices.compactMap { index in cache.image(for: gallery, at: index).map { (index, $0) } })
             if pageLinks.isEmpty { loadError = "未能从页面中提取图片目录。" }
             nextBatch = max(1, (pageLinks.count + 19) / 20)
+            lastLoadedPage = max(0, pageLinks.count - 1)
         } catch {
             loadError = error.localizedDescription
         }

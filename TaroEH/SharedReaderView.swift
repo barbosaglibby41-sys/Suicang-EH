@@ -25,6 +25,7 @@ struct SharedReaderView<Source: View>: View {
     let pageCount: Int
     let initialIndex: Int
     let onIndexChange: (Int) -> Void
+    let onPageAppear: (Int) -> Void
     @ViewBuilder let source: (Int, Bool, CGFloat) -> Source
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var reading: ReadingStore
@@ -36,11 +37,12 @@ struct SharedReaderView<Source: View>: View {
     @State private var scale: CGFloat = 1
     @State private var sliderIndex = 0
 
-    init(title: String, pageCount: Int, initialIndex: Int = 0, onIndexChange: @escaping (Int) -> Void = { _ in }, @ViewBuilder source: @escaping (Int, Bool, CGFloat) -> Source) {
+    init(title: String, pageCount: Int, initialIndex: Int = 0, onIndexChange: @escaping (Int) -> Void = { _ in }, onPageAppear: @escaping (Int) -> Void = { _ in }, @ViewBuilder source: @escaping (Int, Bool, CGFloat) -> Source) {
         self.title = title
         self.pageCount = pageCount
         self.initialIndex = initialIndex
         self.onIndexChange = onIndexChange
+        self.onPageAppear = onPageAppear
         self.source = source
         _index = State(initialValue: min(max(0, initialIndex), max(0, pageCount - 1)))
         _sliderIndex = State(initialValue: min(max(0, initialIndex), max(0, pageCount - 1)))
@@ -69,7 +71,9 @@ struct SharedReaderView<Source: View>: View {
                 ScrollView {
                     LazyVStack(spacing: 6) {
                         ForEach(0..<pageCount, id: \.self) { i in
-                            source(i, fit, scale).id(i)
+                            source(i, fit, scale)
+                                .id(i)
+                                .onAppear { onPageAppear(i) }
                         }
                     }
                 }
