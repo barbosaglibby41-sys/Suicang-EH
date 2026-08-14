@@ -104,38 +104,48 @@ struct SharedReaderView<Source: View>: View {
     }
 
     private var overlay: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 14) {
-                Button { dismiss() } label: {
-                    Image(systemName: "chevron.down").font(.headline).frame(width: 34, height: 34)
-                }
-                Text(title).font(.subheadline.weight(.semibold)).lineLimit(1)
-                Spacer()
-                Menu {
-                    Button(direction == "horizontal" ? "切换为纵向滚动" : "切换为横向分页") { direction = direction == "horizontal" ? "vertical" : "horizontal" }
-                    Button(fit ? "切换为填充模式" : "切换为适应模式") { fit.toggle() }
-                    Button(scale == 1 ? "放大页面" : "还原页面") { withAnimation { scale = scale == 1 ? 2 : 1 } }
-                } label: { Image(systemName: "ellipsis.circle").font(.title3) }
-            }
-            .padding(.horizontal, 14).padding(.vertical, 10)
-            .background(.black.opacity(0.82))
-            Spacer()
-            VStack(spacing: 8) {
-                HStack {
-                    Text(direction == "vertical" ? "连续滚动" : "第 \(index + 1) / \(pageCount) 页").font(.caption.weight(.medium))
+        GeometryReader { proxy in
+            VStack(spacing: 0) {
+                HStack(spacing: 14) {
+                    Button { dismiss() } label: {
+                        Image(systemName: "chevron.down").font(.headline).frame(width: 34, height: 34)
+                    }
+                    Text(title).font(.subheadline.weight(.semibold)).lineLimit(1)
                     Spacer()
-                    Text("\(progressPercent)%").font(.caption).foregroundStyle(.secondary)
+                    Menu {
+                        Button(direction == "horizontal" ? "切换为纵向滚动" : "切换为横向分页") { direction = direction == "horizontal" ? "vertical" : "horizontal" }
+                        Button(fit ? "切换为填充模式" : "切换为适应模式") { fit.toggle() }
+                        Button(scale == 1 ? "放大页面" : "还原页面") { withAnimation { scale = scale == 1 ? 2 : 1 } }
+                    } label: { Image(systemName: "ellipsis.circle").font(.title3) }
                 }
-                Slider(value: Binding(get: { Double(sliderIndex) }, set: { value in
-                    let next = min(max(0, Int(value.rounded())), max(0, pageCount - 1))
-                    sliderIndex = next
-                    if direction == "horizontal" { index = next }
-                }), in: 0...Double(max(0, pageCount - 1)), step: 1)
-                    .tint(.white)
+                .padding(.horizontal, 14)
+                .padding(.top, proxy.safeAreaInsets.top + 8)
+                .padding(.bottom, 10)
+                .background(.black.opacity(0.82))
+
+                Spacer()
+
+                VStack(spacing: 8) {
+                    HStack {
+                        Text(direction == "vertical" ? "连续滚动" : "第 \(index + 1) / \(pageCount) 页").font(.caption.weight(.medium))
+                        Spacer()
+                        Text("\(progressPercent)%").font(.caption).foregroundStyle(.secondary)
+                    }
+                    Slider(value: Binding(get: { Double(sliderIndex) }, set: { value in
+                        let next = min(max(0, Int(value.rounded())), max(0, pageCount - 1))
+                        sliderIndex = next
+                        if direction == "horizontal" { index = next }
+                    }), in: 0...Double(max(0, pageCount - 1)), step: 1)
+                        .tint(.white)
+                }
+                .padding(.horizontal, 18)
+                .padding(.top, 10)
+                .padding(.bottom, proxy.safeAreaInsets.bottom + 10)
+                .background(.black.opacity(0.82))
             }
-            .padding(.horizontal, 18).padding(.top, 10).padding(.bottom, 14)
-            .background(.black.opacity(0.82))
+            .frame(width: proxy.size.width, height: proxy.size.height)
         }
+        .ignoresSafeArea()
     }
 
     private var progressPercent: Int {
