@@ -66,7 +66,8 @@ struct DiscoverView: View {
     @EnvironmentObject private var tagTranslations: TagTranslationStore
     @EnvironmentObject private var rankings: RankingStore
     @AppStorage("taro.eh.siteURL") private var siteAddress = "https://e-hentai.org/"
-    @AppStorage("taro.eh.source") private var sourceRaw = EHSource.eHentai.rawValue
+    @AppStorage("taro.eh.gallery.listStyle") private var galleryListStyleRaw = GalleryListStyle.card.rawValue
+    private var galleryListStyle: GalleryListStyle { GalleryListStyle(rawValue: galleryListStyleRaw) ?? .card }
     @State private var query = ""
     @State private var results: [Gallery] = []
     @State private var selectedFeed: DiscoverFeed = .latest
@@ -191,18 +192,7 @@ struct DiscoverView: View {
                 } else if filtered.isEmpty {
                     ContentUnavailableView("暂无画廊", systemImage: "rectangle.stack", description: Text("下拉刷新或使用搜索查找作品。"))
                 } else {
-                    LazyVGrid(columns: columns, spacing: 14) {
-                        ForEach(filtered) { gallery in
-                            NavigationLink(value: gallery) { GalleryCard(gallery: gallery) }
-                                .buttonStyle(.plain)
-                                .onAppear {
-                                    if gallery.id == filtered.last?.id {
-                                        if isRandomFeed { loadMoreRandomGalleries() }
-                                        else if selectedFeed == .latest || selectedFeed == .popular || isSearchResults { loadMoreDiscovery() }
-                                    }
-                                }
-                        }
-                    }
+                    galleryResultsView
                     if isRandomFeed {
                         randomFeedFooter
                     } else if (selectedFeed == .latest || selectedFeed == .popular || isSearchResults) && !discoveryExhausted {
@@ -240,9 +230,48 @@ struct DiscoverView: View {
         }
     }
 
-    private func dismissSearchDestination() {
-        dismiss()
+    @ViewBuilder private var galleryResultsView: some View {
+        if let columnsCount = galleryListStyle.waterfallColumns {
+            let grid = Array(repeating: GridItem(.flexible(), spacing: 10), count: columnsCount)
+            LazyVGrid(columns: grid, spacing: 12) {
+                ForEach(filtered) { gallery in
+                    NavigationLink(value: gallery) {
+                        GalleryWaterfallCard(gallery: gallery, showTags: galleryListStyle.includesTags)
+                    }
+                    .buttonStyle(.plain)
+                    .onAppear { loadMoreIfNeeded(for: gallery) }
+                }
+            }
+        } else if galleryListStyle == .card || galleryListStyle == .cardNoTags {
+            LazyVGrid(columns: columns, spacing: 14) {
+                ForEach(filtered) { gallery in
+                    NavigationLink(value: gallery) {
+                        GalleryCard(gallery: gallery, showTags: galleryListStyle.includesTags)
+                    }
+                    .buttonStyle(.plain)
+                    .onAppear { loadMoreIfNeeded(for: gallery) }
+                }
+            }
+        } else {
+            LazyVStack(spacing: 0) {
+                ForEach(filtered) { gallery in
+                    NavigationLink(value: gallery) {
+                        GalleryFlatRow(gallery: gallery, showTags: galleryListStyle.includesTags)
+                    }
+                    .buttonStyle(.plain)
+                    .onAppear { loadMoreIfNeeded(for: gallery) }
+                    Divider()
+                }
+            }
+        }
     }
+
+    private func loadMoreIfNeeded(for gallery: Gallery) {
+        guard gallery.id == filtered.last?.id else { return }
+        if isRandomFeed { loadMoreRandomGalleries() }
+        else if selectedFeed == .latest || selectedFeed == .popular || isSearchResults { loadMoreDiscovery() }
+    }
+
 
     private var feedSelector: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -534,6 +563,7 @@ struct FeatureCard: View {
 }
 struct GalleryCard: View {
     let gallery: Gallery
+    var showTags: Bool = true
     private let coverHeight: CGFloat = 220
     private let cardHeight: CGFloat = 302
 
@@ -553,11 +583,9 @@ struct GalleryCard: View {
                     }
                 }
 
-            Text(gallery.title)
-                .font(.subheadline.bold())
-                .lineLimit(2)
-                .multilineTextAlignment(.leading)
-                .frame(maxWidth: .infinity, minHeight: 42, maxHeight: 42, alignment: .topLeading)
+            if showTags && !gallery.tags.isEmpty {
+                GalleryTagPreview(tags: gallery.tags)
+            }
 
             HStack(spacing: 8) {
                 Label(gallery.uploader.isEmpty ? "未知作者" : gallery.uploader, systemImage: "person")
