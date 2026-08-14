@@ -8,6 +8,9 @@ struct OnlineReaderView: View {
     @State private var pageLinks: [URL] = []
     @State private var imageURLs: [Int: URL] = [:]
     @State private var loadError: String?
+    @State private var nextBatch = 1
+    @State private var isLoadingMore = false
+    @State private var hasMorePages = true
 
     var body: some View {
         Group {
@@ -23,6 +26,9 @@ struct OnlineReaderView: View {
             } else {
                 SharedReaderView(title: gallery.title, pageCount: pageLinks.count, initialIndex: min(startIndex, max(0, pageLinks.count - 1)), onIndexChange: { index in
                     reading.save(gallery: gallery, pageIndex: index)
+                    if index >= pageLinks.count - 3 {
+                        Task { await loadMorePagesIfNeeded() }
+                    }
                 }) { index, fit, scale in
                     OnlinePage(url: imageURLs[index], fit: fit, scale: scale).task { await loadPage(index) }
                 }
@@ -41,11 +47,41 @@ struct OnlineReaderView: View {
             }
             imageURLs = Dictionary(uniqueKeysWithValues: pageLinks.indices.compactMap { index in cache.image(for: gallery, at: index).map { (index, $0) } })
             if pageLinks.isEmpty { loadError = "未能从页面中提取图片目录。" }
+            nextBatch = max(1, (pageLinks.count + 19) / 20)
         } catch {
             loadError = error.localizedDescription
         }
     }
 
+    private func loadMorePagesIfNeeded() async {
+        guard hasMorePages, !isLoadingMore, let base = gallery.sourceURL else { return }
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+        var components = URLComponents(url: base, resolvingAgainstBaseURL: false)
+        components?.queryItems = [URLQueryItem(name: "p", value: String(nextBatch))]
+        guard let url = components?.url else { hasMorePages = false; return }
+        do {
+            let data = try await SiteClient.shared.request(url, cookieHeader: session.cookieHeader())
+            guard let html = String(data: data, encoding: .utf8) else { throw SiteError.parseFailed }
+            let batch = SiteParser.imagePageLinks(from: html, base: base)
+            let known = Set(pageLinks.map(\.absoluteString))
+            let fresh = batch.filter { !known.contains($0.absoluteString) }
+            guard !fresh.isEmpty else { hasMorePages = false; return }
+            pageLinks.append(contentsOf: fresh)
+            pageLinks.sort { pageNumber($0) < pageNumber($1) }
+            ImageURLCache.shared.appendPages(fresh, gallery: gallery)
+            nextBatch += 1
+            if pageLinks.count >= gallery.pageCount && gallery.pageCount > 0 { hasMorePages = false }
+        } catch {
+            // Keep hasMorePages true so the next threshold crossing retries.
+        }
+    }
+
+    private func pageNumber(_ url: URL) -> Int {
+        let name = url.path.split(separator: "/").last.map(String.init) ?? ""
+        guard let dash = name.lastIndex(of: "-") else { return Int.max }
+        return Int(name[name.index(after: dash)...]) ?? Int.max
+    }
     private func loadPage(_ index: Int) async {
         guard pageLinks.indices.contains(index), imageURLs[index] == nil else { return }
         do {
@@ -56,6 +92,7 @@ struct OnlineReaderView: View {
             if imageURLs.isEmpty { loadError = error.localizedDescription }
         }
     }
+
 }
 
 private struct OnlinePage: View {
