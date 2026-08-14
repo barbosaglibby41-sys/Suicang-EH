@@ -12,6 +12,7 @@ private struct GalleryListMetadata {
     var rating: Double?
     var category = ""
     var postedAt: String?
+    var uploader = ""
 }
 
 enum SiteParser {
@@ -34,7 +35,7 @@ enum SiteParser {
                 id: id,
                 source: source,
                 title: title,
-                uploader: "网络结果",
+                uploader: item.uploader.isEmpty ? "未知作者" : item.uploader,
                 category: item.category,
                 thumbnailURL: item.thumbnailURL,
                 sourceURL: URL(string: href),
@@ -187,6 +188,7 @@ enum SiteParser {
             let remaining = ns.substring(from: start)
             let end = (remaining as NSString).range(of: "</td>", options: [.caseInsensitive]).location
             let block = end == NSNotFound ? remaining : String(remaining.prefix(end))
+            let row = String(remaining.prefix((remaining as NSString).range(of: "</tr>", options: [.caseInsensitive]).location == NSNotFound ? remaining.count : (remaining as NSString).range(of: "</tr>", options: [.caseInsensitive]).location))
 
             let rawImage = first(#"data-src=[\"']([^\"']+)[\"']"#, in: block) ?? first(#"<img[^>]+src=[\"']([^\"']+)[\"']"#, in: block)
             let thumbnailURL = rawImage.flatMap { URL(string: decode($0), relativeTo: baseURL)?.absoluteURL }
@@ -195,12 +197,14 @@ enum SiteParser {
                 .flatMap(Int.init) ?? 0
             let category = first(#"class=[\"'][^\"']*cn[^\"']*[\"'][^>]*>(.*?)</div>"#, in: block).map(clean) ?? ""
             let postedAt = first(#"id=[\"']postedpop_\d+[\"'][^>]*>(.*?)</div>"#, in: block).map(clean)
+            let uploader = first(#"class=[\"']gl4c[^\"']*[\"'][^>]*>.*?<a[^>]*>(.*?)</a>"#, in: row).map(clean) ?? ""
             values[id] = GalleryListMetadata(
                 thumbnailURL: thumbnailURL,
                 pageCount: pageCount,
                 rating: spriteRating(from: block),
                 category: category,
-                postedAt: postedAt
+                postedAt: postedAt,
+                uploader: uploader
             )
         }
         return values

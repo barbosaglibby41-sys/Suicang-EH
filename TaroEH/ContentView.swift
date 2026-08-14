@@ -562,6 +562,7 @@ struct GalleryCard: View {
                 .frame(maxWidth: .infinity, minHeight: 42, maxHeight: 42, alignment: .topLeading)
 
             HStack(spacing: 8) {
+                Label(gallery.uploader.isEmpty ? "未知作者" : gallery.uploader, systemImage: "person")
                 Label(gallery.pageCount > 0 ? "\(gallery.pageCount) 页" : "页数未知", systemImage: "book.pages")
                 if let rating = gallery.rating, rating > 0 {
                     Label(String(format: "%.1f", rating), systemImage: "star.fill")
