@@ -99,10 +99,9 @@ struct OnlineReaderView: View {
             let url = try await SiteClient.shared.imageURL(pageURL: pageLinks[index], cookieHeader: session.cookieHeader())
             imageURLs[index] = url
             ImageURLCache.shared.setImage(url, gallery: gallery, index: index)
-            // Warm the next two image URLs so the following page has less blank time.
-            for offset in 1...2 {
-                let next = index + offset
-                guard pageLinks.indices.contains(next), imageURLs[next] == nil else { continue }
+            // Warm only the immediate next page to avoid request bursts.
+            let next = index + 1
+            if pageLinks.indices.contains(next), imageURLs[next] == nil {
                 Task { await loadPage(next) }
             }
         } catch {

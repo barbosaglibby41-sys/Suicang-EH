@@ -20,12 +20,6 @@ enum ReaderDestination {
     }
 }
 
-private struct ReaderPageOffsetKey: PreferenceKey {
-    static var defaultValue: [Int: CGFloat] = [:]
-    static func reduce(value: inout [Int: CGFloat], nextValue: () -> [Int: CGFloat]) {
-        value.merge(nextValue(), uniquingKeysWith: { $1 })
-    }
-}
 struct SharedReaderView<Source: View>: View {
     let title: String
     let pageCount: Int
@@ -79,26 +73,12 @@ struct SharedReaderView<Source: View>: View {
                         ForEach(0..<pageCount, id: \.self) { i in
                             source(i, fit, scale)
                                 .id(i)
-                                .background(
-                                    GeometryReader { proxy in
-                                        Color.clear.preference(key: ReaderPageOffsetKey.self, value: [i: proxy.frame(in: .named("readerScroll")).minY])
-                                    }
-                                )
                                 .onAppear { onPageAppear(i) }
                         }
                     }
                 }
-                .coordinateSpace(name: "readerScroll")
-                .onPreferenceChange(ReaderPageOffsetKey.self) { offsets in
-                    guard !offsets.isEmpty else { return }
-                    let target = offsets.min { lhs, rhs in
-                        abs(lhs.value) < abs(rhs.value)
-                    }?.key ?? 0
-                    if target != index {
-                        index = target
-                    }
-                }
                 .onChange(of: sliderIndex) { _, value in
+                    guard value != index else { return }
                     withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo(value, anchor: .top) }
                 }
             }

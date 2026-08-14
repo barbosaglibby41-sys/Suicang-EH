@@ -4,8 +4,18 @@ import Foundation
 struct ReadingProgress: Codable, Hashable { var galleryID: Int; var source: EHSource; var pageIndex: Int; var pageCount: Int; var updatedAt: Date }
 @MainActor final class ReadingStore: ObservableObject {
     @Published private(set) var records: [String: ReadingProgress] = [:]; private let key = "taro.eh.reading.progress.v2"
-    init() { load() }; func page(for gallery: Gallery) -> Int { records[gallery.stableKey]?.pageIndex ?? 0 }
-    func save(gallery: Gallery, pageIndex: Int) { records[gallery.stableKey] = ReadingProgress(galleryID: gallery.id, source: gallery.source, pageIndex: max(0, pageIndex), pageCount: gallery.pageCount, updatedAt: .now); persist() }
+    init() { load() }
+    func page(for gallery: Gallery) -> Int { records[gallery.stableKey]?.pageIndex ?? 0 }
+    private var pendingSave: Task<Void, Never>?
+    func save(gallery: Gallery, pageIndex: Int) {
+        records[gallery.stableKey] = ReadingProgress(galleryID: gallery.id, source: gallery.source, pageIndex: max(0, pageIndex), pageCount: gallery.pageCount, updatedAt: .now)
+        pendingSave?.cancel()
+        pendingSave = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(500))
+            guard !Task.isCancelled else { return }
+            await MainActor.run { self?.persist() }
+        }
+    }
     func clear(gallery: Gallery) { records.removeValue(forKey: gallery.stableKey); persist() }
     private func persist() { if let data = try? JSONEncoder().encode(records) { UserDefaults.standard.set(data, forKey: key) } }
     private func load() {
