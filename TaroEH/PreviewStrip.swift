@@ -7,9 +7,9 @@ import UIKit
 struct PreviewStrip: View {
     let gallery: Gallery
     @EnvironmentObject private var session: SessionStore
-    @State private var previews: [PagePreview]
+    @State private var previews: [PagePreview] = []
     @State private var tiles: [Int: UIImage] = [:]
-    @State private var spriteCache: [URL: UIImage] = [:]
+    @State private var spriteCache: [URL: (UIImage, CGFloat)] = [:]
     @State private var loadedBatch = 0
     @State private var isLoadingMore = false
     @State private var hasMore = true
@@ -35,8 +35,6 @@ struct PreviewStrip: View {
                     ForEach(previews, id: \.page) { preview in tile(preview) }
                     if hasMore {
                         ProgressView().controlSize(.small).frame(width: 40, height: 80)
-                            // Recreate the sentinel after every appended batch;
-                            // horizontal ScrollView otherwise fires onAppear only once.
                             .id("preview-loader-\(previews.count)")
                             .onAppear { Task { await loadMore() } }
                     }
@@ -60,7 +58,8 @@ struct PreviewStrip: View {
                         .resizable()
                         .frame(width: tileWidth, height: tileHeight)
                 } else {
-                    Color.secondary.opacity(0.15)
+                    ShimmerView()
+                        .frame(width: tileWidth, height: tileHeight)
                 }
                 Text("\(preview.page)")
                     .font(.caption2.bold()).foregroundStyle(.white)
@@ -82,12 +81,18 @@ struct PreviewStrip: View {
             do {
                 let sprite: UIImage
                 if let cached = spriteCache[spriteURL] {
-                    sprite = cached
+                    sprite = cached.0
                 } else {
                     sprite = try await ImagePipeline.shared.image(for: spriteURL, cookieHeader: session.cookieHeader())
-                    await MainActor.run { spriteCache[spriteURL] = sprite }
+                    // Calculate the scale factor between expected sprite width
+                    // and actual pixel width (ImagePipeline may have downscaled)
+                    let expectedWidth = group.map { CGFloat($0.xOffset + $0.width) }.max() ?? 1
+                    let actualWidth = CGFloat(sprite.cgImage?.width ?? 1)
+                    let scaleFactor = actualWidth / expectedWidth
+                    await MainActor.run { spriteCache[spriteURL] = (sprite, scaleFactor) }
                 }
-                let result = await crop(sprite, previews: group)
+                let scaleFactor = spriteCache[spriteURL]?.1 ?? 1
+                let result = await crop(sprite, previews: group, scaleFactor: scaleFactor)
                 await MainActor.run { tiles.merge(result) { _, new in new } }
             } catch {
                 await MainActor.run { failed = true }
@@ -96,18 +101,20 @@ struct PreviewStrip: View {
     }
 
     /// Converts CSS pixel coordinates to CGImage pixel coordinates and crops
-    /// exactly the tile rectangle. No SwiftUI offset or UIImage point units.
-    private func crop(_ sprite: UIImage, previews: [PagePreview]) async -> [Int: UIImage] {
+    /// exactly the tile rectangle. Accounts for ImagePipeline downscaling by
+    /// applying the scaleFactor to all coordinates.
+    private func crop(_ sprite: UIImage, previews: [PagePreview], scaleFactor: CGFloat) async -> [Int: UIImage] {
         await Task.detached(priority: .userInitiated) {
             guard let cg = sprite.cgImage else { return [:] }
             var result: [Int: UIImage] = [:]
             for preview in previews {
-                let x = max(0, min(preview.xOffset, cg.width - 1))
-                let y = max(0, min(preview.yOffset, cg.height - 1))
-                let width = min(preview.width, cg.width - x)
-                let height = min(preview.height, cg.height - y)
-                guard width > 0, height > 0,
-                      let cropped = cg.cropping(to: CGRect(x: x, y: y, width: width, height: height)) else { continue }
+                // Scale CSS pixel coordinates to actual CGImage pixel coordinates
+                let x = max(0, min(Int(CGFloat(preview.xOffset) * scaleFactor), cg.width - 1))
+                let y = max(0, min(Int(CGFloat(preview.yOffset) * scaleFactor), cg.height - 1))
+                let w = min(Int(CGFloat(preview.width) * scaleFactor), cg.width - x)
+                let h = min(Int(CGFloat(preview.height) * scaleFactor), cg.height - y)
+                guard w > 0, h > 0,
+                      let cropped = cg.cropping(to: CGRect(x: x, y: y, width: w, height: h)) else { continue }
                 result[preview.page] = UIImage(cgImage: cropped, scale: 1, orientation: sprite.imageOrientation)
             }
             return result
@@ -135,7 +142,6 @@ struct PreviewStrip: View {
             await loadTiles(for: fresh)
         } catch {
             failed = true
-            // Keep the sentinel available so a transient request can retry.
             hasMore = true
         }
     }

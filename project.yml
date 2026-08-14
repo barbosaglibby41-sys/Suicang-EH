@@ -15,7 +15,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.taro.eh
         PRODUCT_NAME: TaroEH
-        MARKETING_VERSION: "1.7.51"
+        MARKETING_VERSION: "1.7.52"
         CURRENT_PROJECT_VERSION: "1"
         SWIFT_VERSION: "5.0"
         INFOPLIST_FILE: TaroEH/Info.plist
