@@ -31,7 +31,23 @@ final class SiteClient {
         request.setValue("text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8", forHTTPHeaderField: "Accept")
         request.setValue("zh-CN,zh;q=0.9", forHTTPHeaderField: "Accept-Language")
         if let referer { request.setValue(referer.absoluteString, forHTTPHeaderField: "Referer") }
-        if let cookieHeader, !cookieHeader.isEmpty { request.setValue(cookieHeader, forHTTPHeaderField: "Cookie") }
+        
+        var allCookies: [String: String] = [:]
+        if let header = cookieHeader {
+            for pair in header.split(separator: ";") {
+                let parts = pair.split(separator: "=", maxSplits: 1).map { $0.trimmingCharacters(in: .whitespaces) }
+                if parts.count == 2 { allCookies[parts[0]] = parts[1] }
+            }
+        }
+        if let url = request.url, let storageCookies = HTTPCookieStorage.shared.cookies(for: url) {
+            for cookie in storageCookies {
+                allCookies[cookie.name] = cookie.value
+            }
+        }
+        if !allCookies.isEmpty {
+            let combined = allCookies.map { "\($0.key)=\($0.value)" }.joined(separator: "; ")
+            request.setValue(combined, forHTTPHeaderField: "Cookie")
+        }
     }
     func search(config: AdvancedSearchConfig, cookieHeader: String?, baseURL: URL, source: EHSource? = nil, translatedQuery: String? = nil) async throws -> [Gallery] {
         try await searchPage(config: config, cookieHeader: cookieHeader, baseURL: baseURL, source: source, translatedQuery: translatedQuery).galleries
@@ -206,7 +222,24 @@ final class SiteClient {
         var r = request
         r.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile", forHTTPHeaderField: "User-Agent")
         r.setValue("zh-CN,zh;q=0.9", forHTTPHeaderField: "Accept-Language")
-        if let cookieHeader, !cookieHeader.isEmpty { r.setValue(cookieHeader, forHTTPHeaderField: "Cookie") }
+        
+        var allCookies: [String: String] = [:]
+        if let header = cookieHeader {
+            for pair in header.split(separator: ";") {
+                let parts = pair.split(separator: "=", maxSplits: 1).map { $0.trimmingCharacters(in: .whitespaces) }
+                if parts.count == 2 { allCookies[parts[0]] = parts[1] }
+            }
+        }
+        if let url = r.url, let storageCookies = HTTPCookieStorage.shared.cookies(for: url) {
+            for cookie in storageCookies {
+                allCookies[cookie.name] = cookie.value
+            }
+        }
+        if !allCookies.isEmpty {
+            let combined = allCookies.map { "\($0.key)=\($0.value)" }.joined(separator: "; ")
+            r.setValue(combined, forHTTPHeaderField: "Cookie")
+        }
+        
         let (data, response) = try await session.data(for: r)
         guard let http = response as? HTTPURLResponse else { throw SiteError.invalidResponse }
         if http.statusCode == 401 || http.statusCode == 403 { throw SiteError.accessDenied }
@@ -240,6 +273,24 @@ final class SiteClient {
     }
 
     func refreshExHentaiCookie(cookieHeader: String?) async throws -> String? {
+        // Fetch E-Hentai homepage first to ensure we have `sk` (Session Key) in HTTPCookieStorage
+        // This mirrors JHenTai's `requestHomePage()` before auth to prevent `igneous=mystery`.
+        var preReq = URLRequest(url: EHSource.eHentai.baseURL)
+        applyHeaders(to: &preReq, cookieHeader: cookieHeader, referer: nil)
+        _ = try? await session.data(for: preReq)
+        
+        // Replicate any newly acquired e-hentai.org cookies (like sk, datatags) to exhentai.org
+        // so that the ExHentai request receives them, matching JHenTai's shared cookie pool logic.
+        if let cookies = HTTPCookieStorage.shared.cookies {
+            for cookie in cookies where cookie.domain.contains("e-hentai.org") {
+                var props = cookie.properties ?? [:]
+                props[.domain] = "exhentai.org"
+                if let newCookie = HTTPCookie(properties: props) {
+                    HTTPCookieStorage.shared.setCookie(newCookie)
+                }
+            }
+        }
+
         // E-Hentai sometimes sets igneous=mystery for invalid attempts. 
         // We must strip any existing igneous cookie from native storage and headers 
         // to force the server to issue a new valid igneous token.
@@ -257,13 +308,18 @@ final class SiteClient {
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse, 200..<400 ~= http.statusCode else { throw SiteError.accessDenied }
         var resultValues = values
+        var gotValidIgneous = false
         if let cookies = HTTPCookieStorage.shared.cookies {
             for cookie in cookies where cookie.name.lowercased() == "igneous" {
                 resultValues.removeAll { $0.lowercased().hasPrefix("igneous=") }
-                resultValues.append("\(cookie.name)=\(cookie.value)")
+                let val = cookie.value.lowercased()
+                if val != "mystery" && val != "deleted" && !val.isEmpty {
+                    resultValues.append("\(cookie.name)=\(cookie.value)")
+                    gotValidIgneous = true
+                }
             }
         }
-        guard let html = String(data: data, encoding: .utf8), SiteParser.isAuthenticatedAccountPage(html) else { return nil }
+        guard gotValidIgneous else { return nil }
         return resultValues.joined(separator: "; ")
     }
     func cloudFavorites(source: EHSource, category: Int, cookieHeader: String?) async throws -> CloudFavoritePage {
