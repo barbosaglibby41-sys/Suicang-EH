@@ -240,22 +240,31 @@ final class SiteClient {
     }
 
     func refreshExHentaiCookie(cookieHeader: String?) async throws -> String? {
+        // E-Hentai sometimes sets igneous=mystery for invalid attempts. 
+        // We must strip any existing igneous cookie from native storage and headers 
+        // to force the server to issue a new valid igneous token.
+        if let cookies = HTTPCookieStorage.shared.cookies {
+            for cookie in cookies where cookie.name.lowercased() == "igneous" {
+                HTTPCookieStorage.shared.deleteCookie(cookie)
+            }
+        }
+        var values = cookieHeader?.split(separator: ";").map { $0.trimmingCharacters(in: .whitespaces) } ?? []
+        values.removeAll { $0.lowercased().hasPrefix("igneous=") }
+        let cleanHeader = values.joined(separator: "; ")
+
         var request = URLRequest(url: EHSource.exHentai.baseURL)
-        applyHeaders(to: &request, cookieHeader: cookieHeader, referer: EHSource.eHentai.baseURL)
+        applyHeaders(to: &request, cookieHeader: cleanHeader, referer: EHSource.eHentai.baseURL)
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse, 200..<400 ~= http.statusCode else { throw SiteError.accessDenied }
-        var values = cookieHeader?.split(separator: ";").map { $0.trimmingCharacters(in: .whitespaces) } ?? []
-        if let fields = http.allHeaderFields as? [String: String], let setCookie = fields.first(where: { $0.key.lowercased() == "set-cookie" })?.value {
-            for cookie in setCookie.split(separator: ",") {
-                let pair = cookie.split(separator: ";", maxSplits: 1).first.map(String.init) ?? ""
-                if pair.lowercased().hasPrefix("igneous=") {
-                    values.removeAll { $0.lowercased().hasPrefix("igneous=") }
-                    values.append(pair)
-                }
+        var resultValues = values
+        if let cookies = HTTPCookieStorage.shared.cookies {
+            for cookie in cookies where cookie.name.lowercased() == "igneous" {
+                resultValues.removeAll { $0.lowercased().hasPrefix("igneous=") }
+                resultValues.append("\(cookie.name)=\(cookie.value)")
             }
         }
         guard let html = String(data: data, encoding: .utf8), SiteParser.isAuthenticatedAccountPage(html) else { return nil }
-        return values.joined(separator: "; ")
+        return resultValues.joined(separator: "; ")
     }
     func cloudFavorites(source: EHSource, category: Int, cookieHeader: String?) async throws -> CloudFavoritePage {
         var components = URLComponents(url: source.baseURL.appendingPathComponent("favorites.php"), resolvingAgainstBaseURL: false)!

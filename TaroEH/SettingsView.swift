@@ -7,11 +7,6 @@ struct SettingsView: View {
             Section("账户") {
                 NavigationLink { AccountCenterView() } label: { Label("账户中心", systemImage: session.isLoggedIn ? "person.crop.circle.badge.checkmark" : "person.crop.circle") }
                 NavigationLink { CloudFavoritesView() } label: { Label("账户收藏", systemImage: session.isLoggedIn ? "cloud.fill" : "cloud") }
-                NavigationLink { WebLoginView() } label: { Label("网页登录", systemImage: "globe") }
-                NavigationLink { CookieImportView() } label: { Label("导入 Cookie", systemImage: "key.fill") }
-                if session.isLoggedIn {
-                    Button("清除本机登录", role: .destructive) { session.clear() }
-                }
             }
             Section("阅读") {
                 NavigationLink { ReaderSettingsView() } label: { Label("阅读设置", systemImage: "book.fill") }
@@ -28,7 +23,7 @@ struct SettingsView: View {
                 NavigationLink { NetworkSettingsView() } label: { Label("网络设置", systemImage: "network") }
             }
             Section("关于") {
-                LabeledContent("版本", value: "1.7.67")
+                LabeledContent("版本", value: "1.7.69")
                 Text("JHenTai 架构参考：Apache-2.0，完整许可证随源代码提供。")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
