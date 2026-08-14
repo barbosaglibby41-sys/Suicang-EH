@@ -586,8 +586,17 @@ struct GalleryCard: View {
                     }
                 }
 
+            Text(gallery.title)
+                .font(.subheadline.bold())
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, minHeight: 42, maxHeight: 42, alignment: .topLeading)
+
             if showTags && !gallery.tags.isEmpty {
-                GalleryTagPreview(tags: gallery.tags)
+                GalleryTagPreview(tags: gallery.tags, maxTags: 3, maxRows: 2)
+                    .frame(height: 40, alignment: .topLeading)
+            } else {
+                Spacer(minLength: 0).frame(height: 40)
             }
 
             HStack(spacing: 8) {

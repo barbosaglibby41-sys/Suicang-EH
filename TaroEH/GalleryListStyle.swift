@@ -81,10 +81,16 @@ struct GalleryFlatRow: View {
             GalleryCover(url: gallery.thumbnailURL)
                 .frame(width: 92, height: 122)
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 5) {
                 Text(gallery.title)
                     .font(.headline)
                     .lineLimit(2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                if showTags && !gallery.tags.isEmpty {
+                    GalleryTagPreview(tags: gallery.tags, maxTags: 4, maxRows: 2)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                Spacer(minLength: 2)
                 Text(gallery.uploader.isEmpty ? "未知作者" : gallery.uploader)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
@@ -98,15 +104,12 @@ struct GalleryFlatRow: View {
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
-                if showTags && !gallery.tags.isEmpty {
-                    GalleryTagPreview(tags: gallery.tags)
-                }
-                Spacer(minLength: 0)
             }
             Spacer(minLength: 0)
             Image(systemName: "chevron.right")
                 .foregroundStyle(.tertiary)
         }
+        .frame(minHeight: 122)
         .padding(.vertical, 8)
         .contentShape(Rectangle())
     }
@@ -114,9 +117,13 @@ struct GalleryFlatRow: View {
 
 struct GalleryTagPreview: View {
     let tags: [GalleryTag]
+    var maxTags: Int = 3
+    var maxRows: Int = 1
+
     var body: some View {
-        HStack(spacing: 5) {
-            ForEach(Array(tags.prefix(3))) { tag in
+        let rows = max(1, maxRows)
+        FlowLayout(spacing: 5) {
+            ForEach(Array(tags.prefix(maxTags))) { tag in
                 Text(tag.translatedName ?? tag.key)
                     .font(.caption2)
                     .lineLimit(1)
@@ -125,6 +132,8 @@ struct GalleryTagPreview: View {
                     .background(Color.secondary.opacity(0.12), in: Capsule())
             }
         }
+        .frame(maxHeight: CGFloat(rows) * 24, alignment: .topLeading)
+        .clipped()
     }
 }
 
@@ -147,7 +156,7 @@ struct GalleryWaterfallCard: View {
             }
             .font(.caption)
             .foregroundStyle(.secondary)
-            if showTags && !gallery.tags.isEmpty { GalleryTagPreview(tags: gallery.tags) }
+            if showTags && !gallery.tags.isEmpty { GalleryTagPreview(tags: gallery.tags, maxTags: 3, maxRows: 2) }
         }
         .padding(8)
         .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
