@@ -6,9 +6,17 @@ struct ReadingProgress: Codable, Hashable { var galleryID: Int; var source: EHSo
     @Published private(set) var records: [String: ReadingProgress] = [:]; private let key = "taro.eh.reading.progress.v2"
     init() { load() }
     func page(for gallery: Gallery) -> Int { records[gallery.stableKey]?.pageIndex ?? 0 }
+    func hasProgress(for gallery: Gallery) -> Bool {
+        guard let value = records[gallery.stableKey] else { return false }
+        return value.pageCount > 0
+    }
     private var pendingSave: Task<Void, Never>?
     func save(gallery: Gallery, pageIndex: Int) {
-        records[gallery.stableKey] = ReadingProgress(galleryID: gallery.id, source: gallery.source, pageIndex: max(0, pageIndex), pageCount: gallery.pageCount, updatedAt: .now)
+        let maximum = max(0, gallery.pageCount - 1)
+        records[gallery.stableKey] = ReadingProgress(galleryID: gallery.id, source: gallery.source, pageIndex: min(max(0, pageIndex), maximum), pageCount: gallery.pageCount, updatedAt: .now)
+        // Persist immediately so a navigation pop or app suspension cannot lose
+        // the last page. The delayed write remains as a coalesced backup.
+        persist()
         pendingSave?.cancel()
         pendingSave = Task { [weak self] in
             try? await Task.sleep(for: .milliseconds(500))

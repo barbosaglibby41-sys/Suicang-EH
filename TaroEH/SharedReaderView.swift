@@ -16,11 +16,11 @@ private struct ReaderPageOffsetKey: PreferenceKey {
 /// Picks the right reader for a gallery.
 enum ReaderDestination {
     @ViewBuilder
-    static func view(for gallery: Gallery) -> some View {
+    static func view(for gallery: Gallery, startIndex: Int = 0) -> some View {
         if gallery.sourceURL != nil {
-            OnlineReaderView(gallery: gallery)
+            OnlineReaderView(gallery: gallery, startIndex: startIndex)
         } else if OfflineLibrary.hasCompleteCopy(gallery) {
-            OfflineReaderView(gallery: gallery)
+            OfflineReaderView(gallery: gallery, startIndex: startIndex)
         } else {
             ContentUnavailableView("无法阅读", systemImage: "book", description: Text("该作品缺少在线地址，且没有离线副本。"))
         }
@@ -33,12 +33,13 @@ enum ReaderDestination {
 
 struct SharedReaderView<Source: View>: View {
     let title: String
+    let gallery: Gallery
     let pageCount: Int
     let initialIndex: Int
     let onIndexChange: (Int) -> Void
     let onPageAppear: (Int) -> Void
     @ViewBuilder let source: (Int, Bool, CGFloat) -> Source
-    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var reading: ReadingStore
     @AppStorage("taro.eh.reader.direction") private var direction = "horizontal"
     @AppStorage("taro.eh.reader.fit") private var fit = true
     @AppStorage("taro.eh.reader.keepScreenOn") private var keepScreenOn = true
@@ -48,7 +49,8 @@ struct SharedReaderView<Source: View>: View {
     @State private var sliderIndex = 0
     @State private var isProgrammaticScroll = false
 
-    init(title: String, pageCount: Int, initialIndex: Int = 0, onIndexChange: @escaping (Int) -> Void = { _ in }, onPageAppear: @escaping (Int) -> Void = { _ in }, @ViewBuilder source: @escaping (Int, Bool, CGFloat) -> Source) {
+    init(gallery: Gallery, title: String, pageCount: Int, initialIndex: Int = 0, onIndexChange: @escaping (Int) -> Void = { _ in }, onPageAppear: @escaping (Int) -> Void = { _ in }, @ViewBuilder source: @escaping (Int, Bool, CGFloat) -> Source) {
+        self.gallery = gallery
         self.title = title
         self.pageCount = pageCount
         self.initialIndex = initialIndex
@@ -84,6 +86,7 @@ struct SharedReaderView<Source: View>: View {
         }
         .onChange(of: index) { _, value in
             sliderIndex = value
+            reading.save(gallery: gallery, pageIndex: index)
             onIndexChange(value)
         }
     }

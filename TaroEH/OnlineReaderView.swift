@@ -29,7 +29,7 @@ struct OnlineReaderView: View {
             } else if pageLinks.isEmpty {
                 ProgressView("正在获取阅读目录…").tint(.white)
             } else {
-                SharedReaderView(title: gallery.title, pageCount: pageLinks.count, initialIndex: min(startIndex, max(0, pageLinks.count - 1)), onIndexChange: { index in
+                SharedReaderView(gallery: gallery, title: gallery.title, pageCount: pageLinks.count, initialIndex: min(startIndex, max(0, pageLinks.count - 1)), onIndexChange: { index in
                     reading.save(gallery: gallery, pageIndex: index)
                     lastLoadedPage = max(lastLoadedPage, index)
                     if index >= pageLinks.count - 3 {

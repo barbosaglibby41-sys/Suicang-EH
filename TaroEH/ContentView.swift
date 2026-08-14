@@ -600,7 +600,7 @@ struct GalleryDetailView: View {
     @EnvironmentObject private var discovery: DiscoveryStore
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var downloads: DownloadStore
-    @State private var item: Gallery
+    @EnvironmentObject private var reading: ReadingStore
     @State private var detailError: String?
     @State private var showCommentEditor = false
     @State private var commentDraft = ""
@@ -613,7 +613,23 @@ struct GalleryDetailView: View {
             HStack(alignment: .top) { VStack(alignment: .leading) { Text(item.title).font(.title2.bold()); Text("\(item.uploader) · \(item.pageCount) 页").foregroundStyle(.secondary); if let postedAt = item.postedAt, !postedAt.isEmpty { Label("发布于 \(postedAt)", systemImage: "calendar").font(.caption).foregroundStyle(.secondary) } }; Spacer(); Button { library.toggleFavorite(item) } label: { Image(systemName: library.isFavorite(item) ? "star.fill" : "star").font(.title2) } }
             GalleryInfoCard(gallery: item)
             if let detailError { Text(detailError).font(.caption).foregroundStyle(.orange) }
-            HStack { NavigationLink { ReaderDestination.view(for: item) } label: { Label("开始阅读", systemImage: "book.fill").frame(maxWidth: .infinity) }.buttonStyle(.borderedProminent).disabled(!offlineAvailable && item.sourceURL == nil); Button { downloadOnline() } label: { Image(systemName: "arrow.down.to.line") }.buttonStyle(.bordered).disabled(item.sourceURL == nil); if let source = item.sourceURL { Link(destination: source) { Image(systemName: "safari") }.buttonStyle(.bordered) }; ShareLink(item: item.title) { Image(systemName: "square.and.arrow.up") }.buttonStyle(.bordered) }
+            HStack {
+                NavigationLink {
+                    ReaderDestination.view(for: item, startIndex: reading.page(for: item))
+                } label: {
+                    Label(reading.hasProgress(for: item) ? "继续阅读" : "开始阅读", systemImage: reading.hasProgress(for: item) ? "play.fill" : "book.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                if reading.hasProgress(for: item) {
+                    Text("已阅读 \(min(reading.page(for: item) + 1, max(1, item.pageCount))) / \(item.pageCount) 页")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Button { downloadOnline() } label: { Image(systemName: "arrow.down.to.line") }.buttonStyle(.bordered).disabled(item.sourceURL == nil)
+                if let source = item.sourceURL { Link(destination: source) { Image(systemName: "safari") }.buttonStyle(.bordered) }
+                ShareLink(item: item.title) { Image(systemName: "square.and.arrow.up") }.buttonStyle(.bordered)
+            }
             if item.sourceURL == nil && !offlineAvailable { Text("缺少在线地址且无离线副本，无法阅读或下载。").font(.caption).foregroundStyle(.orange) }
             if !item.previews.isEmpty { PreviewStrip(gallery: item, previews: item.previews) }
             HStack(spacing: 6) {
