@@ -12,8 +12,16 @@ struct ReadingProgress: Codable, Hashable { var galleryID: Int; var source: EHSo
     }
     private var pendingSave: Task<Void, Never>?
     func save(gallery: Gallery, pageIndex: Int) {
-        let maximum = max(0, gallery.pageCount - 1)
-        records[gallery.stableKey] = ReadingProgress(galleryID: gallery.id, source: gallery.source, pageIndex: min(max(0, pageIndex), maximum), pageCount: gallery.pageCount, updatedAt: .now)
+        let maximum: Int
+        if gallery.pageCount > 0 {
+            maximum = max(0, gallery.pageCount - 1)
+        } else {
+            // A list/detail model may not have its total page count hydrated
+            // yet. Never collapse a valid saved position back to page zero.
+            maximum = Int.max
+        }
+        let safeIndex = min(max(0, pageIndex), maximum)
+        records[gallery.stableKey] = ReadingProgress(galleryID: gallery.id, source: gallery.source, pageIndex: safeIndex, pageCount: gallery.pageCount, updatedAt: .now)
         // Persist immediately so a navigation pop or app suspension cannot lose
         // the last page. The delayed write remains as a coalesced backup.
         persist()

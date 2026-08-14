@@ -37,7 +37,6 @@ struct ReaderPageImage: View {
                     .resizable()
                     .aspectRatio(contentMode: fit ? .fit : .fill)
                     .scaleEffect(scale)
-                    .transition(.opacity)
             }
 
             if failed {
@@ -62,10 +61,8 @@ struct ReaderPageImage: View {
                     referer: nil
                 )
                 guard !Task.isCancelled else { return }
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    image = value
-                    failed = false
-                }
+                image = value
+                failed = false
             } catch {
                 guard !Task.isCancelled else { return }
                 // The cached image URL may have expired. Ask the parent to

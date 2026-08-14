@@ -50,6 +50,7 @@ struct SharedReaderView<Source: View>: View {
     @State private var sliderIndex = 0
     @State private var isProgrammaticScroll = false
     @State private var autoHideWorkItem: Task<Void, Never>?
+    @State private var hasRestoredInitialPosition = false
 
     init(gallery: Gallery, title: String, pageCount: Int, initialIndex: Int = 0, onIndexChange: @escaping (Int) -> Void = { _ in }, onPageAppear: @escaping (Int) -> Void = { _ in }, @ViewBuilder source: @escaping (Int, Bool, CGFloat) -> Source) {
         self.gallery = gallery
@@ -150,6 +151,20 @@ struct SharedReaderView<Source: View>: View {
                     }
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                         isProgrammaticScroll = false
+                    }
+                }
+                .onAppear {
+                    guard !hasRestoredInitialPosition else { return }
+                    hasRestoredInitialPosition = true
+                    let target = min(max(initialIndex, 0), max(0, pageCount - 1))
+                    guard target > 0 else { return }
+                    sliderIndex = target
+                    isProgrammaticScroll = true
+                    DispatchQueue.main.async {
+                        proxy.scrollTo(target, anchor: .top)
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                            isProgrammaticScroll = false
+                        }
                     }
                 }
             }
