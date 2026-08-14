@@ -38,7 +38,7 @@ struct OnlineReaderView: View {
                         Task { await loadMorePagesIfNeeded() }
                     }
                 }) { index, fit, scale in
-                    ReaderPageImage(url: imageURLs[index], pageNumber: index + 1, fit: fit, scale: scale, onRetry: {
+                    ReaderPageImage(url: imageURLs[index], referer: pageLinks.indices.contains(index) ? pageLinks[index] : gallery.sourceURL, pageNumber: index + 1, fit: fit, scale: scale, onRetry: {
                         Task { await loadPage(index, force: true) }
                     }, onFailure: {
                         ImageURLCache.shared.removeImage(for: gallery, at: index)

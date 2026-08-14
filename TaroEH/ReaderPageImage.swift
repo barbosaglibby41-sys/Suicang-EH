@@ -5,6 +5,7 @@ import UIKit
 /// the page viewport while loading, fades the bitmap in, and retries in place.
 struct ReaderPageImage: View {
     let url: URL?
+    let referer: URL?
     let pageNumber: Int
     let fit: Bool
     let scale: CGFloat
@@ -59,7 +60,7 @@ struct ReaderPageImage: View {
             for attempt in 0..<3 {
                 do {
                     if attempt > 0 { try await Task.sleep(for: .milliseconds(350 * attempt)) }
-                    let value = try await ImagePipeline.shared.image(for: url, cookieHeader: session.cookieHeader())
+                    let value = try await ImagePipeline.shared.image(for: url, cookieHeader: session.cookieHeader(), referer: referer)
                     guard !Task.isCancelled else { return }
                     withAnimation(.easeOut(duration: 0.22)) {
                         image = value

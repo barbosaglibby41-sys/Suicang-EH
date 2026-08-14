@@ -21,7 +21,7 @@ actor ImagePipeline {
         memory.totalCostLimit = 80 * 1024 * 1024
     }
 
-    func image(for url: URL, cookieHeader: String? = nil) async throws -> UIImage {
+    func image(for url: URL, cookieHeader: String? = nil, referer: URL? = nil) async throws -> UIImage {
         if let cached = memory.object(forKey: url as NSURL) { return cached }
         if let task = inFlight[url] { return try await task.value }
         let task = Task<UIImage, Error> {
@@ -38,6 +38,7 @@ actor ImagePipeline {
             var request = URLRequest(url: url)
             request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15", forHTTPHeaderField: "User-Agent")
             if let cookieHeader, !cookieHeader.isEmpty { request.setValue(cookieHeader, forHTTPHeaderField: "Cookie") }
+            if let referer { request.setValue(referer.absoluteString, forHTTPHeaderField: "Referer") }
             let (data, response) = try await session.data(for: request)
             guard let http = response as? HTTPURLResponse, 200..<400 ~= http.statusCode, let image = UIImage(data: data) else { throw SiteError.invalidResponse }
             return image
