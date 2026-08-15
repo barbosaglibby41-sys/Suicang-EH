@@ -11,35 +11,28 @@ struct AccountCenterView: View {
 
     var body: some View {
         Form {
-            Section("当前账户") {
-                HStack(spacing: 12) {
-                    Image(systemName: session.statusIcon)
-                        .font(.title2)
-                        .foregroundStyle(session.statusColor)
-                        .frame(width: 34)
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(session.accountName ?? (session.isLoggedIn ? "已登录账户" : "未登录"))
-                            .font(.headline)
-                        Text(session.statusText(for: source))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+            Section {
+                HStack(spacing: 14) {
+                    TaroAvatar(icon: session.statusIcon)
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(session.accountName ?? (session.isLoggedIn ? "已登录账户" : "未登录账户")).font(.title3.weight(.bold))
+                        TaroStatusPill(title: session.statusText(for: source), icon: session.isLoggedIn ? "checkmark" : "exclamationmark", tint: session.isLoggedIn ? .green : .orange)
                     }
                     Spacer()
                     if session.isChecking { ProgressView().controlSize(.small) }
                 }
-                Picker("验证站点", selection: Binding(get: { source }, set: { value in
-                    sourceRaw = value.rawValue
-                })) {
+                .padding(.vertical, 5)
+                Picker("验证站点", selection: Binding(get: { source }, set: { value in sourceRaw = value.rawValue })) {
                     ForEach(EHSource.allCases) { Text($0.title).tag($0) }
                 }
-                Button {
-                    Task { await session.validate(source: source) }
-                } label: {
-                    Label("验证账户状态", systemImage: "checkmark.shield")
+                Button { Task { await session.validate(source: source) } } label: {
+                    Label("验证账户状态", systemImage: "checkmark.shield.fill")
                 }
+                .buttonStyle(TaroPrimaryButtonStyle())
                 .disabled(session.isChecking || !session.hasCredentials)
+            } header: {
+                Text("账户状态").font(.headline).foregroundStyle(.primary)
             }
-
             Section("站点能力") {
                 CapabilityRow(title: "E-Hentai", detail: session.hasCredentials ? "账号 Cookie 已保存" : "需要登录", active: session.hasCredentials)
                 CapabilityRow(title: "ExHentai 里站", detail: session.exAccess == true ? "可访问" : (session.hasCredentials ? "尚未验证或不可访问" : "需要登录"), active: session.exAccess == true)
@@ -93,6 +86,9 @@ struct AccountCenterView: View {
             }
         }
         .navigationTitle("账户中心")
+        .scrollContentBackground(.hidden)
+        .background(TaroPageBackground())
+        .tint(TaroTheme.accent)
         .sheet(isPresented: $showCookies) { CookieStatusView() }
         .task {
             if session.hasCredentials { await session.validate(source: source) }

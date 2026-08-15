@@ -60,7 +60,8 @@ struct ContentView: View {
         .animation(.easeInOut(duration: 0.22), value: bottomBarVisible)
         .environmentObject(session)
         .environmentObject(library)
-        .tint(.purple)
+        .tint(TaroTheme.accent)
+        .preferredColorScheme(nil)
         .onReceive(NotificationCenter.default.publisher(for: .taroSearchTag)) { notification in
             guard let raw = notification.userInfo?["tag"] as? String, !raw.isEmpty else { return }
             if selectedTab != 0 { path = NavigationPath() }
@@ -90,26 +91,24 @@ private struct TaroTabBar: View {
     ]
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 4) {
             ForEach(Array(items.enumerated()), id: \.offset) { index, item in
-                Button {
-                    action(index)
-                } label: {
-                    VStack(spacing: 3) {
+                Button { action(index) } label: {
+                    VStack(spacing: 4) {
                         Image(systemName: selection == index ? item.selectedIcon : item.icon)
-                            .font(.system(size: 19, weight: selection == index ? .semibold : .regular))
+                            .font(.system(size: 18, weight: selection == index ? .bold : .medium))
                             .frame(height: 22)
                         Text(item.title)
-                            .font(.system(size: 10, weight: selection == index ? .semibold : .regular))
-                            .lineLimit(1)
+                            .font(.system(size: 10, weight: selection == index ? .bold : .medium))
                     }
-                    .foregroundStyle(selection == index ? Color.purple : Color.secondary)
+                    .foregroundStyle(selection == index ? TaroTheme.accent : .secondary)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 52)
+                    .frame(height: 50)
                     .background {
                         if selection == index {
                             Capsule(style: .continuous)
-                                .fill(Color.purple.opacity(colorScheme == .dark ? 0.22 : 0.1))
+                                .fill(TaroTheme.accent.opacity(colorScheme == .dark ? 0.23 : 0.11))
+                                .overlay(Capsule().stroke(TaroTheme.accent.opacity(0.14), lineWidth: 0.7))
                         }
                     }
                     .contentShape(Rectangle())
@@ -119,15 +118,15 @@ private struct TaroTabBar: View {
                 .accessibilityAddTraits(selection == index ? .isSelected : [])
             }
         }
-        .padding(.horizontal, 10)
-        .padding(.top, 7)
-        .padding(.bottom, 5)
-        .background(Color(.systemBackground).opacity(0.97))
-        .overlay(alignment: .top) {
-            Rectangle()
-                .fill(Color.secondary.opacity(0.16))
-                .frame(height: 0.5)
-        }
+        .padding(.horizontal, 12)
+        .padding(.top, 8)
+        .padding(.bottom, 7)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(Color.primary.opacity(0.08), lineWidth: 0.7))
+        .padding(.horizontal, 12)
+        .padding(.bottom, 8)
+        .shadow(color: .black.opacity(0.16), radius: 18, y: 8)
     }
 }
 
@@ -220,30 +219,25 @@ struct DiscoverView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                HStack {
-                    VStack(alignment: .leading) {
-                        Text("芋头 E 站").font(.largeTitle.bold())
-                        Text("E-Hentai / ExHentai · 中文标签搜索").foregroundStyle(.secondary)
+                HStack(alignment: .center, spacing: 13) {
+                    TaroAvatar(icon: "sparkles")
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("芋头 E 站").font(.title2.weight(.bold))
+                        Text("探索 · 收藏 · 阅读").font(.caption.weight(.medium)).foregroundStyle(.secondary)
                     }
                     Spacer()
-                    Image(systemName: "person.crop.circle").font(.title)
+                    TaroStatusPill(title: currentSource.title, icon: currentSource == .exHentai ? "lock.fill" : "globe")
                 }
-                HStack {
-                    feedSelector
-                    if isRandomFeed {
-                        Button { selectFeed(.random) } label: {
-                            Image(systemName: "arrow.clockwise")
-                                .frame(width: 42, height: 42)
+                TaroCard(padding: 12) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Label("发现内容", systemImage: "square.grid.2x2.fill").font(.caption.weight(.bold)).foregroundStyle(.secondary)
+                            Spacer()
+                            Button { showFilters = true } label: { Image(systemName: "slider.horizontal.3").font(.subheadline.weight(.bold)) }
+                                .buttonStyle(.plain).foregroundStyle(TaroTheme.accent).accessibilityLabel("筛选排序")
                         }
-                        .buttonStyle(.bordered)
-                        .accessibilityLabel("换一批随机画廊")
+                        feedSelector
                     }
-                    Button { showFilters = true } label: {
-                        Image(systemName: "slider.horizontal.3")
-                            .frame(width: 42, height: 42)
-                    }
-                    .buttonStyle(.bordered)
-                    .accessibilityLabel("筛选排序")
                 }
                 searchBar
                 suggestions
@@ -386,7 +380,7 @@ struct DiscoverView: View {
                             .lineLimit(1)
                             .padding(.horizontal, 13)
                             .frame(height: 42)
-                            .background(selectedFeed == feed ? Color.purple : Color.secondary.opacity(0.15), in: Capsule())
+                            .background(selectedFeed == feed ? TaroTheme.brandGradient : LinearGradient(colors: [Color.secondary.opacity(0.13)], startPoint: .leading, endPoint: .trailing), in: Capsule())
                             .foregroundStyle(selectedFeed == feed ? .white : .primary)
                     }
                     .buttonStyle(.plain)
@@ -421,7 +415,12 @@ struct DiscoverView: View {
                 Button { query = ""; results = []; isSearchResults = false; searchFocused = true; loadFrontPage() } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary) }.accessibilityLabel("清空搜索")
                 Button { searchFocused = false; onlineSearch() } label: { Image(systemName: "arrow.right.circle.fill").foregroundStyle(.purple) }.accessibilityLabel("执行搜索")
             }
-        }.padding(13).background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
+        }
+        .padding(.horizontal, 14)
+        .frame(minHeight: 50)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 17, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 17, style: .continuous).stroke(TaroTheme.accent.opacity(0.12), lineWidth: 1))
+        .shadow(color: .black.opacity(0.05), radius: 10, y: 4)
     }
 
     @ViewBuilder private var suggestions: some View {
@@ -726,9 +725,10 @@ struct GalleryCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
-        .padding(10)
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .shadow(color: .black.opacity(0.06), radius: 3, x: 0, y: 1)
+        .padding(11)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 19, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 19, style: .continuous).stroke(Color.primary.opacity(0.06), lineWidth: 0.8))
+        .shadow(color: TaroTheme.accent.opacity(0.08), radius: 14, y: 6)
         .contentShape(Rectangle())
     }
 }
@@ -769,7 +769,18 @@ struct GalleryDetailView: View {
             GalleryCover(url: item.thumbnailURL, cookieHeader: session.cookieHeader())
                 .frame(maxWidth: .infinity)
                 .frame(height: 300)
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .overlay(alignment: .bottomLeading) {
+                    LinearGradient(colors: [.clear, .black.opacity(0.62)], startPoint: .center, endPoint: .bottom)
+                        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                }
+                .overlay(alignment: .bottomLeading) {
+                    VStack(alignment: .leading, spacing: 5) {
+                        TaroStatusPill(title: item.source.title, icon: item.source == .exHentai ? "lock.fill" : "globe", tint: .white)
+                        Text(item.category.isEmpty ? "画廊" : item.category).font(.caption.weight(.medium)).foregroundStyle(.white.opacity(0.85))
+                    }.padding(16)
+                }
+                .shadow(color: TaroTheme.accent.opacity(0.18), radius: 18, y: 8)
             HStack(alignment: .top) { VStack(alignment: .leading) { Text(item.title).font(.title2.bold()); Text("\(item.uploader) · \(item.pageCount) 页").foregroundStyle(.secondary); if let postedAt = item.postedAt, !postedAt.isEmpty { Label("发布于 \(postedAt)", systemImage: "calendar").font(.caption).foregroundStyle(.secondary) } }; Spacer(); Button { showFavoriteTargets = true } label: { Image(systemName: library.isFavorite(item) ? "star.fill" : "star").font(.title2) } }
             .sheet(isPresented: $showFavoriteTargets) { FavoriteTargetSheet(gallery: item) }
             GalleryInfoCard(gallery: item)
@@ -817,7 +828,7 @@ struct GalleryDetailView: View {
             }
             commentsSection
         }.padding() }
-        .navigationTitle("详情").navigationBarTitleDisplayMode(.inline).onAppear { library.record(item) }.task { offlineAvailable = OfflineLibrary.hasCompleteCopy(item); await hydrate() }
+        .navigationTitle("详情").navigationBarTitleDisplayMode(.inline).scrollContentBackground(.hidden).background(TaroPageBackground()).onAppear { library.record(item) }.task { offlineAvailable = OfflineLibrary.hasCompleteCopy(item); await hydrate() }
         .sheet(isPresented: $showCommentEditor) {
             NavigationStack {
                 VStack(alignment: .leading, spacing: 12) {
@@ -1017,22 +1028,67 @@ struct ShelfView: View {
     @EnvironmentObject private var reading: ReadingStore
     @EnvironmentObject private var session: SessionStore
     private var offline: [OfflineTask] { downloads.tasks.filter { $0.state == .complete } }
-    var body: some View { List {
-        if session.isLoggedIn { Section("账户") {
-            NavigationLink { AccountCenterView() } label: { Label("账户中心", systemImage: "person.crop.circle.badge.checkmark") }
-            NavigationLink { CloudFavoritesView() } label: { Label("账户收藏", systemImage: "cloud.fill"); Spacer(); Text("同步").font(.caption).foregroundStyle(.secondary) }
-        } }
-        if let recent = library.history.first, reading.page(for: recent) > 0 { Section("继续阅读") { ContinueReadingCard(gallery: recent) } }
-        Section("离线作品 · \(offline.count)") { if offline.isEmpty { Text("完成下载的作品会显示在这里").foregroundStyle(.secondary) }; ForEach(offline) { task in NavigationLink { OfflineReaderView(gallery: task.gallery) } label: { GalleryRow(gallery: task.gallery) } } }
-        Section("本地收藏 · \(library.favorites.count)") {
-            if library.favorites.isEmpty { Text("还没有本地收藏").foregroundStyle(.secondary) }
-            ForEach(library.favorites) { gallery in NavigationLink { GalleryDetailView(gallery: gallery) } label: { GalleryRow(gallery: gallery) } }
-        }
-        Section("最近阅读 · \(library.history.count)") { ForEach(library.history) { gallery in NavigationLink { GalleryDetailView(gallery: gallery) } label: { GalleryRow(gallery: gallery) } } }
-    }.navigationTitle("书架") }
+    var body: some View {
+        ZStack {
+            TaroPageBackground()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    HStack(spacing: 13) {
+                        TaroAvatar(icon: "books.vertical.fill")
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("书架").font(.largeTitle.weight(.bold))
+                            Text("你的阅读与收藏空间").font(.subheadline).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                    }
+                    if session.isLoggedIn {
+                        TaroCard(padding: 14) {
+                            HStack(spacing: 13) {
+                                Image(systemName: "cloud.fill").font(.title3).foregroundStyle(.white).frame(width: 42, height: 42).background(TaroTheme.heroGradient, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+                                VStack(alignment: .leading, spacing: 3) { Text("账户收藏").font(.headline); Text("跨设备同步你的收藏夹").font(.caption).foregroundStyle(.secondary) }
+                                Spacer()
+                                NavigationLink { CloudFavoritesView() } label: { Image(systemName: "chevron.right").font(.subheadline.weight(.bold)).foregroundStyle(TaroTheme.accent) }
+                            }
+                        }
+                    }
+                    if let recent = library.history.first, reading.page(for: recent) > 0 {
+                        TaroSectionHeader(title: "继续阅读", subtitle: "上次读到第 \(reading.page(for: recent) + 1) 页", icon: "play.fill")
+                        ContinueReadingCard(gallery: recent)
+                    }
+                    TaroSectionHeader(title: "离线作品", subtitle: "\(offline.count) 部", icon: "arrow.down.circle.fill")
+                    if offline.isEmpty { TaroEmptyState(icon: "arrow.down.circle", title: "还没有离线作品", message: "下载完成的漫画会出现在这里，随时随地继续阅读。") }
+                    else { TaroCard(padding: 8) { VStack(spacing: 0) { ForEach(offline) { task in NavigationLink { OfflineReaderView(gallery: task.gallery) } label: { GalleryRow(gallery: task.gallery) }; if task.id != offline.last?.id { Divider().padding(.leading, 66) } } } } }
+                    TaroSectionHeader(title: "本地收藏", subtitle: "\(library.favorites.count) 部", icon: "star.fill")
+                    if library.favorites.isEmpty { TaroEmptyState(icon: "star", title: "还没有本地收藏", message: "在漫画详情页点击星标，建立属于你的私人书架。") }
+                    else { TaroCard(padding: 8) { VStack(spacing: 0) { ForEach(library.favorites) { gallery in NavigationLink { GalleryDetailView(gallery: gallery) } label: { GalleryRow(gallery: gallery) }; if gallery.id != library.favorites.last?.id { Divider().padding(.leading, 66) } } } } }
+                    TaroSectionHeader(title: "最近阅读", subtitle: "\(library.history.count) 部", icon: "clock.fill")
+                    if library.history.isEmpty { TaroEmptyState(icon: "clock", title: "阅读记录为空", message: "打开一部漫画后，阅读进度会自动保存在这里。") }
+                    else { TaroCard(padding: 8) { VStack(spacing: 0) { ForEach(library.history) { gallery in NavigationLink { GalleryDetailView(gallery: gallery) } label: { GalleryRow(gallery: gallery) }; if gallery.id != library.history.last?.id { Divider().padding(.leading, 66) } } } } }
+                }.padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 30)
+            }.scrollIndicators(.hidden)
+        }.navigationBarHidden(true)
+    }
 }
 
 struct GalleryRow: View {
     let gallery: Gallery
-    var body: some View { HStack { PipelineImage(url: gallery.thumbnailURL, contentMode: .fill).frame(width: 48, height: 66).clipShape(RoundedRectangle(cornerRadius: 7)); VStack(alignment: .leading) { Text(gallery.title).lineLimit(2); Text("\(gallery.pageCount) 页 · \(gallery.category)").font(.caption).foregroundStyle(.secondary) } } }
+    var body: some View {
+        HStack(spacing: 13) {
+            GalleryCover(url: gallery.thumbnailURL, contentMode: .fill)
+                .frame(width: 52, height: 70)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            VStack(alignment: .leading, spacing: 5) {
+                Text(gallery.title).font(.subheadline.weight(.semibold)).lineLimit(2)
+                HStack(spacing: 7) {
+                    TaroStatusPill(title: gallery.pageCount > 0 ? "\(gallery.pageCount) 页" : "页数未知", icon: "book.pages", tint: TaroTheme.accent)
+                    if !gallery.category.isEmpty { Text(gallery.category).font(.caption).foregroundStyle(.secondary).lineLimit(1) }
+                }
+            }
+            Spacer(minLength: 4)
+            Image(systemName: "chevron.right").font(.caption.weight(.bold)).foregroundStyle(.tertiary)
+        }
+        .padding(.horizontal, 9)
+        .padding(.vertical, 8)
+        .contentShape(Rectangle())
+    }
 }
