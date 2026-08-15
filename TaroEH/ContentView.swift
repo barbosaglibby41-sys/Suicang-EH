@@ -454,8 +454,18 @@ struct DiscoverView: View {
                                 HStack(spacing: 10) {
                                     Image(systemName: "magnifyingglass").foregroundStyle(.purple)
                                     VStack(alignment: .leading, spacing: 3) {
-                                        Text("\(tag.namespace):\(tag.key)").font(.subheadline).lineLimit(1)
-                                        Text("\(TagTranslationStore.namespaceName(tag.namespace)) · \(tag.name)").font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                                        Text(tag.name.isEmpty ? tag.key : tag.name)
+                                            .font(.subheadline.weight(.semibold))
+                                            .foregroundStyle(.primary)
+                                            .lineLimit(1)
+                                        HStack(spacing: 4) {
+                                            Text(TagTranslationStore.namespaceName(tag.namespace))
+                                            Text("·")
+                                            Text("\(tag.namespace):\(tag.key)")
+                                        }
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
                                     }
                                     Spacer(minLength: 20)
                                     Image(systemName: "arrow.up.right").font(.caption).foregroundStyle(.secondary)

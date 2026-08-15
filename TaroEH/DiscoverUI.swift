@@ -10,36 +10,32 @@ struct DiscoverHeroBanner: View {
                 .fill(TaroTheme.heroGradient)
                 .shadow(color: TaroTheme.accent.opacity(0.24), radius: 18, y: 9)
             Circle()
-                .fill(.white.opacity(0.10))
-                .frame(width: 170, height: 170)
-                .offset(x: 50, y: -50)
-            Circle()
-                .fill(.white.opacity(0.07))
-                .frame(width: 100, height: 100)
-                .offset(x: -110, y: 55)
-            HStack(spacing: 14) {
+                .fill(.white.opacity(0.09))
+                .frame(width: 110, height: 110)
+                .offset(x: 45, y: -38)
+            HStack(spacing: 11) {
                 Image(systemName: "sparkles")
-                    .font(.system(size: 26, weight: .bold))
+                    .font(.system(size: 20, weight: .bold))
                     .foregroundStyle(.white)
-                    .frame(width: 56, height: 56)
-                    .background(.white.opacity(0.18), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                VStack(alignment: .leading, spacing: 5) {
-                    Text("芋头 E 站").font(.title2.weight(.bold)).foregroundStyle(.white)
-                    Text("探索新作品，找到下一本想读的漫画")
-                        .font(.caption).foregroundStyle(.white.opacity(0.78))
-                    HStack(spacing: 7) {
-                        Label(source.title, systemImage: source == .exHentai ? "lock.fill" : "globe")
+                    .frame(width: 42, height: 42)
+                    .background(.white.opacity(0.18), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("芋头 E 站").font(.headline.weight(.bold)).foregroundStyle(.white)
+                    HStack(spacing: 6) {
+                        Text("探索 · 收藏 · 阅读")
                         Text("·")
-                        Text(isLoggedIn ? "已连接账户" : "直连浏览")
+                        Label(source.title, systemImage: source == .exHentai ? "lock.fill" : "globe")
+                        Text(isLoggedIn ? "· 已连接" : "· 直连")
                     }
                     .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.9))
+                    .foregroundStyle(.white.opacity(0.82))
                 }
                 Spacer(minLength: 0)
             }
-            .padding(18)
+            .padding(.horizontal, 15)
+            .padding(.vertical, 13)
         }
-        .frame(minHeight: 132)
+        .frame(minHeight: 88, maxHeight: 96)
         .clipped()
     }
 }
