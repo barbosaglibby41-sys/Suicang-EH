@@ -1028,46 +1028,166 @@ struct ShelfView: View {
     @EnvironmentObject private var downloads: DownloadStore
     @EnvironmentObject private var reading: ReadingStore
     @EnvironmentObject private var session: SessionStore
+    @State private var selectedShelf: ShelfMode = .overview
+
     private var offline: [OfflineTask] { downloads.tasks.filter { $0.state == .complete } }
+    private var recent: [Gallery] { Array(library.history.prefix(12)) }
+    private var localFavorites: [Gallery] { Array(library.favorites.prefix(12)) }
+    private var readingCount: Int { library.history.count }
+    private var totalPages: Int { library.history.reduce(0) { $0 + $1.pageCount } }
+
+    enum ShelfMode: String, CaseIterable, Identifiable {
+        case overview = "总览"
+        case favorites = "收藏"
+        case history = "阅读记录"
+        var id: String { rawValue }
+    }
+
     var body: some View {
         ZStack {
             TaroPageBackground()
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    HStack(spacing: 13) {
-                        TaroAvatar(icon: "books.vertical.fill")
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text("书架").font(.largeTitle.weight(.bold))
-                            Text("你的阅读与收藏空间").font(.subheadline).foregroundStyle(.secondary)
-                        }
-                        Spacer()
+                VStack(alignment: .leading, spacing: 22) {
+                    shelfHeader
+                    shelfSwitcher
+                    if selectedShelf == .overview { overviewContent }
+                    else if selectedShelf == .favorites { favoritesContent }
+                    else { historyContent }
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+                .padding(.bottom, 34)
+            }
+            .scrollIndicators(.hidden)
+        }
+        .navigationBarHidden(true)
+    }
+
+    private var shelfHeader: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 13) {
+                TaroAvatar(icon: "books.vertical.fill")
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("书架").font(.largeTitle.weight(.bold))
+                    Text(session.isLoggedIn ? "欢迎回来，继续你的阅读" : "你的阅读与收藏空间")
+                        .font(.subheadline).foregroundStyle(.secondary)
+                }
+                Spacer()
+                if session.isLoggedIn {
+                    Image(systemName: "checkmark.seal.fill").font(.title2).foregroundStyle(.green)
+                }
+            }
+            TaroCard(padding: 15) {
+                HStack(spacing: 12) {
+                    Image(systemName: "chart.bar.xaxis").font(.title3).foregroundStyle(.white)
+                        .frame(width: 44, height: 44)
+                        .background(TaroTheme.heroGradient, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("阅读概览").font(.headline)
+                        Text(totalPages > 0 ? "你的阅读足迹正在持续增长" : "打开一部漫画，开始建立阅读足迹")
+                            .font(.caption).foregroundStyle(.secondary)
                     }
-                    if session.isLoggedIn {
-                        TaroCard(padding: 14) {
-                            HStack(spacing: 13) {
-                                Image(systemName: "cloud.fill").font(.title3).foregroundStyle(.white).frame(width: 42, height: 42).background(TaroTheme.heroGradient, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
-                                VStack(alignment: .leading, spacing: 3) { Text("账户收藏").font(.headline); Text("跨设备同步你的收藏夹").font(.caption).foregroundStyle(.secondary) }
-                                Spacer()
-                                NavigationLink { CloudFavoritesView() } label: { Image(systemName: "chevron.right").font(.subheadline.weight(.bold)).foregroundStyle(TaroTheme.accent) }
-                            }
-                        }
-                    }
-                    if let recent = library.history.first, reading.page(for: recent) > 0 {
-                        TaroSectionHeader(title: "继续阅读", subtitle: "上次读到第 \(reading.page(for: recent) + 1) 页", icon: "play.fill")
-                        ContinueReadingCard(gallery: recent)
-                    }
-                    TaroSectionHeader(title: "离线作品", subtitle: "\(offline.count) 部", icon: "arrow.down.circle.fill")
-                    if offline.isEmpty { TaroEmptyState(icon: "arrow.down.circle", title: "还没有离线作品", message: "下载完成的漫画会出现在这里，随时随地继续阅读。") }
-                    else { TaroCard(padding: 8) { VStack(spacing: 0) { ForEach(offline) { task in NavigationLink { OfflineReaderView(gallery: task.gallery) } label: { GalleryRow(gallery: task.gallery) }; if task.id != offline.last?.id { Divider().padding(.leading, 66) } } } } }
-                    TaroSectionHeader(title: "本地收藏", subtitle: "\(library.favorites.count) 部", icon: "star.fill")
-                    if library.favorites.isEmpty { TaroEmptyState(icon: "star", title: "还没有本地收藏", message: "在漫画详情页点击星标，建立属于你的私人书架。") }
-                    else { TaroCard(padding: 8) { VStack(spacing: 0) { ForEach(library.favorites) { gallery in NavigationLink { GalleryDetailView(gallery: gallery) } label: { GalleryRow(gallery: gallery) }; if gallery.id != library.favorites.last?.id { Divider().padding(.leading, 66) } } } } }
-                    TaroSectionHeader(title: "最近阅读", subtitle: "\(library.history.count) 部", icon: "clock.fill")
-                    if library.history.isEmpty { TaroEmptyState(icon: "clock", title: "阅读记录为空", message: "打开一部漫画后，阅读进度会自动保存在这里。") }
-                    else { TaroCard(padding: 8) { VStack(spacing: 0) { ForEach(library.history) { gallery in NavigationLink { GalleryDetailView(gallery: gallery) } label: { GalleryRow(gallery: gallery) }; if gallery.id != library.history.last?.id { Divider().padding(.leading, 66) } } } } }
-                }.padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 30)
-            }.scrollIndicators(.hidden)
-        }.navigationBarHidden(true)
+                    Spacer()
+                    Text("\(readingCount)").font(.title2.weight(.bold)).foregroundStyle(TaroTheme.accent)
+                    Text("记录").font(.caption).foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
+    private var shelfSwitcher: some View {
+        HStack(spacing: 5) {
+            ForEach(ShelfMode.allCases) { mode in
+                Button { withAnimation(.easeOut(duration: 0.2)) { selectedShelf = mode } } label: {
+                    Text(mode.rawValue)
+                        .font(.subheadline.weight(selectedShelf == mode ? .bold : .medium))
+                        .foregroundStyle(selectedShelf == mode ? .white : .secondary)
+                        .frame(maxWidth: .infinity).frame(height: 40)
+                        .background(selectedShelf == mode ? TaroTheme.brandGradient : LinearGradient(colors: [.clear], startPoint: .leading, endPoint: .trailing), in: Capsule())
+                }.buttonStyle(.plain)
+            }
+        }
+        .padding(5)
+        .background(.regularMaterial, in: Capsule())
+        .overlay(Capsule().stroke(Color.primary.opacity(0.06), lineWidth: 0.8))
+    }
+
+    @ViewBuilder private var overviewContent: some View {
+        if session.isLoggedIn {
+            TaroCard(padding: 14) {
+                HStack(spacing: 13) {
+                    Image(systemName: "cloud.fill").font(.title3).foregroundStyle(.white)
+                        .frame(width: 44, height: 44).background(TaroTheme.heroGradient, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    VStack(alignment: .leading, spacing: 3) { Text("账户收藏").font(.headline); Text("跨设备同步你的收藏夹").font(.caption).foregroundStyle(.secondary) }
+                    Spacer()
+                    NavigationLink { CloudFavoritesView() } label: { Label("打开", systemImage: "arrow.up.right").font(.caption.weight(.bold)).foregroundStyle(TaroTheme.accent) }
+                }
+            }
+        }
+        if let current = recent.first, reading.page(for: current) > 0 {
+            ShelfHorizontalSection(title: "继续阅读", subtitle: "上次读到第 \(reading.page(for: current) + 1) 页", icon: "play.fill") {
+                NavigationLink { ReaderDestination.view(for: current, startIndex: reading.page(for: current)) } label: {
+                    ShelfContinueHero(gallery: current, page: reading.page(for: current))
+                }.buttonStyle(.plain)
+            }
+        }
+        ShelfHorizontalSection(title: "本地收藏", subtitle: "\(library.favorites.count) 部", icon: "star.fill") {
+            if localFavorites.isEmpty { TaroEmptyState(icon: "star", title: "还没有收藏", message: "点击详情页星标收藏漫画") }
+            else { ForEach(localFavorites) { gallery in NavigationLink { GalleryDetailView(gallery: gallery) } label: { ShelfGalleryCard(gallery: gallery) }.buttonStyle(.plain) } }
+        }
+        ShelfHorizontalSection(title: "最近阅读", subtitle: "\(readingCount) 部", icon: "clock.fill") {
+            if recent.isEmpty { TaroEmptyState(icon: "clock", title: "还没有阅读记录", message: "开始阅读后会显示在这里") }
+            else { ForEach(recent.prefix(6)) { gallery in NavigationLink { GalleryDetailView(gallery: gallery) } label: { ShelfGalleryCard(gallery: gallery, progress: progress(for: gallery)) }.buttonStyle(.plain) } }
+        }
+        offlineSection
+    }
+
+    @ViewBuilder private var offlineSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            TaroSectionHeader(title: "离线作品", subtitle: "\(offline.count) 部", icon: "arrow.down.circle.fill")
+            if offline.isEmpty { TaroEmptyState(icon: "arrow.down.circle", title: "还没有离线作品", message: "下载完成的漫画会出现在这里，随时随地继续阅读。") }
+            else { TaroCard(padding: 8) { VStack(spacing: 0) { ForEach(offline) { task in NavigationLink { OfflineReaderView(gallery: task.gallery) } label: { GalleryRow(gallery: task.gallery) }; if task.id != offline.last?.id { Divider().padding(.leading, 66) } } } } }
+        }
+    }
+
+    @ViewBuilder private var favoritesContent: some View {
+        TaroSectionHeader(title: "本地收藏", subtitle: "\(library.favorites.count) 部", icon: "star.fill")
+        if library.favorites.isEmpty { TaroEmptyState(icon: "star", title: "还没有本地收藏", message: "在漫画详情页点击星标，建立属于你的私人书架。") }
+        else { TaroCard(padding: 8) { VStack(spacing: 0) { ForEach(library.favorites) { gallery in NavigationLink { GalleryDetailView(gallery: gallery) } label: { GalleryRow(gallery: gallery) }; if gallery.id != library.favorites.last?.id { Divider().padding(.leading, 66) } } } } }
+        if session.isLoggedIn { TaroCard(padding: 14) { NavigationLink { CloudFavoritesView() } label: { Label("浏览账户云收藏", systemImage: "cloud.fill").frame(maxWidth: .infinity) }.buttonStyle(TaroPrimaryButtonStyle()) } }
+    }
+
+    @ViewBuilder private var historyContent: some View {
+        TaroSectionHeader(title: "最近阅读", subtitle: "\(library.history.count) 部", icon: "clock.fill")
+        if library.history.isEmpty { TaroEmptyState(icon: "clock", title: "阅读记录为空", message: "打开一部漫画后，阅读进度会自动保存在这里。") }
+        else { TaroCard(padding: 8) { VStack(spacing: 0) { ForEach(library.history) { gallery in NavigationLink { GalleryDetailView(gallery: gallery) } label: { GalleryRow(gallery: gallery) }; if gallery.id != library.history.last?.id { Divider().padding(.leading, 66) } } } } }
+    }
+
+    private func progress(for gallery: Gallery) -> Double {
+        guard gallery.pageCount > 0 else { return 0 }
+        return min(1, Double(reading.page(for: gallery) + 1) / Double(gallery.pageCount))
+    }
+}
+
+struct ShelfContinueHero: View {
+    let gallery: Gallery
+    let page: Int
+    var body: some View {
+        HStack(spacing: 14) {
+            GalleryCover(url: gallery.thumbnailURL).frame(width: 76, height: 104).clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+            VStack(alignment: .leading, spacing: 8) {
+                TaroStatusPill(title: "继续阅读", icon: "play.fill", tint: TaroTheme.accent)
+                Text(gallery.title).font(.headline).lineLimit(2)
+                Text("第 \(page + 1) / \(max(1, gallery.pageCount)) 页").font(.caption).foregroundStyle(.secondary)
+                ProgressView(value: gallery.pageCount > 0 ? min(1, Double(page + 1) / Double(gallery.pageCount)) : 0).tint(TaroTheme.accent)
+            }
+            Spacer()
+            Image(systemName: "chevron.right").foregroundStyle(.tertiary)
+        }
+        .frame(width: 330, alignment: .leading)
+        .padding(15)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 21, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 21, style: .continuous).stroke(TaroTheme.accent.opacity(0.13), lineWidth: 0.8))
     }
 }
 

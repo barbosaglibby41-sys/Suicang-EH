@@ -35,7 +35,7 @@ struct SettingsView: View {
                             Image(systemName: "info.circle.fill").foregroundStyle(.secondary)
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("芋头 E 站").font(.subheadline.weight(.semibold))
-                                Text("版本 1.7.74 · JHenTai 架构参考").font(.caption).foregroundStyle(.secondary)
+                                Text("版本 1.7.75 · JHenTai 架构参考").font(.caption).foregroundStyle(.secondary)
                             }
                             Spacer()
                         }
