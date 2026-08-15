@@ -19,30 +19,31 @@ struct ContentView: View {
     @State private var bottomBarVisible = true
 
     var body: some View {
-        TabView(selection: $selectedTab) {
-            NavigationStack(path: $path) {
-                DiscoverView()
-                    .navigationDestination(for: Gallery.self) { GalleryDetailView(gallery: $0) }
-                    .navigationDestination(for: DiscoverSearchDestination.self) { destination in
-                        DiscoverView(initialQuery: destination.query, autoSearch: true)
-                    }
+        // Do not use TabView here. TabView owns a native UITabBar, while the
+        // app also has a custom floating bar. Keeping both creates the doubled
+        // bottom navigation seen on iOS 17/18 despite toolbar(.hidden).
+        ZStack {
+            switch selectedTab {
+            case 1:
+                NavigationStack { ShelfView() }
+                    .transition(.opacity)
+            case 2:
+                NavigationStack { DownloadsView() }
+                    .transition(.opacity)
+            case 3:
+                NavigationStack { SettingsView() }
+                    .transition(.opacity)
+            default:
+                NavigationStack(path: $path) {
+                    DiscoverView()
+                        .navigationDestination(for: Gallery.self) { GalleryDetailView(gallery: $0) }
+                        .navigationDestination(for: DiscoverSearchDestination.self) { destination in
+                            DiscoverView(initialQuery: destination.query, autoSearch: true)
+                        }
+                }
+                .transition(.opacity)
             }
-            .tabItem { Label("发现", systemImage: "sparkles") }
-            .tag(0)
-
-            NavigationStack { ShelfView() }
-                .tabItem { Label("书架", systemImage: "books.vertical") }
-                .tag(1)
-
-            NavigationStack { DownloadsView() }
-                .tabItem { Label("离线", systemImage: "arrow.down.circle") }
-                .tag(2)
-
-            NavigationStack { SettingsView() }
-                .tabItem { Label("设置", systemImage: "gear") }
-                .tag(3)
         }
-        .toolbar(.hidden, for: .tabBar)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if bottomBarVisible {
                 TaroTabBar(selection: $selectedTab) { tab in
