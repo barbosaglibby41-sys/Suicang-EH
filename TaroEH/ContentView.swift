@@ -1074,7 +1074,7 @@ struct GalleryRow: View {
     let gallery: Gallery
     var body: some View {
         HStack(spacing: 13) {
-            GalleryCover(url: gallery.thumbnailURL, contentMode: .fill)
+            GalleryCover(url: gallery.thumbnailURL)
                 .frame(width: 52, height: 70)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             VStack(alignment: .leading, spacing: 5) {
