@@ -220,22 +220,19 @@ struct DiscoverView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                HStack(alignment: .center, spacing: 13) {
-                    TaroAvatar(icon: "sparkles")
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text("芋头 E 站").font(.title2.weight(.bold))
-                        Text("探索 · 收藏 · 阅读").font(.caption.weight(.medium)).foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                    TaroStatusPill(title: currentSource.title, icon: currentSource == .exHentai ? "lock.fill" : "globe")
-                }
-                TaroCard(padding: 12) {
-                    VStack(alignment: .leading, spacing: 12) {
+                DiscoverHeroBanner(source: currentSource, isLoggedIn: session.isLoggedIn)
+                TaroCard(padding: 10) {
+                    VStack(alignment: .leading, spacing: 11) {
                         HStack {
-                            Label("发现内容", systemImage: "square.grid.2x2.fill").font(.caption.weight(.bold)).foregroundStyle(.secondary)
+                            Label("探索频道", systemImage: "square.grid.2x2.fill")
+                                .font(.caption.weight(.bold)).foregroundStyle(.secondary)
                             Spacer()
-                            Button { showFilters = true } label: { Image(systemName: "slider.horizontal.3").font(.subheadline.weight(.bold)) }
-                                .buttonStyle(.plain).foregroundStyle(TaroTheme.accent).accessibilityLabel("筛选排序")
+                            Button { showFilters = true } label: {
+                                Label("筛选", systemImage: "slider.horizontal.3")
+                                    .font(.caption.weight(.bold)).foregroundStyle(TaroTheme.accent)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("筛选排序")
                         }
                         feedSelector
                     }
@@ -247,13 +244,24 @@ struct DiscoverView: View {
                 if !isSearchResults {
                     HomeRankingsSection(showAll: $showAllRankings)
                 }
-                HStack {
+                HStack(spacing: 10) {
                     if autoSearch {
                         Button { dismissSearchDestination() } label: {
-                            Label("返回详情", systemImage: "chevron.left").font(.subheadline)
-                        }
+                            Image(systemName: "chevron.left")
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(TaroTheme.accent)
+                                .frame(width: 34, height: 34)
+                                .background(TaroTheme.accent.opacity(0.12), in: Circle())
+                        }.accessibilityLabel("返回详情")
                     }
-                    Text(isSearchResults ? "搜索结果" : selectedFeed.rawValue).font(.title3.bold())
+                    Image(systemName: isSearchResults ? "magnifyingglass" : selectedFeed.icon)
+                        .foregroundStyle(TaroTheme.accent)
+                        .frame(width: 34, height: 34)
+                        .background(TaroTheme.accent.opacity(0.12), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(isSearchResults ? "搜索结果" : selectedFeed.rawValue).font(.headline.weight(.bold))
+                        Text("已加载 \(filtered.count) 项").font(.caption).foregroundStyle(.secondary)
+                    }
                     Spacer()
                     if !isRandomFeed {
                         Menu {
@@ -262,15 +270,16 @@ struct DiscoverView: View {
                                     sort = option
                                     if option == .random { randomOrder = results.map(\.id).shuffled() }
                                     else { randomOrder = [] }
-                                } label: {
-                                    Label(option.rawValue, systemImage: option.icon)
-                                }
+                                } label: { Label(option.rawValue, systemImage: option.icon) }
                             }
                         } label: {
-                            Label(sort.rawValue, systemImage: "arrow.up.arrow.down").font(.caption.weight(.semibold))
-                        }.buttonStyle(.bordered).controlSize(.small)
+                            Label(sort.rawValue, systemImage: "arrow.up.arrow.down")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(TaroTheme.accent)
+                                .padding(.horizontal, 10).padding(.vertical, 8)
+                                .background(TaroTheme.accent.opacity(0.11), in: Capsule())
+                        }.buttonStyle(.plain)
                     }
-                    Text("\(filtered.count) 项").foregroundStyle(.secondary).font(.caption)
                 }
                 if isLoading {
                     VStack(spacing: 12) {
@@ -403,8 +412,10 @@ struct DiscoverView: View {
     }
 
     private var searchBar: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+        HStack(spacing: 11) {
+            Image(systemName: "magnifyingglass")
+                .font(.title3.weight(.medium))
+                .foregroundStyle(searchFocused ? TaroTheme.accent : .secondary)
             TextField("搜索标题、作者或标签", text: $query)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
@@ -413,15 +424,18 @@ struct DiscoverView: View {
                 .onSubmit { searchFocused = false; onlineSearch() }
             if isLoading { ProgressView().controlSize(.small) }
             else if !query.isEmpty {
-                Button { query = ""; results = []; isSearchResults = false; searchFocused = true; loadFrontPage() } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary) }.accessibilityLabel("清空搜索")
-                Button { searchFocused = false; onlineSearch() } label: { Image(systemName: "arrow.right.circle.fill").foregroundStyle(.purple) }.accessibilityLabel("执行搜索")
+                Button { query = ""; results = []; isSearchResults = false; searchFocused = true; loadFrontPage() } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary) }.buttonStyle(.plain).accessibilityLabel("清空搜索")
+                Button { searchFocused = false; onlineSearch() } label: { Image(systemName: "arrow.up.right.circle.fill").foregroundStyle(TaroTheme.accent).font(.title3) }.buttonStyle(.plain).accessibilityLabel("执行搜索")
+            } else {
+                Button { searchFocused = true } label: { Text("搜索").font(.caption.weight(.bold)).foregroundStyle(TaroTheme.accent) }.buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, 14)
-        .frame(minHeight: 50)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 17, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 17, style: .continuous).stroke(TaroTheme.accent.opacity(0.12), lineWidth: 1))
-        .shadow(color: .black.opacity(0.05), radius: 10, y: 4)
+        .padding(.horizontal, 15)
+        .frame(minHeight: 54)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(searchFocused ? TaroTheme.accent.opacity(0.42) : TaroTheme.accent.opacity(0.12), lineWidth: searchFocused ? 1.2 : 0.8))
+        .shadow(color: TaroTheme.accent.opacity(searchFocused ? 0.12 : 0.05), radius: 13, y: 5)
+        .animation(.easeOut(duration: 0.18), value: searchFocused)
     }
 
     @ViewBuilder private var suggestions: some View {
@@ -454,7 +468,11 @@ struct DiscoverView: View {
                     }
                 }
                 .frame(maxHeight: 360)
-            }.padding(12).background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
+            }
+            .padding(14)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(TaroTheme.accent.opacity(0.10), lineWidth: 0.8))
+            .shadow(color: .black.opacity(0.06), radius: 14, y: 5)
         }
     }
 
@@ -467,10 +485,16 @@ struct DiscoverView: View {
 
     @ViewBuilder private var recentQueries: some View {
         if !discovery.recentQueries.isEmpty {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack { Label("最近搜索", systemImage: "clock.arrow.circlepath").font(.caption).foregroundStyle(.secondary); Spacer(); Button("清除全部") { discovery.clearQueries() }.font(.caption).foregroundStyle(.purple) }
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack { ForEach(discovery.recentQueries, id: \.self) { item in Button { query = item; searchFocused = false; onlineSearch() } label: { Text(item).font(.caption).lineLimit(1).padding(.horizontal, 11).padding(.vertical, 8).background(.purple.opacity(0.18), in: Capsule()) } } }
+            TaroCard(padding: 13) {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Label("最近搜索", systemImage: "clock.arrow.circlepath").font(.caption.weight(.bold)).foregroundStyle(.secondary)
+                        Spacer()
+                        Button("清除全部") { discovery.clearQueries() }.font(.caption.weight(.semibold)).foregroundStyle(TaroTheme.accent)
+                    }
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) { ForEach(discovery.recentQueries, id: \.self) { item in Button { query = item; searchFocused = false; onlineSearch() } label: { Text(item).font(.caption.weight(.medium)).lineLimit(1).padding(.horizontal, 12).padding(.vertical, 8).background(TaroTheme.accent.opacity(0.12), in: Capsule()) }.buttonStyle(.plain) } }
+                    }
                 }
             }
         }

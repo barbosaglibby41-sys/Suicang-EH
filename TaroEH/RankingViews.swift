@@ -8,12 +8,17 @@ struct HomeRankingsSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("排行").font(.title2.bold())
+            HStack(alignment: .lastTextBaseline) {
+                HStack(spacing: 8) {
+                    Image(systemName: "chart.bar.fill").foregroundStyle(TaroTheme.accent)
+                    Text("排行").font(.title3.weight(.bold))
+                }
                 Spacer()
-                Button("显示全部") { showAll = true }
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                Button("查看全部") { showAll = true }
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(TaroTheme.accent)
+                    .padding(.horizontal, 10).padding(.vertical, 7)
+                    .background(TaroTheme.accent.opacity(0.11), in: Capsule())
             }
             if rankings.isLoading && rankings.yesterday.isEmpty && rankings.month.isEmpty {
                 HStack { Spacer(); ProgressView("正在加载排行…"); Spacer() }
@@ -39,10 +44,12 @@ private struct RankingPreviewColumn: View {
     let galleries: [Gallery]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             Label(period.rawValue, systemImage: period.icon)
-                .font(.headline)
-            VStack(spacing: 0) {
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(TaroTheme.accent)
+            TaroCard(padding: 10) {
+                VStack(spacing: 0) {
                 ForEach(Array(galleries.enumerated()), id: \.element.id) { index, gallery in
                     NavigationLink(value: gallery) {
                         RankingRow(gallery: gallery, rank: index + 1)
@@ -57,6 +64,7 @@ private struct RankingPreviewColumn: View {
                 }
             }
             .frame(width: 350)
+            }
         }
     }
 }
