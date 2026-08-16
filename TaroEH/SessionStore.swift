@@ -157,6 +157,7 @@ final class SessionStore: ObservableObject {
 
     private func installCookies(from header: String) {
         for item in cookieItems(from: header) {
+            if item.name.lowercased() == "igneous" && ["mystery", "deleted"].contains(item.value.lowercased()) { continue }
             for domain in ["e-hentai.org", "exhentai.org"] {
                 if let cookie = HTTPCookie(properties: [.domain: domain, .path: "/", .name: item.name, .value: item.value]) { HTTPCookieStorage.shared.setCookie(cookie) }
             }

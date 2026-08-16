@@ -10,6 +10,10 @@ final class SiteClient {
     private init() {
         let config = URLSessionConfiguration.default
         config.httpCookieStorage = .shared
+        // JHenTai owns one logical cookie jar. Prevent URLSession from
+        // silently appending stale domain cookies (especially igneous=mystery).
+        config.httpShouldSetCookies = false
+        config.httpCookieAcceptPolicy = .never
         config.requestCachePolicy = .reloadIgnoringLocalCacheData
         config.timeoutIntervalForRequest = 25
         config.httpMaximumConnectionsPerHost = 10
@@ -287,7 +291,8 @@ final class SiteClient {
         homeHeader["nw"] = homeHeader["nw"] ?? "1"
         homeHeader["datatags"] = homeHeader["datatags"] ?? "1"
         homeHeader.removeValue(forKey: "igneous")
-        var homeRequest = URLRequest(url: EHSource.eHentai.baseURL)
+        let homeURL = EHSource.eHentai.baseURL.appendingPathComponent("home.php")
+        var homeRequest = URLRequest(url: homeURL)
         applyHeaders(to: &homeRequest, cookieHeader: cookieHeaderString(homeHeader), referer: nil)
         let (_, homeResponse) = try await session.data(for: homeRequest)
         guard let homeHTTP = homeResponse as? HTTPURLResponse, 200..<400 ~= homeHTTP.statusCode else {
@@ -296,9 +301,11 @@ final class SiteClient {
 
         // URLSession normally stores these automatically. Parse the response too
         // because iOS versions differ in when HTTPCookieStorage is updated.
-        absorbResponseCookies(homeResponse, url: EHSource.eHentai.baseURL)
-        let eCookies = HTTPCookieStorage.shared.cookies(for: EHSource.eHentai.baseURL) ?? []
+        absorbResponseCookies(homeResponse, url: homeURL)
+        let eCookies = responseCookies(homeResponse, url: homeURL) + (HTTPCookieStorage.shared.cookies(for: homeURL) ?? [])
+        var seenE = Set<String>()
         for cookie in eCookies where cookie.name.lowercased() != "igneous" {
+            guard seenE.insert(cookie.name).inserted else { continue }
             cloneCookie(cookie, to: "exhentai.org")
             homeHeader[cookie.name] = cookie.value
         }
@@ -372,7 +379,11 @@ final class SiteClient {
     }
 
     private func absorbResponseCookies(_ response: URLResponse, url: URL) {
-        for cookie in responseCookies(response, url: url) { HTTPCookieStorage.shared.setCookie(cookie) }
+        for cookie in responseCookies(response, url: url) {
+            // Do not put mystery/deleted igneous back into the shared pool.
+            if cookie.name.lowercased() == "igneous" && ["mystery", "deleted"].contains(cookie.value.lowercased()) { continue }
+            HTTPCookieStorage.shared.setCookie(cookie)
+        }
     }
     func cloudFavorites(source: EHSource, category: Int, cookieHeader: String?) async throws -> CloudFavoritePage {
         var components = URLComponents(url: source.baseURL.appendingPathComponent("favorites.php"), resolvingAgainstBaseURL: false)!
