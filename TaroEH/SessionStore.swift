@@ -116,6 +116,12 @@ final class SessionStore: ObservableObject {
                 status = .signedIn
                 accountName = result.username ?? accountName
                 lastValidationMessage = result.message
+            } else if source == .exHentai && hasCredentials {
+                // ExHentai access can fail while the E-Hentai account remains
+                // valid. Keep login state separate from gallery-site access.
+                isLoggedIn = true
+                status = .signedIn
+                lastValidationMessage = result.message
             } else {
                 isLoggedIn = false
                 status = .invalid

@@ -30,7 +30,7 @@ final class SiteClient {
         return data
     }
 
-    private func applyHeaders(to request: inout URLRequest, cookieHeader: String?, referer: URL?) {
+    private func applyHeaders(to request: inout URLRequest, cookieHeader: String?, referer: URL?, excluding cookieNames: Set<String> = []) {
         request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile", forHTTPHeaderField: "User-Agent")
         request.setValue("text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8", forHTTPHeaderField: "Accept")
         request.setValue("zh-CN,zh;q=0.9", forHTTPHeaderField: "Accept-Language")
@@ -47,7 +47,7 @@ final class SiteClient {
             // Use the persisted logical jar as the authority, just like
             // JHenTai's EHCookieManager. Native storage is only a fallback;
             // otherwise stale igneous=mystery can overwrite a refreshed value.
-            for cookie in storageCookies where allCookies[cookie.name] == nil {
+            for cookie in storageCookies where allCookies[cookie.name] == nil && !excluding.contains(cookie.name.lowercased()) {
                 allCookies[cookie.name] = cookie.value
             }
         }
@@ -293,7 +293,7 @@ final class SiteClient {
         homeHeader.removeValue(forKey: "igneous")
         let homeURL = EHSource.eHentai.baseURL.appendingPathComponent("home.php")
         var homeRequest = URLRequest(url: homeURL)
-        applyHeaders(to: &homeRequest, cookieHeader: cookieHeaderString(homeHeader), referer: nil)
+        applyHeaders(to: &homeRequest, cookieHeader: cookieHeaderString(homeHeader), referer: nil, excluding: ["igneous"])
         let (_, homeResponse) = try await session.data(for: homeRequest)
         guard let homeHTTP = homeResponse as? HTTPURLResponse, 200..<400 ~= homeHTTP.statusCode else {
             throw SiteError.accessDenied
@@ -314,7 +314,7 @@ final class SiteClient {
         var exHeader = homeHeader
         exHeader.removeValue(forKey: "igneous")
         var exRequest = URLRequest(url: EHSource.exHentai.baseURL)
-        applyHeaders(to: &exRequest, cookieHeader: cookieHeaderString(exHeader), referer: EHSource.eHentai.baseURL)
+        applyHeaders(to: &exRequest, cookieHeader: cookieHeaderString(exHeader), referer: EHSource.eHentai.baseURL, excluding: ["igneous"])
         let (exData, exResponse) = try await session.data(for: exRequest)
         guard let exHTTP = exResponse as? HTTPURLResponse, 200..<400 ~= exHTTP.statusCode else {
             throw SiteError.accessDenied
