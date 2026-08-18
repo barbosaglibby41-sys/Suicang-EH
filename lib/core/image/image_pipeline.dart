@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
@@ -73,6 +74,14 @@ class ImagePipeline {
     required SiteSource source,
     CancelHandle? cancelHandle,
   }) async {
+    if (request.url.isScheme('file')) {
+      final file = File.fromUri(request.url);
+      final bytes = await file.readAsBytes();
+      if (bytes.isEmpty) {
+        throw StateError('The local image file was empty.');
+      }
+      return bytes;
+    }
     final disk = await _diskCache.read(request);
     if (disk != null) {
       return disk;

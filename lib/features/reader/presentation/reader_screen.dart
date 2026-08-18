@@ -9,10 +9,10 @@ import '../../../core/image/image_providers.dart';
 import '../../../core/image/image_request.dart';
 import '../../../gallery/domain/entities/gallery.dart';
 import '../domain/engine/manga_reader_engine.dart';
+import '../domain/entities/reader_models.dart';
 import '../domain/page_source/page_source.dart';
 import 'providers/reader_controller.dart';
 import 'providers/reading_progress_providers.dart';
-import '../domain/entities/reader_models.dart';
 
 class ReaderScreen extends ConsumerStatefulWidget {
   const ReaderScreen({
@@ -82,19 +82,28 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                     loadPage: _loadPage,
                   ),
           ),
-          if (state.controlsVisible) _ReaderControls(
-            title: widget.gallery.title,
-            state: state,
-            onClose: () => Navigator.of(context).maybePop(),
-            onToggleMode: () => engine.setMode(
-              state.mode == ReaderMode.horizontal
-                  ? ReaderMode.vertical
-                  : ReaderMode.horizontal,
+          if (state.controlsVisible)
+            _ReaderControls(
+              title: widget.gallery.title,
+              state: state,
+              onClose: () => Navigator.of(context).maybePop(),
+              onToggleMode: () => engine.setMode(
+                state.mode == ReaderMode.horizontal
+                    ? ReaderMode.vertical
+                    : ReaderMode.horizontal,
+              ),
+              onToggleDirection: () => engine.setDirection(
+                state.direction == ReaderDirection.ltr
+                    ? ReaderDirection.rtl
+                    : ReaderDirection.ltr,
+              ),
+              onToggleFit: () => engine.setFit(
+                state.fit == ReaderFit.contain
+                    ? ReaderFit.cover
+                    : ReaderFit.contain,
+              ),
+              onJumpTo: engine.goTo,
             ),
-            onToggleFit: () => engine.setFit(
-              state.fit == ReaderFit.contain ? ReaderFit.cover : ReaderFit.contain,
-            ),
-          ),
         ],
       ),
     );
@@ -147,32 +156,77 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   }
 }
 
-class _HorizontalReader extends StatelessWidget {
-  const _HorizontalReader({required this.engine, required this.state, required this.loadPage});
+class _HorizontalReader extends StatefulWidget {
+  const _HorizontalReader({
+    required this.engine,
+    required this.state,
+    required this.loadPage,
+  });
 
   final MangaReaderEngine engine;
   final ReaderState state;
   final Future<Uint8List> Function(int index) loadPage;
 
   @override
+  State<_HorizontalReader> createState() => _HorizontalReaderState();
+}
+
+class _HorizontalReaderState extends State<_HorizontalReader> {
+  late PageController _controller;
+  var _lastSyncedIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _lastSyncedIndex = widget.state.currentIndex;
+    _controller = PageController(initialPage: _lastSyncedIndex);
+  }
+
+  @override
+  void didUpdateWidget(covariant _HorizontalReader oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final nextIndex = widget.state.currentIndex;
+    if (nextIndex != _lastSyncedIndex && _controller.hasClients) {
+      _lastSyncedIndex = nextIndex;
+      _controller.jumpToPage(nextIndex);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return PageView.builder(
-      controller: PageController(initialPage: state.currentIndex),
-      reverse: state.direction == ReaderDirection.rtl,
-      itemCount: state.pageCount,
-      onPageChanged: engine.goTo,
+      controller: _controller,
+      reverse: widget.state.direction == ReaderDirection.rtl,
+      itemCount: widget.state.pageCount,
+      onPageChanged: (index) {
+        _lastSyncedIndex = index;
+        unawaited(widget.engine.goTo(index));
+      },
       itemBuilder: (context, index) => _ReaderPage(
-        future: loadPage(index),
-        fit: state.fit,
-        zoom: state.zoom,
-        onTap: engine.toggleControls,
+        future: widget.loadPage(index),
+        fit: widget.state.fit,
+        zoom: widget.state.zoom,
+        onTap: widget.engine.toggleControls,
+        onDoubleTap: () => widget.engine.setZoom(
+          widget.state.zoom == 1 ? 2 : 1,
+        ),
       ),
     );
   }
 }
 
 class _VerticalReader extends StatelessWidget {
-  const _VerticalReader({required this.engine, required this.state, required this.loadPage});
+  const _VerticalReader({
+    required this.engine,
+    required this.state,
+    required this.loadPage,
+  });
 
   final MangaReaderEngine engine;
   final ReaderState state;
@@ -187,39 +241,59 @@ class _VerticalReader extends StatelessWidget {
         fit: state.fit,
         zoom: state.zoom,
         onTap: engine.toggleControls,
+        onDoubleTap: () => engine.setZoom(state.zoom == 1 ? 2 : 1),
       ),
     );
   }
 }
 
 class _ReaderPage extends StatelessWidget {
-  const _ReaderPage({required this.future, required this.fit, required this.zoom, required this.onTap});
+  const _ReaderPage({
+    required this.future,
+    required this.fit,
+    required this.zoom,
+    required this.onTap,
+    required this.onDoubleTap,
+  });
 
   final Future<Uint8List> future;
   final ReaderFit fit;
   final double zoom;
   final VoidCallback onTap;
+  final VoidCallback onDoubleTap;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      onDoubleTap: onTap,
+      onDoubleTap: onDoubleTap,
       child: FutureBuilder<Uint8List>(
         future: future,
         builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return const SizedBox(
+              height: 320,
+              child: Center(child: Icon(Icons.broken_image_outlined)),
+            );
+          }
           if (!snapshot.hasData) {
-            return const SizedBox(height: 320, child: Center(child: CircularProgressIndicator()));
+            return const SizedBox(
+              height: 320,
+              child: Center(child: CircularProgressIndicator()),
+            );
           }
           return InteractiveViewer(
             minScale: 1,
             maxScale: 4,
             scaleEnabled: true,
-            child: Image.memory(
-              snapshot.data!,
-              fit: fit == ReaderFit.contain ? BoxFit.contain : BoxFit.cover,
-              width: double.infinity,
-              filterQuality: FilterQuality.high,
+            child: Transform.scale(
+              scale: zoom,
+              child: Image.memory(
+                snapshot.data!,
+                fit: fit == ReaderFit.contain ? BoxFit.contain : BoxFit.cover,
+                width: double.infinity,
+                filterQuality: FilterQuality.high,
+              ),
             ),
           );
         },
@@ -228,57 +302,142 @@ class _ReaderPage extends StatelessWidget {
   }
 }
 
-class _ReaderControls extends StatelessWidget {
-  const _ReaderControls({required this.title, required this.state, required this.onClose, required this.onToggleMode, required this.onToggleFit});
+class _ReaderControls extends StatefulWidget {
+  const _ReaderControls({
+    required this.title,
+    required this.state,
+    required this.onClose,
+    required this.onToggleMode,
+    required this.onToggleDirection,
+    required this.onToggleFit,
+    required this.onJumpTo,
+  });
 
   final String title;
   final ReaderState state;
   final VoidCallback onClose;
   final VoidCallback onToggleMode;
+  final VoidCallback onToggleDirection;
   final VoidCallback onToggleFit;
+  final Future<void> Function(int index) onJumpTo;
+
+  @override
+  State<_ReaderControls> createState() => _ReaderControlsState();
+}
+
+class _ReaderControlsState extends State<_ReaderControls> {
+  late double _sliderValue;
+
+  @override
+  void initState() {
+    super.initState();
+    _sliderValue = widget.state.currentIndex.toDouble();
+  }
+
+  @override
+  void didUpdateWidget(covariant _ReaderControls oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _sliderValue = widget.state.currentIndex.toDouble();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final state = widget.state;
     return Positioned.fill(
-      child: IgnorePointer(
-        ignoring: false,
-        child: Column(
-          children: [
-            Material(
-              color: Colors.black.withValues(alpha: 0.78),
-              child: SafeArea(
-                bottom: false,
-                child: Row(
+      child: Column(
+        children: [
+          Material(
+            color: Colors.black.withValues(alpha: 0.78),
+            child: SafeArea(
+              bottom: false,
+              child: Row(
+                children: [
+                  IconButton(
+                    tooltip: '关闭',
+                    onPressed: widget.onClose,
+                    icon: const Icon(Icons.close, color: Colors.white),
+                  ),
+                  Expanded(
+                    child: Text(
+                      widget.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: '横向或纵向阅读',
+                    onPressed: widget.onToggleMode,
+                    icon: Icon(
+                      state.mode == ReaderMode.horizontal
+                          ? Icons.view_agenda_outlined
+                          : Icons.swap_horiz,
+                      color: Colors.white,
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: '切换左右阅读方向',
+                    onPressed: widget.onToggleDirection,
+                    icon: Icon(
+                      state.direction == ReaderDirection.ltr
+                          ? Icons.format_textdirection_l_to_r
+                          : Icons.format_textdirection_r_to_l,
+                      color: Colors.white,
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: '切换适配模式',
+                    onPressed: widget.onToggleFit,
+                    icon: const Icon(Icons.fit_screen_outlined, color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const Spacer(),
+          Material(
+            color: Colors.black.withValues(alpha: 0.78),
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(18, 10, 18, 10),
+                child: Column(
                   children: [
-                    IconButton(tooltip: '关闭', onPressed: onClose, icon: const Icon(Icons.close, color: Colors.white)),
-                    Expanded(child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white))),
-                    IconButton(tooltip: '切换阅读方向', onPressed: onToggleMode, icon: Icon(state.mode == ReaderMode.horizontal ? Icons.view_agenda_outlined : Icons.swap_horiz, color: Colors.white)),
-                    IconButton(tooltip: '切换适配模式', onPressed: onToggleFit, icon: const Icon(Icons.fit_screen_outlined, color: Colors.white)),
+                    Row(
+                      children: [
+                        Text(
+                          '${state.currentIndex + 1} / ${state.pageCount}',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: LinearProgressIndicator(
+                            value: state.progress,
+                            color: Colors.white,
+                            backgroundColor: Colors.white24,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Text(
+                          '${(state.progress * 100).round()}%',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                      ],
+                    ),
+                    Slider(
+                      value: _sliderValue,
+                      min: 0,
+                      max: (state.pageCount - 1).toDouble(),
+                      divisions: state.pageCount > 1 ? state.pageCount - 1 : null,
+                      onChanged: (value) => setState(() => _sliderValue = value),
+                      onChangeEnd: (value) => widget.onJumpTo(value.round()),
+                    ),
                   ],
                 ),
               ),
             ),
-            const Spacer(),
-            Material(
-              color: Colors.black.withValues(alpha: 0.78),
-              child: SafeArea(
-                top: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 10, 18, 10),
-                  child: Row(
-                    children: [
-                      Text('${state.currentIndex + 1} / ${state.pageCount}', style: const TextStyle(color: Colors.white)),
-                      const SizedBox(width: 14),
-                      Expanded(child: LinearProgressIndicator(value: state.progress, color: Colors.white, backgroundColor: Colors.white24)),
-                      const SizedBox(width: 14),
-                      Text('${(state.progress * 100).round()}%', style: const TextStyle(color: Colors.white)),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
