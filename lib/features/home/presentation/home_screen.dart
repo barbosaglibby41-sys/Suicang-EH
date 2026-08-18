@@ -8,6 +8,7 @@ import '../../gallery/domain/entities/gallery_key.dart';
 import '../../gallery/presentation/widgets/gallery_cover.dart';
 import '../../tags/presentation/providers/tag_translation_providers.dart';
 import '../../search/presentation/providers/search_history_providers.dart';
+import '../../settings/presentation/providers/site_preferences_providers.dart';
 import 'notifiers/discovery_notifier.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -23,8 +24,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(discoveryNotifierProvider.notifier).load();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final preferences = await ref.read(sitePreferencesProvider.future);
+      if (!mounted) return;
+      await ref
+          .read(discoveryNotifierProvider.notifier)
+          .initializeSource(preferences.source);
     });
   }
 

@@ -1,17 +1,59 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../reader/presentation/reader_settings_screen.dart';
+import '../domain/entities/site_preferences.dart';
 import 'migration_import_screen.dart';
+import 'providers/site_preferences_providers.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final sitePreferences = ref.watch(sitePreferencesProvider);
     return ListView(
       padding: const EdgeInsets.all(24),
       children: [
         Text('设置', style: theme.textTheme.headlineSmall),
+        const SizedBox(height: 24),
+        Text('站点来源', style: theme.textTheme.titleMedium),
+        const SizedBox(height: 8),
+        sitePreferences.when(
+          loading: () => const LinearProgressIndicator(),
+          error: (_, __) => const Text('无法读取站点来源设置。'),
+          data: (preferences) => Card(
+            child: Column(
+              children: [
+                RadioListTile<SiteSource>(
+                  value: SiteSource.eHentai,
+                  groupValue: preferences.source,
+                  title: const Text('E-Hentai'),
+                  onChanged: (source) {
+                    if (source != null) {
+                      ref.read(sitePreferencesProvider.notifier).update(
+                            preferences.copyWith(source: source),
+                          );
+                    }
+                  },
+                ),
+                RadioListTile<SiteSource>(
+                  value: SiteSource.exHentai,
+                  groupValue: preferences.source,
+                  title: const Text('ExHentai'),
+                  subtitle: const Text('需要有效登录会话。'),
+                  onChanged: (source) {
+                    if (source != null) {
+                      ref.read(sitePreferencesProvider.notifier).update(
+                            preferences.copyWith(source: source),
+                          );
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
         const SizedBox(height: 24),
         Card(
           child: ListTile(
