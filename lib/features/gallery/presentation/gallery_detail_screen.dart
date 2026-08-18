@@ -73,6 +73,11 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
             ),
             actions: [
               IconButton(
+                tooltip: '账户收藏',
+                onPressed: () => context.push('/cloud-favorites'),
+                icon: const Icon(Icons.cloud_outlined),
+              ),
+              IconButton(
                 tooltip: '更多操作',
                 onPressed: () {},
                 icon: const Icon(Icons.more_horiz),
@@ -129,6 +134,14 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
                           label: Text(snapshot.data == true ? '已收藏' : '收藏'),
                         ),
                       ),
+                    ),
+                    const SizedBox(width: 12),
+                    IconButton(
+                      tooltip: '加入账户收藏夹 1',
+                      onPressed: state.isLoading
+                          ? null
+                          : () => notifier.setCloudFavorite(category: 0, value: true),
+                      icon: const Icon(Icons.cloud_upload_outlined),
                     ),
                     const SizedBox(width: 12),
                     Expanded(

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../downloads/domain/entities/download_request.dart';
 import '../../../downloads/presentation/providers/download_providers.dart';
 import '../../../library/presentation/providers/library_providers.dart';
+import '../../../favorites/presentation/providers/cloud_favorites_providers.dart';
 import '../../domain/entities/gallery.dart';
 import '../../domain/repositories/gallery_repository.dart';
 import '../providers/gallery_providers.dart';
@@ -31,6 +32,24 @@ class GalleryDetailNotifier extends FamilyNotifier<GalleryDetailState, Gallery> 
 
   Future<void> recordOpened() {
     return ref.read(libraryRepositoryProvider).recordOpened(state.gallery);
+  }
+
+  Future<void> setCloudFavorite({required int category, required bool value}) async {
+    if (state.isLoading) return;
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      await ref.read(cloudFavoritesRepositoryProvider).setFavorite(
+            gallery: state.gallery,
+            category: category,
+            value: value,
+          );
+      state = state.copyWith(isLoading: false, clearError: true);
+    } catch (_) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: '账户收藏更新失败。请先登录并确认站点会话。',
+      );
+    }
   }
 
   Future<void> enqueueDownload() async {
