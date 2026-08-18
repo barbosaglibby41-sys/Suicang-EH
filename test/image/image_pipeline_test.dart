@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:taro_eh_flutter/core/image/disk_image_cache.dart';
 import 'package:taro_eh_flutter/core/image/image_pipeline.dart';
 import 'package:taro_eh_flutter/core/image/image_request.dart';
 import 'package:taro_eh_flutter/core/network/site_http_client.dart';
@@ -28,7 +29,10 @@ void main() {
       dio: dio,
       authRepository: SecureAuthRepository(_MemoryStore()),
     );
-    final pipeline = ImagePipeline(client: client);
+    final pipeline = ImagePipeline(
+      client: client,
+      diskCache: _MemoryDiskCache(),
+    );
     final request = ImageRequest(
       url: Uri.parse('https://image.example/a.jpg'),
       targetPixels: 720,
@@ -70,4 +74,18 @@ class _MemoryStore implements SecureCookieStore {
 
   @override
   Future<void> writeAll(Iterable<SessionCookie> cookies) async {}
+}
+
+class _MemoryDiskCache extends DiskImageCache {
+  _MemoryDiskCache() : super();
+
+  final values = <String, Uint8List>{};
+
+  @override
+  Future<Uint8List?> read(ImageRequest request) async => values[request.cacheKey];
+
+  @override
+  Future<void> write(ImageRequest request, List<int> bytes) async {
+    values[request.cacheKey] = Uint8List.fromList(bytes);
+  }
 }

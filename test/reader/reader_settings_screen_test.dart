@@ -17,6 +17,11 @@ void main() {
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
+    await tester.dragUntilVisible(
+      find.text('阅读时保持屏幕常亮'),
+      find.byType(ListView),
+      const Offset(0, -300),
+    );
 
     expect(find.text('横向分页'), findsOneWidget);
     expect(find.text('从右到左'), findsOneWidget);

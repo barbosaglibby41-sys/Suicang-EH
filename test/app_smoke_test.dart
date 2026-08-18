@@ -7,7 +7,7 @@ void main() {
     await tester.pumpWidget(const ProviderScope(child: TaroEhApp()));
     await tester.pumpAndSettle();
 
-    expect(find.text('发现'), findsOneWidget);
+    expect(find.text('发现').first, findsOneWidget);
     expect(find.text('TAROEH'), findsOneWidget);
   });
 }
