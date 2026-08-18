@@ -21,7 +21,7 @@ class EhHtmlParser {
       caseSensitive: false,
       dotAll: true,
     );
-    final thumbnailById = _thumbnailMap(html, baseUri);
+    final metadataById = _listMetadata(html, baseUri);
     final seen = <int>{};
     final galleries = <Gallery>[];
 
@@ -34,13 +34,19 @@ class EhHtmlParser {
       if (title.isEmpty) {
         continue;
       }
+      final metadata = metadataById[gid] ?? const _ListMetadata();
       galleries.add(
         Gallery(
           key: GalleryKey(source: source, gid: gid),
           title: title,
-          pageCount: 0,
+          uploader: metadata.uploader,
+          category: metadata.category,
+          pageCount: metadata.pageCount,
           sourceUrl: _resolve(baseUri, _decode(match.group(1) ?? '')),
-          thumbnailUrl: thumbnailById[gid],
+          thumbnailUrl: metadata.thumbnailUrl,
+          rating: metadata.rating,
+          postedAt: metadata.postedAt,
+          tags: metadata.tags,
         ),
       );
     }
@@ -235,19 +241,38 @@ class EhHtmlParser {
     return int.tryParse(Uri.tryParse(_decode(value))?.queryParameters['next'] ?? '');
   }
 
-  Map<int, Uri> _thumbnailMap(String html, Uri baseUri) {
-    final expression = RegExp(
-      r'''<a[^>]+href=["'][^"']*/g/(\d+)/[^"']+["'][^>]*>\s*<img[^>]+(?:data-src|src)=["']([^"']+)["']''',
-      caseSensitive: false,
-      dotAll: true,
-    );
-    final result = <int, Uri>{};
-    for (final match in expression.allMatches(html)) {
+  Map<int, _ListMetadata> _listMetadata(String html, Uri baseUri) {
+    final ids = RegExp(r'''id=["']it(\d+)["']''', caseSensitive: false);
+    final result = <int, _ListMetadata>{};
+    for (final match in ids.allMatches(html)) {
       final gid = int.tryParse(match.group(1) ?? '');
-      final uri = _resolve(baseUri, _decode(match.group(2) ?? ''));
-      if (gid != null && uri != null) {
-        result[gid] = uri;
-      }
+      if (gid == null) continue;
+      final start = match.start;
+      final rowEnd = html.indexOf('</tr>', start);
+      final end = rowEnd < 0 ? html.length : rowEnd;
+      final row = html.substring(start, end);
+      final rawImage = _first(r'''data-src=["']([^"']+)["']''', row) ??
+          _first(r'''<img[^>]+src=["']([^"']+)["']''', row);
+      final tags = RegExp(
+        r'''class=["'][^"']*gt[^"']*["'][^>]*title=["']([^"']+)["']''',
+        caseSensitive: false,
+      ).allMatches(row).map((value) => GalleryTag.parse(_decode(value.group(1) ?? ''))).toList();
+      result[gid] = _ListMetadata(
+        thumbnailUrl: rawImage == null ? null : _resolve(baseUri, _decode(rawImage)),
+        pageCount: int.tryParse(
+              (_first(r'''([0-9,]+)\s+pages''', row) ?? '').replaceAll(',', ''),
+            ) ??
+            0,
+        category: _clean(_first(r'''class=["'][^"']*cn[^"']*["'][^>]*>(.*?)</div>''', row) ?? ''),
+        uploader: _clean(
+          _first(r'''class=["']gl4c[^"']*["'][^>]*>.*?<a[^>]*>(.*?)</a>''', row) ?? '',
+        ),
+        postedAt: DateTime.tryParse(
+          _clean(_first(r'''id=["']postedpop_\d+["'][^>]*>(.*?)</div>''', row) ?? ''),
+        ),
+        rating: double.tryParse(_first(r'''Average:\s*([0-9]+(?:\.[0-9]+)?)''', row) ?? ''),
+        tags: tags,
+      );
     }
     return result;
   }
@@ -282,4 +307,24 @@ class EhHtmlParser {
       .replaceAll('&#039;', "'")
       .replaceAll('&quot;', '"')
       .replaceAll('&#x27;', "'");
+}
+
+class _ListMetadata {
+  const _ListMetadata({
+    this.thumbnailUrl,
+    this.pageCount = 0,
+    this.category = '',
+    this.uploader = '',
+    this.postedAt,
+    this.rating,
+    this.tags = const [],
+  });
+
+  final Uri? thumbnailUrl;
+  final int pageCount;
+  final String category;
+  final String uploader;
+  final DateTime? postedAt;
+  final double? rating;
+  final List<GalleryTag> tags;
 }

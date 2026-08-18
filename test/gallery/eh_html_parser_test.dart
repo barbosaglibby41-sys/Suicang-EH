@@ -26,6 +26,11 @@ void main() {
         Uri.parse('https://e-hentai.org/g/101/token-a/'));
     expect(result.galleries.first.thumbnailUrl,
         Uri.parse('https://thumb.example/101.jpg'));
+    expect(result.galleries.first.category, 'Manga');
+    expect(result.galleries.first.uploader, 'Sample Artist');
+    expect(result.galleries.first.pageCount, 24);
+    expect(result.galleries.first.rating, 4.5);
+    expect(result.galleries.first.tags.single.rawName, 'artist:sample');
     expect(result.nextCursor, 987654);
   });
 
