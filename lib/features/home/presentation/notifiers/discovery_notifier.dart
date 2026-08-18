@@ -45,6 +45,51 @@ class DiscoveryNotifier extends Notifier<DiscoveryState> {
     }
   }
 
+  Future<void> loadPopular() async {
+    if (state.isLoading) return;
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final result = await _repository.popular(source: state.source);
+      state = state.copyWith(
+        galleries: result.galleries,
+        nextCursor: result.nextCursor,
+        isLoading: false,
+        query: '',
+        isSearch: false,
+        clearError: true,
+      );
+    } catch (_) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: '无法加载热门内容。',
+      );
+    }
+  }
+
+  Future<void> loadRandom() async {
+    if (state.isLoading) return;
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final result = await _repository.random(
+        source: state.source,
+        excluding: state.galleries.map((gallery) => gallery.key.gid).toSet(),
+      );
+      state = state.copyWith(
+        galleries: result,
+        clearNextCursor: true,
+        isLoading: false,
+        query: '',
+        isSearch: false,
+        clearError: true,
+      );
+    } catch (_) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: '随机发现失败。',
+      );
+    }
+  }
+
   Future<void> search(String rawQuery) async {
     final query = rawQuery.trim();
     if (query.isEmpty) {

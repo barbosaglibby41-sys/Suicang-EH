@@ -7,6 +7,7 @@ import 'package:taro_eh_flutter/features/gallery/domain/entities/gallery_page_re
 import 'package:taro_eh_flutter/features/gallery/domain/entities/gallery_search_query.dart';
 import 'package:taro_eh_flutter/features/gallery/domain/repositories/gallery_repository.dart';
 import 'package:taro_eh_flutter/features/gallery/presentation/providers/gallery_providers.dart';
+import 'package:taro_eh_flutter/features/rankings/domain/entities/ranking_period.dart';
 import 'package:taro_eh_flutter/features/home/presentation/notifiers/discovery_notifier.dart';
 
 void main() {
@@ -82,6 +83,23 @@ class _FakeGalleryRepository implements GalleryRepository {
 
   @override
   Future<GalleryPageResult> search(GallerySearchQuery query) async => pages[_index++];
+
+  @override
+  Future<GalleryPageResult> popular({required SiteSource source}) async => pages[_index++];
+
+  @override
+  Future<GalleryPageResult> rankings({
+    required SiteSource source,
+    required RankingPeriod period,
+    int page = 0,
+  }) async => pages[_index++];
+
+  @override
+  Future<List<Gallery>> random({
+    required SiteSource source,
+    int count = 12,
+    Set<int> excluding = const {},
+  }) async => const [];
 
   @override
   Future<void> upsert(Gallery gallery) async {}

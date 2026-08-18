@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:drift/drift.dart';
 
@@ -11,6 +12,7 @@ import '../../domain/entities/gallery_page_result.dart';
 import '../../domain/entities/gallery_search_query.dart';
 import '../../domain/entities/gallery_tag.dart';
 import '../../domain/repositories/gallery_repository.dart';
+import '../../../rankings/domain/entities/ranking_period.dart';
 import '../datasources/eh_html_parser.dart';
 
 class EhGalleryRepository implements GalleryRepository {
@@ -43,6 +45,52 @@ class EhGalleryRepository implements GalleryRepository {
         search: query.siteQuery().isEmpty ? null : query.siteQuery(),
       ),
     );
+  }
+
+  @override
+  Future<GalleryPageResult> popular({required SiteSource source}) {
+    return _loadPage(_buildSiteUri(source: source, path: '/popular'));
+  }
+
+  @override
+  Future<GalleryPageResult> rankings({
+    required SiteSource source,
+    required RankingPeriod period,
+    int page = 0,
+  }) {
+    return _loadPage(
+      _buildSiteUri(
+        source: source,
+        path: '/toplist.php',
+        queryParameters: {'tl': period.endpointValue, 'p': '$page'},
+      ),
+    );
+  }
+
+  @override
+  Future<List<Gallery>> random({
+    required SiteSource source,
+    int count = 12,
+    Set<int> excluding = const {},
+  }) async {
+    final first = await discover(source: source);
+    final maxId = first.galleries.fold<int>(1, (max, gallery) =>
+        gallery.key.gid > max ? gallery.key.gid : max);
+    final result = <Gallery>[];
+    final known = {...excluding};
+    final cursors = <int>{};
+    var attempts = 0;
+    while (result.length < count && attempts < 8) {
+      attempts += 1;
+      final cursor = _randomCursor(maxId, cursors);
+      cursors.add(cursor);
+      final page = await discover(source: source, cursor: cursor);
+      for (final gallery in page.galleries) {
+        if (known.add(gallery.key.gid)) result.add(gallery);
+        if (result.length == count) break;
+      }
+    }
+    return result;
   }
 
   @override
@@ -140,17 +188,29 @@ class EhGalleryRepository implements GalleryRepository {
 
   Uri _buildSiteUri({
     required SiteSource source,
+    String path = '/',
     int? cursor,
     String? search,
+    Map<String, String>? queryParameters,
   }) {
     return Uri.https(
       source == SiteSource.eHentai ? 'e-hentai.org' : 'exhentai.org',
-      '/',
+      path,
       {
+        ...?queryParameters,
         if (cursor != null) 'next': '$cursor',
         if (search != null) 'f_search': search,
       },
     );
+  }
+
+  int _randomCursor(int maxId, Set<int> used) {
+    final random = Random.secure();
+    for (var attempt = 0; attempt < 20; attempt++) {
+      final cursor = 1 + random.nextInt(maxId);
+      if (!used.contains(cursor)) return cursor;
+    }
+    return 1;
   }
 
   SiteSource _sourceFromHost(String host) =>

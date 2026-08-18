@@ -98,6 +98,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 14),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: state.isLoading ? null : notifier.loadPopular,
+                        icon: const Icon(Icons.local_fire_department_outlined),
+                        label: const Text('热门'),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: state.isLoading ? null : notifier.loadRandom,
+                        icon: const Icon(Icons.casino_outlined),
+                        label: const Text('随机'),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: () => context.push('/rankings'),
+                        icon: const Icon(Icons.bar_chart_outlined),
+                        label: const Text('排行'),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 20),
                   SearchBar(
                     controller: _searchController,
