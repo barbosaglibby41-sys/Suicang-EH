@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 
 import '../../features/authentication/domain/repositories/auth_repository.dart';
@@ -101,7 +103,7 @@ class SiteHttpClient {
         message: 'The site returned an empty response.',
       );
     }
-    return String.fromCharCodes(body);
+    return utf8.decode(body, allowMalformed: true);
   }
 
   NetworkException _mapDioError(DioException error) {
