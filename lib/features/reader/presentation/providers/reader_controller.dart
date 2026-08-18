@@ -9,7 +9,9 @@ import '../../domain/engine/manga_reader_engine.dart';
 import '../../domain/entities/reading_progress.dart';
 import 'reading_progress_providers.dart';
 import '../../domain/entities/reader_models.dart';
+import '../../domain/entities/reader_preferences.dart';
 import '../../domain/page_source/page_source.dart';
+import 'reader_preferences_providers.dart';
 
 final readerEngineProvider = Provider.family<
     MangaReaderEngine, ReaderSessionConfig>((ref, config) {
@@ -21,9 +23,9 @@ final readerEngineProvider = Provider.family<
     pageSource: pageSource,
     initialState: ReaderState(
       galleryKey: config.gallery.key,
-      mode: ReaderMode.horizontal,
-      direction: ReaderDirection.ltr,
-      fit: ReaderFit.contain,
+      mode: config.preferences.mode,
+      direction: config.preferences.direction,
+      fit: config.preferences.fit,
       pageCount: config.gallery.pageCount,
       currentIndex: config.initialIndex,
     ),
@@ -49,12 +51,14 @@ class ReaderSessionConfig {
   const ReaderSessionConfig({
     required this.gallery,
     this.initialIndex = 0,
+    required this.preferences,
     this.pageSource,
     this.onProgress,
   });
 
   final Gallery gallery;
   final int initialIndex;
+  final ReaderPreferences preferences;
   final PageSource? pageSource;
   final Future<void> Function(int index)? onProgress;
 
@@ -63,8 +67,18 @@ class ReaderSessionConfig {
       other is ReaderSessionConfig &&
       other.gallery.key == gallery.key &&
       other.initialIndex == initialIndex &&
+      other.preferences.mode == preferences.mode &&
+      other.preferences.direction == preferences.direction &&
+      other.preferences.fit == preferences.fit &&
       other.pageSource == pageSource;
 
   @override
-  int get hashCode => Object.hash(gallery.key, initialIndex, pageSource);
+  int get hashCode => Object.hash(
+        gallery.key,
+        initialIndex,
+        preferences.mode,
+        preferences.direction,
+        preferences.fit,
+        pageSource,
+      );
 }

@@ -12,6 +12,7 @@ import '../domain/engine/manga_reader_engine.dart';
 import '../domain/entities/reader_models.dart';
 import '../domain/page_source/page_source.dart';
 import 'providers/reader_controller.dart';
+import 'providers/reader_preferences_providers.dart';
 import 'providers/reading_progress_providers.dart';
 
 class ReaderScreen extends ConsumerStatefulWidget {
@@ -87,17 +88,20 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
               title: widget.gallery.title,
               state: state,
               onClose: () => Navigator.of(context).maybePop(),
-              onToggleMode: () => engine.setMode(
+              onToggleMode: () => _updateMode(
+                engine,
                 state.mode == ReaderMode.horizontal
                     ? ReaderMode.vertical
                     : ReaderMode.horizontal,
               ),
-              onToggleDirection: () => engine.setDirection(
+              onToggleDirection: () => _updateDirection(
+                engine,
                 state.direction == ReaderDirection.ltr
                     ? ReaderDirection.rtl
                     : ReaderDirection.ltr,
               ),
-              onToggleFit: () => engine.setFit(
+              onToggleFit: () => _updateFit(
+                engine,
                 state.fit == ReaderFit.contain
                     ? ReaderFit.cover
                     : ReaderFit.contain,
@@ -110,6 +114,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   }
 
   Future<void> _initialize() async {
+    final preferences = await ref.read(readerPreferencesProvider.future);
     final saved = await ref
         .read(readingProgressRepositoryProvider)
         .get(widget.gallery.key);
@@ -117,6 +122,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     final config = ReaderSessionConfig(
       gallery: widget.gallery,
       initialIndex: saved?.pageIndex ?? 0,
+      preferences: preferences,
       pageSource: widget.pageSource,
     );
     final engine = ref.read(readerEngineProvider(config));
@@ -133,6 +139,29 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     if (!mounted) return;
     setState(() => _ready = true);
     await _loadPage(engine.state.currentIndex);
+  }
+
+  Future<void> _updateMode(MangaReaderEngine engine, ReaderMode mode) async {
+    engine.setMode(mode);
+    final current = await ref.read(readerPreferencesProvider.future);
+    await ref.read(readerPreferencesProvider.notifier).update(current.copyWith(mode: mode));
+  }
+
+  Future<void> _updateDirection(
+    MangaReaderEngine engine,
+    ReaderDirection direction,
+  ) async {
+    engine.setDirection(direction);
+    final current = await ref.read(readerPreferencesProvider.future);
+    await ref
+        .read(readerPreferencesProvider.notifier)
+        .update(current.copyWith(direction: direction));
+  }
+
+  Future<void> _updateFit(MangaReaderEngine engine, ReaderFit fit) async {
+    engine.setFit(fit);
+    final current = await ref.read(readerPreferencesProvider.future);
+    await ref.read(readerPreferencesProvider.notifier).update(current.copyWith(fit: fit));
   }
 
   Future<Uint8List> _loadPage(int index) {
