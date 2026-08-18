@@ -32,14 +32,30 @@ jobs:
         run: dart run build_runner build --delete-conflicting-outputs
       - name: Generate iOS host when absent
         run: test -d ios || flutter create --platforms=ios --project-name=taro_eh_flutter .
+      - name: Configure official iOS bundle identity
+        run: |
+          /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier com.taro.eh" ios/Runner/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName 芋头E站" ios/Runner/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Set :CFBundleName TaroEH" ios/Runner/Info.plist || true
+          sed -i.bak 's/PRODUCT_BUNDLE_IDENTIFIER = com.example.taroEhFlutter/PRODUCT_BUNDLE_IDENTIFIER = com.taro.eh/g' ios/Runner.xcodeproj/project.pbxproj || true
       - name: Install CocoaPods dependencies
         run: cd ios && pod install --repo-update
       - name: Build unsigned iOS archive
-        run: flutter build ipa --release --no-codesign
+        run: |
+          flutter build ipa --release --no-codesign \
+            --build-name=${{ inputs.version }} \
+            --build-number=1 \
+            --dart-define=TARO_IOS_BUNDLE_ID=com.taro.eh
+
       - name: Package unsigned IPA container
         run: |
+          set -e
           mkdir -p release/Payload
           cp -R build/ios/archive/Runner.xcarchive/Products/Applications/Runner.app release/Payload/TaroEH.app
+          find release/Payload/TaroEH.app -type f | while read file; do
+            file "$file" | grep -q 'Mach-O' && chmod 755 "$file" || true
+          done
+          chmod 755 release/Payload/TaroEH.app/TaroEH || chmod 755 release/Payload/TaroEH.app/Runner
           ditto -c -k --sequesterRsrc --keepParent release/Payload release/taro-eh-flutter-${{ inputs.version }}-unsigned.ipa
           unzip -t release/taro-eh-flutter-${{ inputs.version }}-unsigned.ipa
           shasum -a 256 release/taro-eh-flutter-${{ inputs.version }}-unsigned.ipa | tee release/SHA256SUMS.txt
