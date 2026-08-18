@@ -4,6 +4,7 @@ import '../../../gallery/domain/entities/gallery_key.dart';
 import '../../../gallery/domain/entities/gallery_search_query.dart';
 import '../../../gallery/domain/repositories/gallery_repository.dart';
 import '../../../gallery/presentation/providers/gallery_providers.dart';
+import '../../../tags/presentation/providers/tag_translation_providers.dart';
 import '../state/discovery_state.dart';
 
 final discoveryNotifierProvider =
@@ -11,6 +12,11 @@ final discoveryNotifierProvider =
 
 class DiscoveryNotifier extends Notifier<DiscoveryState> {
   GalleryRepository get _repository => ref.read(galleryRepositoryProvider);
+
+  String _translate(String value) {
+    final repository = ref.read(tagTranslationRepositoryProvider);
+    return repository.isReady ? repository.translateQuery(value) : value;
+  }
 
   @override
   DiscoveryState build() => const DiscoveryState(source: SiteSource.eHentai);
@@ -44,6 +50,10 @@ class DiscoveryNotifier extends Notifier<DiscoveryState> {
       await load(force: true);
       return;
     }
+    final tagRepository = ref.read(tagTranslationRepositoryProvider);
+    if (!tagRepository.isReady) {
+      await tagRepository.loadBundled();
+    }
     state = state.copyWith(
       isLoading: true,
       clearError: true,
@@ -54,7 +64,10 @@ class DiscoveryNotifier extends Notifier<DiscoveryState> {
     );
     try {
       final result = await _repository.search(
-        GallerySearchQuery(source: state.source, keyword: query),
+        GallerySearchQuery(
+          source: state.source,
+          keyword: _translate(query),
+        ),
       );
       state = state.copyWith(
         galleries: result.galleries,
@@ -84,7 +97,7 @@ class DiscoveryNotifier extends Notifier<DiscoveryState> {
           ? await _repository.search(
               GallerySearchQuery(
                 source: state.source,
-                keyword: state.query,
+                keyword: _translate(state.query),
                 cursor: cursor,
               ),
             )

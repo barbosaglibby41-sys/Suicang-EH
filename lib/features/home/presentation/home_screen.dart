@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../gallery/domain/entities/gallery.dart';
 import '../../gallery/domain/entities/gallery_key.dart';
 import '../../gallery/presentation/widgets/gallery_cover_placeholder.dart';
+import '../../tags/presentation/providers/tag_translation_providers.dart';
 import 'notifiers/discovery_notifier.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -25,6 +26,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     });
   }
 
+  String _currentToken(String value) {
+    final parts = value.split(RegExp(r'\s+'));
+    return parts.isEmpty ? '' : parts.last;
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -35,6 +41,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(discoveryNotifierProvider);
     final notifier = ref.read(discoveryNotifierProvider.notifier);
+    final token = _currentToken(_searchController.text);
+    final tagRepository = ref.watch(tagTranslationRepositoryProvider);
+    final suggestions = tagRepository.isReady && token.isNotEmpty
+        ? tagRepository.suggestions(token)
+        : const [];
     final theme = Theme.of(context);
 
     return RefreshIndicator(
@@ -105,6 +116,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     onChanged: (_) => setState(() {}),
                     onSubmitted: notifier.search,
                   ),
+                  if (suggestions.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: Card(
+                        child: Column(
+                          children: [
+                            for (final tag in suggestions)
+                              ListTile(
+                                dense: true,
+                                leading: const Icon(Icons.sell_outlined),
+                                title: Text(tag.name),
+                                subtitle: Text(tag.rawName),
+                                onTap: () {
+                                  final query = _searchController.text;
+                                  final token = _currentToken(query);
+                                  final start = query.length - token.length;
+                                  _searchController.text =
+                                      '${query.substring(0, start)}${tag.key} ';
+                                  _searchController.selection = TextSelection.collapsed(
+                                    offset: _searchController.text.length,
+                                  );
+                                  setState(() {});
+                                },
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
                   const SizedBox(height: 18),
                   Text(
                     state.isSearch ? '搜索结果' : '最新发现',

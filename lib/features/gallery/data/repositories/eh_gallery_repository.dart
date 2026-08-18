@@ -40,7 +40,7 @@ class EhGalleryRepository implements GalleryRepository {
       _buildSiteUri(
         source: query.source,
         cursor: query.cursor,
-        search: query.siteQuery.isEmpty ? null : query.siteQuery,
+        search: query.siteQuery().isEmpty ? null : query.siteQuery(),
       ),
     );
   }

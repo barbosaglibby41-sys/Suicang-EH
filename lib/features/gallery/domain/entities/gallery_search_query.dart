@@ -13,8 +13,11 @@ class GallerySearchQuery {
   final List<String> tags;
   final int? cursor;
 
-  String get siteQuery => [keyword, ...tags]
+  String siteQuery({String Function(String value)? translate}) => [keyword, ...tags]
       .where((value) => value.trim().isNotEmpty)
       .map((value) => value.trim())
+      .map(translate ?? _identity)
       .join(' ');
+
+  static String _identity(String value) => value;
 }
