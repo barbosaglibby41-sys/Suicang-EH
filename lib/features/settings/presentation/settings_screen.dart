@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import '../../reader/presentation/reader_settings_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -18,6 +18,17 @@ class SettingsScreen extends StatelessWidget {
             title: const Text('账户与会话'),
             subtitle: const Text('导入 Cookie、验证站点会话与刷新 ExHentai。'),
             onTap: () => context.push('/account'),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          child: ListTile(
+            leading: Icon(Icons.menu_book_outlined, color: theme.colorScheme.primary),
+            title: const Text('阅读设置'),
+            subtitle: const Text('阅读方式、方向、页面适配和屏幕常亮。'),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const ReaderSettingsScreen()),
+            ),
           ),
         ),
         const SizedBox(height: 12),
