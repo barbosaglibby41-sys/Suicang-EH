@@ -6,6 +6,7 @@ import '../../gallery/domain/entities/gallery.dart';
 import '../../gallery/domain/entities/gallery_key.dart';
 import '../../gallery/presentation/widgets/gallery_cover_placeholder.dart';
 import '../../tags/presentation/providers/tag_translation_providers.dart';
+import '../../search/presentation/providers/search_history_providers.dart';
 import 'notifiers/discovery_notifier.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -46,6 +47,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final suggestions = tagRepository.isReady && token.isNotEmpty
         ? tagRepository.suggestions(token)
         : const [];
+    final history = ref.watch(searchHistoryProvider);
     final theme = Theme.of(context);
 
     return RefreshIndicator(
@@ -143,6 +145,54 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           ],
                         ),
                       ),
+                    ),
+                  if (token.isEmpty)
+                    history.when(
+                      loading: () => const SizedBox.shrink(),
+                      error: (_, __) => const SizedBox.shrink(),
+                      data: (entries) => entries.isEmpty
+                          ? const SizedBox.shrink()
+                          : Padding(
+                              padding: const EdgeInsets.only(top: 14),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Text('最近搜索', style: theme.textTheme.titleSmall),
+                                      const Spacer(),
+                                      TextButton(
+                                        onPressed: () => ref
+                                            .read(searchHistoryRepositoryProvider)
+                                            .clear(),
+                                        child: const Text('清除'),
+                                      ),
+                                    ],
+                                  ),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: [
+                                      for (final entry in entries)
+                                        InputChip(
+                                          label: Text(entry.query),
+                                          onPressed: () {
+                                            _searchController.text = entry.query;
+                                            _searchController.selection =
+                                                TextSelection.collapsed(
+                                              offset: entry.query.length,
+                                            );
+                                            notifier.search(entry.query);
+                                          },
+                                          onDeleted: () => ref
+                                              .read(searchHistoryRepositoryProvider)
+                                              .remove(entry.id),
+                                        ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
                     ),
                   const SizedBox(height: 18),
                   Text(

@@ -5,6 +5,7 @@ import '../../../gallery/domain/entities/gallery_search_query.dart';
 import '../../../gallery/domain/repositories/gallery_repository.dart';
 import '../../../gallery/presentation/providers/gallery_providers.dart';
 import '../../../tags/presentation/providers/tag_translation_providers.dart';
+import '../../../search/presentation/providers/search_history_providers.dart';
 import '../state/discovery_state.dart';
 
 final discoveryNotifierProvider =
@@ -69,6 +70,7 @@ class DiscoveryNotifier extends Notifier<DiscoveryState> {
           keyword: _translate(query),
         ),
       );
+      await ref.read(searchHistoryRepositoryProvider).record(query);
       state = state.copyWith(
         galleries: result.galleries,
         nextCursor: result.nextCursor,
