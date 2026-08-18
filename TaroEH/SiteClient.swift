@@ -47,7 +47,7 @@ final class SiteClient {
             // Use the persisted logical jar as the authority, just like
             // JHenTai's EHCookieManager. Native storage is only a fallback;
             // otherwise stale igneous=mystery can overwrite a refreshed value.
-            for cookie in storageCookies where allCookies[cookie.name] == nil && !excluding.contains(cookie.name.lowercased()) {
+            for cookie in storageCookies where allCookies[cookie.name] == nil && !cookieNames.contains(cookie.name.lowercased()) {
                 allCookies[cookie.name] = cookie.value
             }
         }
