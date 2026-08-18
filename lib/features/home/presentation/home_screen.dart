@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/image/image_request.dart';
 import '../../gallery/domain/entities/gallery.dart';
 import '../../gallery/domain/entities/gallery_key.dart';
-import '../../gallery/presentation/widgets/gallery_cover_placeholder.dart';
+import '../../gallery/presentation/widgets/gallery_cover.dart';
 import '../../tags/presentation/providers/tag_translation_providers.dart';
 import '../../search/presentation/providers/search_history_providers.dart';
 import 'notifiers/discovery_notifier.dart';
@@ -322,7 +323,10 @@ class _GalleryTile extends StatelessWidget {
             Expanded(
               child: Hero(
                 tag: 'gallery-cover-${gallery.key.stableId}',
-                child: GalleryCoverPlaceholder(gallery: gallery),
+                child: GalleryCover(
+                  gallery: gallery,
+                  variant: ImageVariant.cover,
+                ),
               ),
             ),
             const SizedBox(height: 9),

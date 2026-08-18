@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../gallery/domain/entities/gallery.dart';
-import '../../gallery/presentation/widgets/gallery_cover_placeholder.dart';
+import '../../gallery/presentation/widgets/gallery_cover.dart';
 import 'providers/library_providers.dart';
 
 class LibraryScreen extends ConsumerWidget {
@@ -89,7 +89,7 @@ class _GalleryCard extends StatelessWidget {
           Expanded(
             child: Hero(
               tag: 'library-cover-${gallery.key.stableId}',
-              child: GalleryCoverPlaceholder(gallery: gallery),
+              child: GalleryCover(gallery: gallery),
             ),
           ),
           const SizedBox(height: 8),

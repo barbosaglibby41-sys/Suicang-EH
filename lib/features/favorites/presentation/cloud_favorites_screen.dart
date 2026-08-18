@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../gallery/domain/entities/gallery.dart';
-import '../../gallery/presentation/widgets/gallery_cover_placeholder.dart';
+import '../../gallery/presentation/widgets/gallery_cover.dart';
 import 'providers/cloud_favorites_providers.dart';
 
 class CloudFavoritesScreen extends ConsumerStatefulWidget {
@@ -118,7 +118,7 @@ class _CloudGalleryCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(child: GalleryCoverPlaceholder(gallery: gallery)),
+            Expanded(child: GalleryCover(gallery: gallery)),
             const SizedBox(height: 8),
             Text(gallery.title, maxLines: 2, overflow: TextOverflow.ellipsis),
           ],

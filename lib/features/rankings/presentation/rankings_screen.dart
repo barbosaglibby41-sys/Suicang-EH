@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/image/image_request.dart';
 import '../../gallery/domain/entities/gallery.dart';
-import '../../gallery/presentation/widgets/gallery_cover_placeholder.dart';
+import '../../gallery/presentation/widgets/gallery_cover.dart';
 import '../domain/entities/ranking_period.dart';
 import 'providers/rankings_providers.dart';
 
@@ -87,7 +88,12 @@ class _RankingRow extends StatelessWidget {
               SizedBox(
                 width: 54,
                 height: 76,
-                child: GalleryCoverPlaceholder(gallery: gallery),
+                child: GalleryCover(
+                  gallery: gallery,
+                  variant: ImageVariant.thumbnail,
+                  targetPixels: 240,
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
