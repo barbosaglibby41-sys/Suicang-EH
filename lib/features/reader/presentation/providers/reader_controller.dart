@@ -6,15 +6,18 @@ import '../../data/page_sources/online_page_source.dart';
 import '../../../gallery/domain/entities/gallery.dart';
 import '../../../gallery/presentation/providers/gallery_providers.dart';
 import '../../domain/engine/manga_reader_engine.dart';
+import '../../domain/entities/reading_progress.dart';
+import 'reading_progress_providers.dart';
 import '../../domain/entities/reader_models.dart';
 import '../../domain/page_source/page_source.dart';
 
-final readerEngineProvider = Provider.family.autoDispose<
+final readerEngineProvider = Provider.family<
     MangaReaderEngine, ReaderSessionConfig>((ref, config) {
   final repository = ref.read(galleryRepositoryProvider);
   final pageSource = config.pageSource ??
       OnlinePageSource(gallery: config.gallery, repository: repository);
-  final engine = MangaReaderEngine(
+  late final MangaReaderEngine engine;
+  engine = MangaReaderEngine(
     pageSource: pageSource,
     initialState: ReaderState(
       galleryKey: config.gallery.key,
@@ -24,7 +27,17 @@ final readerEngineProvider = Provider.family.autoDispose<
       pageCount: config.gallery.pageCount,
       currentIndex: config.initialIndex,
     ),
-    onProgress: config.onProgress,
+    onProgress: (index) async {
+      await ref.read(readingProgressRepositoryProvider).save(
+            ReadingProgress(
+              galleryKey: config.gallery.key,
+              pageIndex: index,
+              pageCount: engine.state.pageCount,
+              updatedAt: DateTime.now().toUtc(),
+            ),
+          );
+      await config.onProgress?.call(index);
+    },
   );
   ref.onDispose(() {
     unawaited(engine.dispose());

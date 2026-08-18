@@ -9,20 +9,27 @@ import '../../../core/image/image_providers.dart';
 import '../../../core/image/image_request.dart';
 import '../../../gallery/domain/entities/gallery.dart';
 import '../domain/engine/manga_reader_engine.dart';
+import '../domain/page_source/page_source.dart';
 import 'providers/reader_controller.dart';
+import 'providers/reading_progress_providers.dart';
 import '../domain/entities/reader_models.dart';
 
 class ReaderScreen extends ConsumerStatefulWidget {
-  const ReaderScreen({required this.gallery, super.key});
+  const ReaderScreen({
+    required this.gallery,
+    this.pageSource,
+    super.key,
+  });
 
   final Gallery gallery;
+  final PageSource? pageSource;
 
   @override
   ConsumerState<ReaderScreen> createState() => _ReaderScreenState();
 }
 
 class _ReaderScreenState extends ConsumerState<ReaderScreen> {
-  late final MangaReaderEngine _engine;
+  MangaReaderEngine? _engine;
   StreamSubscription<ReaderState>? _states;
   StreamSubscription<int>? _preloads;
   ReaderState? _state;
@@ -32,17 +39,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   @override
   void initState() {
     super.initState();
-    final config = ReaderSessionConfig(gallery: widget.gallery);
-    _engine = ref.read(readerEngineProvider(config));
-    _state = _engine.state;
-    _states = _engine.states.listen((state) {
-      if (!mounted) return;
-      setState(() => _state = state);
-    });
-    _preloads = _engine.preloadRequests.listen((index) {
-      unawaited(_loadPage(index));
-    });
-    _initialize();
+    unawaited(_initialize());
   }
 
   @override
@@ -54,8 +51,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final state = _state ?? _engine.state;
-    if (!_ready || state.pageCount == 0) {
+    final engine = _engine;
+    final state = _state ?? engine?.state;
+    if (!_ready || engine == null || state == null || state.pageCount == 0) {
       return Scaffold(
         backgroundColor: Colors.black,
         appBar: AppBar(
@@ -74,12 +72,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
           SafeArea(
             child: state.mode == ReaderMode.vertical
                 ? _VerticalReader(
-                    engine: _engine,
+                    engine: engine,
                     state: state,
                     loadPage: _loadPage,
                   )
                 : _HorizontalReader(
-                    engine: _engine,
+                    engine: engine,
                     state: state,
                     loadPage: _loadPage,
                   ),
@@ -88,12 +86,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
             title: widget.gallery.title,
             state: state,
             onClose: () => Navigator.of(context).maybePop(),
-            onToggleMode: () => _engine.setMode(
+            onToggleMode: () => engine.setMode(
               state.mode == ReaderMode.horizontal
                   ? ReaderMode.vertical
                   : ReaderMode.horizontal,
             ),
-            onToggleFit: () => _engine.setFit(
+            onToggleFit: () => engine.setFit(
               state.fit == ReaderFit.contain ? ReaderFit.cover : ReaderFit.contain,
             ),
           ),
@@ -103,15 +101,38 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   }
 
   Future<void> _initialize() async {
-    await _engine.initialize();
+    final saved = await ref
+        .read(readingProgressRepositoryProvider)
+        .get(widget.gallery.key);
+    if (!mounted) return;
+    final config = ReaderSessionConfig(
+      gallery: widget.gallery,
+      initialIndex: saved?.pageIndex ?? 0,
+      pageSource: widget.pageSource,
+    );
+    final engine = ref.read(readerEngineProvider(config));
+    _engine = engine;
+    _state = engine.state;
+    _states = engine.states.listen((state) {
+      if (!mounted) return;
+      setState(() => _state = state);
+    });
+    _preloads = engine.preloadRequests.listen((index) {
+      unawaited(_loadPage(index));
+    });
+    await engine.initialize();
     if (!mounted) return;
     setState(() => _ready = true);
-    await _loadPage(_engine.state.currentIndex);
+    await _loadPage(engine.state.currentIndex);
   }
 
   Future<Uint8List> _loadPage(int index) {
+    final engine = _engine;
+    if (engine == null) {
+      return Future<Uint8List>.error(StateError('Reader is not initialized.'));
+    }
     return _pages.putIfAbsent(index, () async {
-      final page = await _engine.pageAt(index);
+      final page = await engine.pageAt(index);
       final pipeline = ref.read(imagePipelineProvider);
       return pipeline.load(
         ImageRequest(

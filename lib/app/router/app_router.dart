@@ -9,7 +9,7 @@ import '../../features/reader/presentation/reader_screen.dart';
 import '../../features/gallery/presentation/providers/gallery_providers.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/library/presentation/library_screen.dart';
-import '../../features/downloads/presentation/downloads_screen.dart';
+import '../../features/offline/presentation/offline_library_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -65,7 +65,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoute.downloads.path,
-            builder: (context, state) => const DownloadsScreen(),
+            builder: (context, state) => const OfflineLibraryScreen(),
           ),
           GoRoute(
             path: AppRoute.settings.path,
