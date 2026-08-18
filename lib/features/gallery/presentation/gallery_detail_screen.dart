@@ -115,7 +115,7 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () {},
+                        onPressed: state.isLoading ? null : notifier.enqueueDownload,
                         icon: const Icon(Icons.download_outlined),
                         label: const Text('下载'),
                       ),

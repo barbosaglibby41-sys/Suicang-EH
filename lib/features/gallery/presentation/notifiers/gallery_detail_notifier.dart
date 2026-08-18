@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../downloads/domain/entities/download_request.dart';
+import '../../../downloads/presentation/providers/download_providers.dart';
 import '../../domain/entities/gallery.dart';
 import '../../domain/repositories/gallery_repository.dart';
 import '../providers/gallery_providers.dart';
@@ -15,6 +17,33 @@ class GalleryDetailNotifier extends FamilyNotifier<GalleryDetailState, Gallery> 
 
   @override
   GalleryDetailState build(Gallery gallery) => GalleryDetailState(gallery: gallery);
+
+  Future<void> enqueueDownload() async {
+    if (state.isLoading) return;
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final detail = await _repository.loadDetail(
+        state.gallery,
+        includePageLinks: true,
+      );
+      if (detail.pageLinks.isEmpty) {
+        throw StateError('No downloadable pages found.');
+      }
+      await ref.read(downloadRepositoryProvider).enqueue(
+            DownloadRequest(gallery: detail.gallery, pageUrls: detail.pageLinks),
+          );
+      state = state.copyWith(
+        gallery: detail.gallery,
+        isLoading: false,
+        clearError: true,
+      );
+    } catch (_) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: '无法创建下载任务。请确认站点会话后重试。',
+      );
+    }
+  }
 
   Future<void> load() async {
     if (state.isLoading) {
