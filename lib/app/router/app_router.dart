@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/gallery/domain/entities/gallery.dart';
 import '../../features/gallery/domain/entities/gallery_key.dart';
 import '../../features/gallery/presentation/gallery_detail_screen.dart';
+import '../../features/reader/presentation/reader_screen.dart';
 import '../../features/gallery/presentation/providers/gallery_providers.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/library/presentation/library_screen.dart';
@@ -15,6 +16,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: AppRoute.home.path,
     routes: [
+      GoRoute(
+        path: '/reader/:source/:gid',
+        builder: (context, state) {
+          final gallery = state.extra as Gallery?;
+          if (gallery == null) {
+            return const _InvalidGalleryRoute(
+              message: 'Reader 需要从作品详情打开。',
+            );
+          }
+          return ReaderScreen(gallery: gallery);
+        },
+      ),
       GoRoute(
         path: '/gallery/:source/:gid',
         builder: (context, state) {

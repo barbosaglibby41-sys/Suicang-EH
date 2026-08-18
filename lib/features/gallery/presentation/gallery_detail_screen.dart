@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/image/image_request.dart';
 import '../../../core/image/pipeline_image.dart';
@@ -91,7 +92,12 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
                 SizedBox(
                   height: 48,
                   child: FilledButton.icon(
-                    onPressed: gallery.sourceUrl == null ? null : () {},
+                    onPressed: gallery.sourceUrl == null
+                        ? null
+                        : () => context.push(
+                              '/reader/${gallery.key.source.storageValue}/${gallery.key.gid}',
+                              extra: gallery,
+                            ),
                     icon: const Icon(Icons.menu_book_outlined),
                     label: const Text('开始阅读'),
                   ),
