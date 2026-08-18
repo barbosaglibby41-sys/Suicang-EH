@@ -39,7 +39,7 @@ jobs:
       - name: Package unsigned IPA container
         run: |
           mkdir -p release/Payload
-          cp -R build/ios/iphoneos/Runner.app release/Payload/TaroEH.app
+          cp -R build/ios/archive/Runner.xcarchive/Products/Applications/Runner.app release/Payload/TaroEH.app
           ditto -c -k --sequesterRsrc --keepParent release/Payload release/taro-eh-flutter-${{ inputs.version }}-unsigned.ipa
           unzip -t release/taro-eh-flutter-${{ inputs.version }}-unsigned.ipa
           shasum -a 256 release/taro-eh-flutter-${{ inputs.version }}-unsigned.ipa | tee release/SHA256SUMS.txt
