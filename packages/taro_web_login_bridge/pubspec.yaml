@@ -1,0 +1,21 @@
+name: taro_web_login_bridge
+description: Native WebView login and HttpOnly cookie capture for TaroEH.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+  flutter: ">=3.22.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.taro.eh.web_login_bridge
+        pluginClass: TaroWebLoginBridgePlugin
+      ios:
+        pluginClass: TaroWebLoginBridgePlugin

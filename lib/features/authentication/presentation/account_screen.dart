@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../gallery/domain/entities/gallery_key.dart';
 import '../domain/entities/session_validation.dart';
 import 'providers/auth_providers.dart';
+import 'providers/web_login_providers.dart';
 
 class AccountScreen extends ConsumerStatefulWidget {
   const AccountScreen({super.key});
@@ -41,6 +42,12 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                 subtitle: Text('${value.cookies.length} 个安全 Cookie，仅保存在本机加密存储。'),
               ),
             ),
+          ),
+          const SizedBox(height: 18),
+          FilledButton.icon(
+            onPressed: _working ? null : _webLogin,
+            icon: const Icon(Icons.public),
+            label: const Text('网页登录'),
           ),
           const SizedBox(height: 18),
           Text('导入 Cookie', style: Theme.of(context).textTheme.titleMedium),
@@ -96,6 +103,18 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _webLogin() async {
+    setState(() => _working = true);
+    try {
+      await ref.read(webLoginServiceProvider).authenticate();
+      if (mounted) _show('网页登录会话已安全保存。');
+    } catch (_) {
+      if (mounted) _show('网页登录未完成，或未捕获有效会话。');
+    } finally {
+      if (mounted) setState(() => _working = false);
+    }
   }
 
   Future<void> _importCookies() async {
