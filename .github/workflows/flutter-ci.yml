@@ -28,6 +28,8 @@ jobs:
           cache: true
       - name: Install dependencies
         run: flutter pub get
+      - name: Generate Drift sources
+        run: dart run build_runner build --delete-conflicting-outputs
       - name: Check formatting
         run: dart format --output=none --set-exit-if-changed lib test
       - name: Analyze
@@ -46,6 +48,8 @@ jobs:
           cache: true
       - name: Install dependencies
         run: flutter pub get
+      - name: Generate Drift sources
+        run: dart run build_runner build --delete-conflicting-outputs
       - name: Create Android platform scaffold
         run: flutter create --platforms=android --project-name=taro_eh_flutter .
       - name: Build Android debug APK
