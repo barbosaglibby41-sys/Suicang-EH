@@ -59,7 +59,7 @@ jobs:
       - name: Test
         run: flutter test
 
-  android-debug:
+  android-arm64-release:
     runs-on: ubuntu-latest
     needs: analyze-and-test
     steps:
@@ -76,12 +76,17 @@ jobs:
         run: test -d android || flutter create --platforms=android --project-name=taro_eh_flutter .
       - name: Set Android host compile SDK
         run: sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 36/' android/app/build.gradle.kts
-      - name: Build Android debug APK
-        run: flutter build apk --debug
+      - name: Build Android ARM64 split APK
+        run: flutter build apk --release --split-per-abi --target-platform android-arm64
+      - name: Verify ARM64 APK only
+        run: |
+          test -f build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+          test ! -e build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
+          test ! -e build/app/outputs/flutter-apk/app-x86_64-release.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: taro-eh-flutter-android-debug
-          path: build/app/outputs/flutter-apk/app-debug.apk
+          name: taro-eh-flutter-arm64-release
+          path: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
 
   ios-simulator:
     runs-on: macos-15
