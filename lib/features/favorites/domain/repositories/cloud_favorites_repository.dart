@@ -1,7 +1,7 @@
 import '../../../gallery/domain/entities/gallery.dart';
 import '../../../gallery/domain/entities/gallery_key.dart';
-import 'cloud_favorite_category.dart';
-import 'cloud_favorites_page.dart';
+import '../entities/cloud_favorite_category.dart';
+import '../entities/cloud_favorites_page.dart';
 
 abstract interface class CloudFavoritesRepository {
   Future<CloudFavoritesPage> load({

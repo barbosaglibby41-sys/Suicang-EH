@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
 
-import '../../../../core/database/app_database.dart';
+import '../../../../core/database/app_database.dart' hide SearchHistoryEntry;
 import '../../domain/entities/search_history_entry.dart';
 import '../../domain/repositories/search_history_repository.dart';
 

@@ -27,7 +27,7 @@ void main() {
       authRepository: SecureAuthRepository(_MemoryStore()),
     );
     final pipeline = ImagePipeline(client: client);
-    const request = ImageRequest(
+    final request = ImageRequest(
       url: Uri.parse('https://image.example/a.jpg'),
       targetPixels: 720,
     );

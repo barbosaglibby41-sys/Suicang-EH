@@ -15,10 +15,10 @@ enum NetworkFailureKind {
 class NetworkException extends AppException {
   const NetworkException({
     required this.kind,
-    required super.message,
+    required String message,
     this.statusCode,
-    super.cause,
-  });
+    Object? cause,
+  }) : super(message, cause: cause);
 
   final NetworkFailureKind kind;
   final int? statusCode;

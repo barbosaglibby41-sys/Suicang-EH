@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../gallery/domain/entities/gallery_key.dart';
 import '../../reader/presentation/reader_settings_screen.dart';
 import '../domain/entities/site_preferences.dart';
 import 'migration_import_screen.dart';
@@ -31,7 +34,7 @@ class SettingsScreen extends ConsumerWidget {
                   title: const Text('E-Hentai'),
                   onChanged: (source) {
                     if (source != null) {
-                      ref.read(sitePreferencesProvider.notifier).update(
+                      ref.read(sitePreferencesProvider.notifier).setPreferences(
                             preferences.copyWith(source: source),
                           );
                     }
@@ -44,7 +47,7 @@ class SettingsScreen extends ConsumerWidget {
                   subtitle: const Text('需要有效登录会话。'),
                   onChanged: (source) {
                     if (source != null) {
-                      ref.read(sitePreferencesProvider.notifier).update(
+                      ref.read(sitePreferencesProvider.notifier).setPreferences(
                             preferences.copyWith(source: source),
                           );
                     }

@@ -4,7 +4,6 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/image/image_pipeline.dart';
 import '../../../../core/image/image_providers.dart';
 import '../../../../core/image/image_request.dart';
 import '../../domain/entities/gallery_key.dart';
@@ -119,8 +118,7 @@ class _SpritePainter extends CustomPainter {
     final scale = size.width / preview.width;
     final targetHeight = preview.height * scale;
     final destination = Rect.fromLTWH(0, 0, size.width, targetHeight);
-    canvas.drawImageRect(
-        image, source, destination, Paint(filterQuality: FilterQuality.medium));
+    canvas.drawImageRect(image, source, destination, Paint());
   }
 
   @override

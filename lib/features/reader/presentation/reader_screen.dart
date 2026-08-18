@@ -7,7 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/image/image_pipeline.dart';
 import '../../../core/image/image_providers.dart';
 import '../../../core/image/image_request.dart';
-import '../../../gallery/domain/entities/gallery.dart';
+import '../../gallery/domain/entities/gallery.dart';
 import '../domain/engine/manga_reader_engine.dart';
 import '../domain/entities/reader_models.dart';
 import '../domain/page_source/page_source.dart';
@@ -154,7 +154,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     final current = await ref.read(readerPreferencesProvider.future);
     await ref
         .read(readerPreferencesProvider.notifier)
-        .update(current.copyWith(mode: mode));
+        .setPreferences(current.copyWith(mode: mode));
   }
 
   Future<void> _updateDirection(
@@ -165,7 +165,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     final current = await ref.read(readerPreferencesProvider.future);
     await ref
         .read(readerPreferencesProvider.notifier)
-        .update(current.copyWith(direction: direction));
+        .setPreferences(current.copyWith(direction: direction));
   }
 
   Future<void> _updateFit(MangaReaderEngine engine, ReaderFit fit) async {
@@ -173,7 +173,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     final current = await ref.read(readerPreferencesProvider.future);
     await ref
         .read(readerPreferencesProvider.notifier)
-        .update(current.copyWith(fit: fit));
+        .setPreferences(current.copyWith(fit: fit));
   }
 
   Future<Uint8List> _loadPage(int index) {

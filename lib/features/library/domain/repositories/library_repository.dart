@@ -1,5 +1,5 @@
-import '../entities/gallery.dart';
-import '../entities/gallery_key.dart';
+import '../../../gallery/domain/entities/gallery.dart';
+import '../../../gallery/domain/entities/gallery_key.dart';
 
 abstract interface class LibraryRepository {
   Stream<List<Gallery>> watchFavorites();

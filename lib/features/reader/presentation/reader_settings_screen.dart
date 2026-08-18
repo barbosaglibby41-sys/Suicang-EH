@@ -31,7 +31,7 @@ class ReaderSettingsScreen extends ConsumerWidget {
                     subtitle: const Text('逐页滑动，适合传统漫画阅读。'),
                     onChanged: (mode) {
                       if (mode != null)
-                        notifier.update(value.copyWith(mode: mode));
+                        notifier.setPreferences(value.copyWith(mode: mode));
                     },
                   ),
                   RadioListTile<ReaderMode>(
@@ -41,7 +41,7 @@ class ReaderSettingsScreen extends ConsumerWidget {
                     subtitle: const Text('连续滚动，适合长图。'),
                     onChanged: (mode) {
                       if (mode != null)
-                        notifier.update(value.copyWith(mode: mode));
+                        notifier.setPreferences(value.copyWith(mode: mode));
                     },
                   ),
                 ],
@@ -59,7 +59,7 @@ class ReaderSettingsScreen extends ConsumerWidget {
                     title: const Text('从左到右'),
                     onChanged: (direction) {
                       if (direction != null) {
-                        notifier.update(value.copyWith(direction: direction));
+                        notifier.setPreferences(value.copyWith(direction: direction));
                       }
                     },
                   ),
@@ -69,7 +69,7 @@ class ReaderSettingsScreen extends ConsumerWidget {
                     title: const Text('从右到左'),
                     onChanged: (direction) {
                       if (direction != null) {
-                        notifier.update(value.copyWith(direction: direction));
+                        notifier.setPreferences(value.copyWith(direction: direction));
                       }
                     },
                   ),
@@ -88,7 +88,7 @@ class ReaderSettingsScreen extends ConsumerWidget {
                     title: const Text('完整显示'),
                     onChanged: (fit) {
                       if (fit != null)
-                        notifier.update(value.copyWith(fit: fit));
+                        notifier.setPreferences(value.copyWith(fit: fit));
                     },
                   ),
                   RadioListTile<ReaderFit>(
@@ -97,7 +97,7 @@ class ReaderSettingsScreen extends ConsumerWidget {
                     title: const Text('填充屏幕'),
                     onChanged: (fit) {
                       if (fit != null)
-                        notifier.update(value.copyWith(fit: fit));
+                        notifier.setPreferences(value.copyWith(fit: fit));
                     },
                   ),
                 ],
@@ -110,7 +110,7 @@ class ReaderSettingsScreen extends ConsumerWidget {
                 title: const Text('阅读时保持屏幕常亮'),
                 subtitle: const Text('偏好已保存；系统保持唤醒能力将在原生 adapter 接入后生效。'),
                 onChanged: (enabled) =>
-                    notifier.update(value.copyWith(keepScreenOn: enabled)),
+                    notifier.setPreferences(value.copyWith(keepScreenOn: enabled)),
               ),
             ),
           ],

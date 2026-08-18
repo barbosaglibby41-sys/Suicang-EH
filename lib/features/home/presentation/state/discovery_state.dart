@@ -1,4 +1,5 @@
 import '../../../gallery/domain/entities/gallery.dart';
+import '../../../gallery/domain/entities/gallery_key.dart';
 
 class DiscoveryState {
   const DiscoveryState({

@@ -21,7 +21,7 @@ class ReaderPreferencesNotifier extends AsyncNotifier<ReaderPreferences> {
   @override
   Future<ReaderPreferences> build() => _repository.load();
 
-  Future<void> update(ReaderPreferences preferences) async {
+  Future<void> setPreferences(ReaderPreferences preferences) async {
     state = AsyncData(preferences);
     await _repository.save(preferences);
   }

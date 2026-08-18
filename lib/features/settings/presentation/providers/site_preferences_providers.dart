@@ -21,7 +21,7 @@ class SitePreferencesNotifier extends AsyncNotifier<SitePreferences> {
   @override
   Future<SitePreferences> build() => _repository.load();
 
-  Future<void> update(SitePreferences preferences) async {
+  Future<void> setPreferences(SitePreferences preferences) async {
     state = AsyncData(preferences);
     await _repository.save(preferences);
   }

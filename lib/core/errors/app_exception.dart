@@ -1,4 +1,4 @@
-sealed class AppException implements Exception {
+abstract class AppException implements Exception {
   const AppException(this.message, {this.cause});
 
   final String message;

@@ -181,7 +181,7 @@ class DiscoveryNotifier extends Notifier<DiscoveryState> {
     }
     await ref
         .read(sitePreferencesProvider.notifier)
-        .update(SitePreferences(source: source));
+        .setPreferences(SitePreferences(source: source));
     state = DiscoveryState(source: source);
     await load(force: true);
   }

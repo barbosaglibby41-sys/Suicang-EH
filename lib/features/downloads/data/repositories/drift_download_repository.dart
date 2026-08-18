@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
@@ -13,7 +14,7 @@ import '../../../gallery/domain/entities/gallery_key.dart';
 import '../../../gallery/domain/entities/gallery_tag.dart';
 import '../../../gallery/domain/repositories/gallery_repository.dart';
 import '../../domain/entities/download_request.dart';
-import '../../domain/entities/download_task.dart';
+import '../../domain/entities/download_task.dart' as domain;
 import '../../domain/repositories/download_repository.dart';
 import '../datasources/download_file_store.dart';
 
@@ -38,15 +39,15 @@ class DriftDownloadRepository implements DownloadRepository {
   final _cancellations = <String, CancelToken>{};
 
   @override
-  Stream<List<DownloadTask>> watchAll() {
+  Stream<List<domain.DownloadTask>> watchAll() {
     return (_database.select(_database.downloadTasks)
-          ..orderBy([OrderingTerm.desc(_database.downloadTasks.updatedAt)]))
+          ..orderBy([(table) => OrderingTerm.desc(table.updatedAt)]))
         .watch()
         .map((rows) => rows.map(_fromRow).toList(growable: false));
   }
 
   @override
-  Future<DownloadTask?> enqueue(DownloadRequest request) async {
+  Future<domain.DownloadTask?> enqueue(DownloadRequest request) async {
     if (request.pageUrls.isEmpty) return null;
     final existing = await (_database.select(_database.downloadTasks)
           ..where(
@@ -68,7 +69,7 @@ class DriftDownloadRepository implements DownloadRepository {
               id: id,
               source: request.gallery.key.source.storageValue,
               gid: request.gallery.key.gid,
-              status: DownloadStatus.queued.name,
+              status: domain.DownloadStatus.queued.name,
               totalPages: Value(request.pageUrls.length),
               targetDirectory: Value(folder.path),
               createdAt: now,
@@ -92,12 +93,12 @@ class DriftDownloadRepository implements DownloadRepository {
       });
     });
     unawaited(_schedule());
-    return DownloadTask(
+    return domain.DownloadTask(
       id: id,
       galleryKey: request.gallery.key,
       totalPages: request.pageUrls.length,
       completedPages: 0,
-      status: DownloadStatus.queued,
+      status: domain.DownloadStatus.queued,
       createdAt: now,
       updatedAt: now,
     );
@@ -106,18 +107,18 @@ class DriftDownloadRepository implements DownloadRepository {
   @override
   Future<void> pause(String id) async {
     _cancellations.remove(id)?.cancel('Download paused by user.');
-    await _setTaskStatus(id, DownloadStatus.paused);
+    await _setTaskStatus(id, domain.DownloadStatus.paused);
   }
 
   @override
   Future<void> resume(String id) async {
-    await _setTaskStatus(id, DownloadStatus.queued, clearFailure: true);
+    await _setTaskStatus(id, domain.DownloadStatus.queued, clearFailure: true);
     unawaited(_schedule());
   }
 
   @override
   Future<void> retry(String id) async {
-    await _setTaskStatus(id, DownloadStatus.queued, clearFailure: true);
+    await _setTaskStatus(id, domain.DownloadStatus.queued, clearFailure: true);
     unawaited(_schedule());
   }
 
@@ -128,7 +129,7 @@ class DriftDownloadRepository implements DownloadRepository {
         .getSingleOrNull();
     if (task == null) return;
     _cancellations.remove(id)?.cancel('Download cancelled by user.');
-    await _setTaskStatus(id, DownloadStatus.cancelled);
+    await _setTaskStatus(id, domain.DownloadStatus.cancelled);
     if (deleteFiles) {
       await _fileStore.deleteDirectory(
         GalleryKey(
@@ -146,10 +147,10 @@ class DriftDownloadRepository implements DownloadRepository {
   Future<void> recoverInterrupted() async {
     await (_database.update(_database.downloadTasks)
           ..where(
-              (table) => table.status.equals(DownloadStatus.downloading.name)))
+              (table) => table.status.equals(domain.DownloadStatus.downloading.name)))
         .write(
       DownloadTasksCompanion(
-        status: const Value(DownloadStatus.queued.name),
+        status: Value(domain.DownloadStatus.queued.name),
         updatedAt: Value(DateTime.now().toUtc()),
       ),
     );
@@ -182,8 +183,8 @@ class DriftDownloadRepository implements DownloadRepository {
   Future<void> _schedule() async {
     while (_workers.length < maxConcurrentTasks) {
       final next = await (_database.select(_database.downloadTasks)
-            ..where((table) => table.status.equals(DownloadStatus.queued.name))
-            ..orderBy([OrderingTerm.asc(_database.downloadTasks.createdAt)])
+            ..where((table) => table.status.equals(domain.DownloadStatus.queued.name))
+            ..orderBy([(table) => OrderingTerm.asc(table.createdAt)])
             ..limit(1))
           .getSingleOrNull();
       if (next == null || _workers.containsKey(next.id)) return;
@@ -206,15 +207,15 @@ class DriftDownloadRepository implements DownloadRepository {
     await _fileStore.removePartFiles(key);
     final cancelToken = CancelToken();
     _cancellations[id] = cancelToken;
-    await _setTaskStatus(id, DownloadStatus.downloading);
+    await _setTaskStatus(id, domain.DownloadStatus.downloading);
     try {
       final pages = await (_database.select(_database.downloadPages)
             ..where((table) => table.taskId.equals(id))
-            ..orderBy([OrderingTerm.asc(_database.downloadPages.pageIndex)]))
+            ..orderBy([(table) => OrderingTerm.asc(table.pageIndex)]))
           .get();
       for (final page in pages) {
         final current = await _taskStatus(id);
-        if (current != DownloadStatus.downloading) return;
+        if (current != domain.DownloadStatus.downloading) return;
         if (page.status == 'completed') continue;
         final pageUrl = Uri.tryParse(page.pageUrl ?? '');
         if (pageUrl == null) throw StateError('Download page URL is missing.');
@@ -257,18 +258,18 @@ class DriftDownloadRepository implements DownloadRepository {
         );
         await _updateCompletion(id);
       }
-      await _setTaskStatus(id, DownloadStatus.completed);
+      await _setTaskStatus(id, domain.DownloadStatus.completed);
     } on NetworkException catch (error) {
       final current = await _taskStatus(id);
-      if (current == DownloadStatus.downloading &&
+      if (current == domain.DownloadStatus.downloading &&
           error.kind != NetworkFailureKind.cancelled) {
-        await _setTaskStatus(id, DownloadStatus.failed,
+        await _setTaskStatus(id, domain.DownloadStatus.failed,
             failureCode: 'download_failed');
       }
     } catch (_) {
       final current = await _taskStatus(id);
-      if (current == DownloadStatus.downloading) {
-        await _setTaskStatus(id, DownloadStatus.failed,
+      if (current == domain.DownloadStatus.downloading) {
+        await _setTaskStatus(id, domain.DownloadStatus.failed,
             failureCode: 'download_failed');
       }
     } finally {
@@ -294,7 +295,7 @@ class DriftDownloadRepository implements DownloadRepository {
 
   Future<void> _setTaskStatus(
     String id,
-    DownloadStatus status, {
+    domain.DownloadStatus status, {
     String? failureCode,
     bool clearFailure = false,
   }) {
@@ -309,11 +310,11 @@ class DriftDownloadRepository implements DownloadRepository {
     );
   }
 
-  Future<DownloadStatus?> _taskStatus(String id) async {
+  Future<domain.DownloadStatus?> _taskStatus(String id) async {
     final row = await (_database.select(_database.downloadTasks)
           ..where((table) => table.id.equals(id)))
         .getSingleOrNull();
-    return row == null ? null : DownloadStatus.values.byName(row.status);
+    return row == null ? null : domain.DownloadStatus.values.byName(row.status);
   }
 
   Future<void> _upsertGallery(Gallery gallery) => _database
@@ -343,13 +344,13 @@ class DriftDownloadRepository implements DownloadRepository {
         updatedAt: DateTime.now().toUtc(),
       );
 
-  DownloadTask _fromRow(DownloadTaskData row) => DownloadTask(
+  domain.DownloadTask _fromRow(DownloadTask row) => domain.DownloadTask(
         id: row.id,
         galleryKey: GalleryKey(
             source: SiteSource.fromStorageValue(row.source), gid: row.gid),
         totalPages: row.totalPages,
         completedPages: row.completedPages,
-        status: DownloadStatus.values.byName(row.status),
+        status: domain.DownloadStatus.values.byName(row.status),
         createdAt: row.createdAt,
         updatedAt: row.updatedAt,
         failureCode: row.failureCode,

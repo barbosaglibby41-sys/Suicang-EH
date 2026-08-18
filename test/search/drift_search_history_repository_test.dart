@@ -29,7 +29,7 @@ void main() {
     await repository.record('one');
     await repository.record('two');
     final entries = await repository.watchRecent().first;
-    await repository.remove(entries.first.id);
+    await repository.remove(entries.first!.id);
     expect((await repository.watchRecent().first), hasLength(1));
     await repository.clear();
     expect((await repository.watchRecent().first), isEmpty);

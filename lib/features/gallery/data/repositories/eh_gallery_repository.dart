@@ -12,6 +12,7 @@ import '../../domain/entities/gallery_page_result.dart';
 import '../../domain/entities/gallery_search_query.dart';
 import '../../domain/entities/gallery_tag.dart';
 import '../../domain/repositories/gallery_repository.dart';
+import '../../../rankings/domain/entities/ranking_page.dart';
 import '../../../rankings/domain/entities/ranking_period.dart';
 import '../datasources/eh_html_parser.dart';
 

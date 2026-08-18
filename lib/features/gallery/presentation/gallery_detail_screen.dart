@@ -5,7 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/image/image_request.dart';
 import '../../../core/image/pipeline_image.dart';
-import '../../../tags/presentation/providers/subscribed_tags_providers.dart';
+import '../../tags/presentation/providers/subscribed_tags_providers.dart';
 import '../domain/entities/gallery.dart';
 import 'notifiers/gallery_detail_notifier.dart';
 import 'widgets/gallery_comment_card.dart';

@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 abstract final class TaroColors {
@@ -55,7 +56,7 @@ abstract final class TaroTheme {
         elevation: 0,
         centerTitle: false,
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: isDark ? TaroColors.darkSurface : TaroColors.lightSurface,
         elevation: 0,
         margin: EdgeInsets.zero,
