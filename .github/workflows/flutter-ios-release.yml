@@ -1,0 +1,59 @@
+name: Flutter iOS Release
+
+permissions:
+  contents: write
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing GitHub Release tag
+        required: true
+        default: v0.1.0-flutter-stable
+      version:
+        description: Display version
+        required: true
+        default: 0.1.0
+
+jobs:
+  build-unsigned-ipa:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Generate Drift sources
+        run: dart run build_runner build --delete-conflicting-outputs
+      - name: Generate iOS host when absent
+        run: test -d ios || flutter create --platforms=ios --project-name=taro_eh_flutter .
+      - name: Install CocoaPods dependencies
+        run: cd ios && pod install --repo-update
+      - name: Build unsigned iOS archive
+        run: flutter build ipa --release --no-codesign
+      - name: Package unsigned IPA container
+        run: |
+          mkdir -p release/Payload
+          cp -R build/ios/iphoneos/Runner.app release/Payload/TaroEH.app
+          ditto -c -k --sequesterRsrc --keepParent release/Payload release/taro-eh-flutter-${{ inputs.version }}-unsigned.ipa
+          unzip -t release/taro-eh-flutter-${{ inputs.version }}-unsigned.ipa
+          shasum -a 256 release/taro-eh-flutter-${{ inputs.version }}-unsigned.ipa | tee release/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: taro-eh-flutter-ios-${{ inputs.version }}-unsigned
+          path: |
+            release/taro-eh-flutter-${{ inputs.version }}-unsigned.ipa
+            release/SHA256SUMS.txt
+      - name: Upload IPA to existing release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag }}
+          files: |
+            release/taro-eh-flutter-${{ inputs.version }}-unsigned.ipa
+            release/SHA256SUMS.txt
+          overwrite_files: true
