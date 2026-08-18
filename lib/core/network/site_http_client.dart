@@ -6,21 +6,64 @@ import '../../features/authentication/domain/repositories/auth_repository.dart';
 import '../../features/gallery/domain/entities/gallery_key.dart';
 import 'eh_request_policy.dart';
 import 'network_exception.dart';
+import 'network_retry_policy.dart';
+import 'request_coalescer.dart';
 
 class SiteHttpClient {
   SiteHttpClient({
     required Dio dio,
     required AuthRepository authRepository,
     EhRequestPolicy requestPolicy = const EhRequestPolicy(),
+    RequestCoalescer<String, Response<List<int>>>? coalescer,
+    NetworkRetryPolicy retryPolicy = const NetworkRetryPolicy(),
   })  : _dio = dio,
         _authRepository = authRepository,
-        _requestPolicy = requestPolicy;
+        _requestPolicy = requestPolicy,
+        _coalescer = coalescer ?? RequestCoalescer<String, Response<List<int>>>(),
+        _retryPolicy = retryPolicy;
 
   final Dio _dio;
   final AuthRepository _authRepository;
   final EhRequestPolicy _requestPolicy;
+  final RequestCoalescer<String, Response<List<int>>> _coalescer;
+  final NetworkRetryPolicy _retryPolicy;
 
   Future<Response<List<int>>> getBytes(
+    Uri url, {
+    required SiteSource source,
+    Uri? referer,
+    bool acceptsImages = false,
+    CancelToken? cancelToken,
+  }) {
+    if (cancelToken != null) {
+      return _getBytesUncoalesced(
+        url,
+        source: source,
+        referer: referer,
+        acceptsImages: acceptsImages,
+        cancelToken: cancelToken,
+      );
+    }
+    final key = [
+      url.toString(),
+      source.storageValue,
+      referer?.toString() ?? '',
+      acceptsImages,
+    ].join('|');
+    return _coalescer.run(
+      key,
+      () => _retryPolicy.run(
+        () => _getBytesUncoalesced(
+          url,
+          source: source,
+          referer: referer,
+          acceptsImages: acceptsImages,
+        ),
+      ),
+    );
+  }
+
+  Future<Response<List<int>>> _getBytesUncoalesced(
     Uri url, {
     required SiteSource source,
     Uri? referer,
@@ -171,7 +214,9 @@ class SiteHttpClient {
       DioExceptionType.receiveTimeout =>
         NetworkFailureKind.timeout,
       DioExceptionType.connectionError => NetworkFailureKind.noConnection,
-      DioExceptionType.badResponse => NetworkFailureKind.invalidResponse,
+      DioExceptionType.badResponse => (error.response?.statusCode ?? 0) >= 500
+          ? NetworkFailureKind.transient
+          : NetworkFailureKind.invalidResponse,
       _ => NetworkFailureKind.unknown,
     };
     return NetworkException(
