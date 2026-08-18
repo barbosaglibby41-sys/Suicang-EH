@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:taro_eh_flutter/features/authentication/data/datasources/secure_cookie_store.dart';
 import 'package:taro_eh_flutter/features/authentication/data/repositories/secure_auth_repository.dart';
 import 'package:taro_eh_flutter/features/authentication/domain/entities/session_cookie.dart';
-import 'package:taro_eh_flutter/features/gallery/domain/entities/gallery_key.dart';
 
 void main() {
   test('removes stale igneous values from every logical domain', () async {

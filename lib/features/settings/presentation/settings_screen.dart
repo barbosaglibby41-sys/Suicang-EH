@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../gallery/domain/entities/gallery_key.dart';
 import '../../reader/presentation/reader_settings_screen.dart';
-import '../domain/entities/site_preferences.dart';
 import 'migration_import_screen.dart';
 import 'providers/site_preferences_providers.dart';
 

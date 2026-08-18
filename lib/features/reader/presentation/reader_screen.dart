@@ -4,7 +4,6 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/image/image_pipeline.dart';
 import '../../../core/image/image_providers.dart';
 import '../../../core/image/image_request.dart';
 import '../../gallery/domain/entities/gallery.dart';

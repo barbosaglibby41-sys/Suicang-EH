@@ -11,7 +11,6 @@ import '../../../../core/network/network_exception.dart';
 import '../../../../core/network/site_http_client.dart';
 import '../../../gallery/domain/entities/gallery.dart';
 import '../../../gallery/domain/entities/gallery_key.dart';
-import '../../../gallery/domain/entities/gallery_tag.dart';
 import '../../../gallery/domain/repositories/gallery_repository.dart';
 import '../../domain/entities/download_request.dart';
 import '../../domain/entities/download_task.dart' as domain;

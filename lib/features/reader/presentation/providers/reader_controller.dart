@@ -11,7 +11,6 @@ import 'reading_progress_providers.dart';
 import '../../domain/entities/reader_models.dart';
 import '../../domain/entities/reader_preferences.dart';
 import '../../domain/page_source/page_source.dart';
-import 'reader_preferences_providers.dart';
 
 final readerEngineProvider =
     Provider.family<MangaReaderEngine, ReaderSessionConfig>((ref, config) {
