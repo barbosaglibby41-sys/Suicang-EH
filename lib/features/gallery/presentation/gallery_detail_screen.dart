@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/image/image_request.dart';
+import '../../../core/image/pipeline_image.dart';
 import '../domain/entities/gallery.dart';
 import 'notifiers/gallery_detail_notifier.dart';
 import 'widgets/gallery_cover_placeholder.dart';
@@ -47,7 +49,16 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
                   padding: const EdgeInsets.fromLTRB(48, 88, 48, 24),
                   child: AspectRatio(
                     aspectRatio: 0.72,
-                    child: GalleryCoverPlaceholder(gallery: gallery),
+                    child: gallery.thumbnailUrl == null
+                        ? GalleryCoverPlaceholder(gallery: gallery)
+                        : PipelineImage(
+                            url: gallery.thumbnailUrl!,
+                            source: gallery.key.source,
+                            variant: ImageVariant.cover,
+                            targetPixels: 720,
+                            fit: BoxFit.cover,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                   ),
                 ),
               ),
