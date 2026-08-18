@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/image/image_request.dart';
 import '../../../core/image/pipeline_image.dart';
+import '../../../tags/presentation/providers/subscribed_tags_providers.dart';
 import '../domain/entities/gallery.dart';
 import 'notifiers/gallery_detail_notifier.dart';
 import 'widgets/gallery_cover_placeholder.dart';
@@ -21,11 +22,17 @@ class GalleryDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
+  late Future<bool> _favorite;
+
   @override
   void initState() {
     super.initState();
+    _favorite = Future.value(false);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(galleryDetailNotifierProvider(widget.gallery).notifier).load();
+      final notifier = ref.read(galleryDetailNotifierProvider(widget.gallery).notifier);
+      notifier.load();
+      notifier.recordOpened();
+      if (mounted) setState(() => _favorite = notifier.isFavorite());
     });
   }
 
@@ -106,10 +113,21 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
                 Row(
                   children: [
                     Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () {},
-                        icon: const Icon(Icons.star_outline),
-                        label: const Text('收藏'),
+                      child: FutureBuilder<bool>(
+                        future: _favorite,
+                        builder: (context, snapshot) => OutlinedButton.icon(
+                          onPressed: () async {
+                            await notifier.toggleFavorite();
+                            if (!mounted) return;
+                            setState(() => _favorite = notifier.isFavorite());
+                          },
+                          icon: Icon(
+                            snapshot.data == true
+                                ? Icons.star
+                                : Icons.star_outline,
+                          ),
+                          label: Text(snapshot.data == true ? '已收藏' : '收藏'),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -142,7 +160,26 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
                     runSpacing: 8,
                     children: [
                       for (final tag in gallery.tags)
-                        Chip(label: Text(tag.translatedName ?? tag.rawName)),
+                        Consumer(
+                          builder: (context, ref, _) {
+                            final subscriptions = ref.watch(subscribedTagsProvider);
+                            final isSubscribed = subscriptions.valueOrNull
+                                    ?.contains(tag.rawName) ??
+                                false;
+                            return ActionChip(
+                              avatar: Icon(
+                                isSubscribed
+                                    ? Icons.notifications_active_outlined
+                                    : Icons.sell_outlined,
+                                size: 16,
+                              ),
+                              label: Text(tag.translatedName ?? tag.rawName),
+                              onPressed: () => ref
+                                  .read(subscribedTagsRepositoryProvider)
+                                  .toggle(tag.rawName),
+                            );
+                          },
+                        ),
                     ],
                   ),
                 ],

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../downloads/domain/entities/download_request.dart';
 import '../../../downloads/presentation/providers/download_providers.dart';
+import '../../../library/presentation/providers/library_providers.dart';
 import '../../domain/entities/gallery.dart';
 import '../../domain/repositories/gallery_repository.dart';
 import '../providers/gallery_providers.dart';
@@ -17,6 +18,20 @@ class GalleryDetailNotifier extends FamilyNotifier<GalleryDetailState, Gallery> 
 
   @override
   GalleryDetailState build(Gallery gallery) => GalleryDetailState(gallery: gallery);
+
+  Future<bool> isFavorite() {
+    return ref.read(libraryRepositoryProvider).isFavorite(state.gallery.key);
+  }
+
+  Future<void> toggleFavorite() async {
+    final repository = ref.read(libraryRepositoryProvider);
+    final favorite = await repository.isFavorite(state.gallery.key);
+    await repository.setFavorite(state.gallery, value: !favorite);
+  }
+
+  Future<void> recordOpened() {
+    return ref.read(libraryRepositoryProvider).recordOpened(state.gallery);
+  }
 
   Future<void> enqueueDownload() async {
     if (state.isLoading) return;

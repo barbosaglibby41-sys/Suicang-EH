@@ -63,6 +63,7 @@ class DriftLibraryRepository implements LibraryRepository {
               source: gallery.key.source.storageValue,
               gid: gallery.key.gid,
               isFavorite: Value(value),
+              lastOpenedAt: const Value.absent(),
             ),
           );
     });
@@ -76,6 +77,7 @@ class DriftLibraryRepository implements LibraryRepository {
             LibraryEntriesCompanion.insert(
               source: gallery.key.source.storageValue,
               gid: gallery.key.gid,
+              isFavorite: const Value.absent(),
               lastOpenedAt: Value(openedAt ?? DateTime.now().toUtc()),
             ),
           );
