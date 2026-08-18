@@ -7,6 +7,10 @@ on:
       - 'test/**'
       - 'pubspec.yaml'
       - 'analysis_options.yaml'
+      - 'assets/**'
+      - 'packages/**'
+      - 'ios/**'
+      - 'android/**'
       - '.github/workflows/flutter-ci.yml'
   pull_request:
     paths:
@@ -14,6 +18,10 @@ on:
       - 'test/**'
       - 'pubspec.yaml'
       - 'analysis_options.yaml'
+      - 'assets/**'
+      - 'packages/**'
+      - 'ios/**'
+      - 'android/**'
       - '.github/workflows/flutter-ci.yml'
   workflow_dispatch:
 
@@ -31,7 +39,7 @@ jobs:
       - name: Generate Drift sources
         run: dart run build_runner build --delete-conflicting-outputs
       - name: Check formatting
-        run: dart format --output=none --set-exit-if-changed lib test
+        run: dart format --output=none --set-exit-if-changed lib test packages/taro_web_login_bridge/lib
       - name: Analyze
         run: flutter analyze
       - name: Test
@@ -50,11 +58,41 @@ jobs:
         run: flutter pub get
       - name: Generate Drift sources
         run: dart run build_runner build --delete-conflicting-outputs
-      - name: Create Android platform scaffold
-        run: flutter create --platforms=android --project-name=taro_eh_flutter .
+      - name: Generate Android host when absent
+        run: test -d android || flutter create --platforms=android --project-name=taro_eh_flutter .
       - name: Build Android debug APK
         run: flutter build apk --debug
       - uses: actions/upload-artifact@v4
         with:
           name: taro-eh-flutter-android-debug
           path: build/app/outputs/flutter-apk/app-debug.apk
+
+  ios-simulator:
+    runs-on: macos-15
+    needs: analyze-and-test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Generate Drift sources
+        run: dart run build_runner build --delete-conflicting-outputs
+      - name: Generate iOS host when absent
+        run: test -d ios || flutter create --platforms=ios --project-name=taro_eh_flutter .
+      - name: Install CocoaPods dependencies
+        run: cd ios && pod install --repo-update
+      - name: Build iOS simulator app
+        run: flutter build ios --simulator --no-codesign
+      - name: Upload iOS build diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: taro-eh-flutter-ios-build-diagnostics
+          path: |
+            ios/Podfile.lock
+            ios/Pods
+            build/ios
+          if-no-files-found: ignore

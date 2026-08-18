@@ -77,7 +77,7 @@ public class TaroWebLoginBridgePlugin: NSObject, FlutterPlugin {
           "domain": cookie.domain,
           "path": cookie.path,
           "updatedAt": ISO8601DateFormatter().string(from: Date()),
-          "expiresAt": cookie.expiresDate.map { ISO8601DateFormatter().string(from: $0) } as Any,
+          "expiresAt": cookie.expiresDate.map { ISO8601DateFormatter().string(from: $0) } ?? NSNull(),
           "secure": cookie.isSecure,
           "httpOnly": cookie.isHTTPOnly,
         ]
