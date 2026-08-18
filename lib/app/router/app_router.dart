@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/gallery/domain/entities/gallery.dart';
+import '../../features/gallery/domain/entities/gallery_key.dart';
+import '../../features/gallery/presentation/gallery_detail_screen.dart';
+import '../../features/gallery/presentation/providers/gallery_providers.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/library/presentation/library_screen.dart';
 import '../../features/downloads/presentation/downloads_screen.dart';
@@ -11,6 +15,27 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: AppRoute.home.path,
     routes: [
+      GoRoute(
+        path: '/gallery/:source/:gid',
+        builder: (context, state) {
+          final source = SiteSource.fromStorageValue(
+            state.pathParameters['source'] ?? '',
+          );
+          final gid = int.tryParse(state.pathParameters['gid'] ?? '');
+          if (gid == null || gid <= 0) {
+            return const _InvalidGalleryRoute();
+          }
+          final gallery = state.extra as Gallery?;
+          if (gallery != null &&
+              gallery.key.source == source &&
+              gallery.key.gid == gid) {
+            return GalleryDetailScreen(gallery: gallery);
+          }
+          return _RestoredGalleryDetail(
+            galleryKey: GalleryKey(source: source, gid: gid),
+          );
+        },
+      ),
       ShellRoute(
         builder: (context, state, child) => AppScaffold(
           currentPath: state.uri.path,
@@ -93,7 +118,7 @@ class AppScaffold extends StatelessWidget {
                       for (final route in destinations)
                         NavigationRailDestination(
                           icon: Icon(route.icon),
-                          selectedIcon: Icon(route.icon, fill: 1),
+                          selectedIcon: Icon(route.icon),
                           label: Text(route.label),
                         ),
                     ],
@@ -115,13 +140,61 @@ class AppScaffold extends StatelessWidget {
               for (final route in destinations)
                 NavigationDestination(
                   icon: Icon(route.icon),
-                  selectedIcon: Icon(route.icon, fill: 1),
+                  selectedIcon: Icon(route.icon),
                   label: route.label,
                 ),
             ],
           ),
         );
       },
+    );
+  }
+}
+
+class _RestoredGalleryDetail extends ConsumerWidget {
+  const _RestoredGalleryDetail({required this.galleryKey});
+
+  final GalleryKey galleryKey;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return FutureBuilder<Gallery?>(
+      future: ref.read(galleryRepositoryProvider).findByKey(galleryKey),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        final gallery = snapshot.data;
+        if (gallery == null) {
+          return const _InvalidGalleryRoute(
+            message: '该作品不在本机缓存中。请从发现或搜索结果中重新打开。',
+          );
+        }
+        return GalleryDetailScreen(gallery: gallery);
+      },
+    );
+  }
+}
+
+class _InvalidGalleryRoute extends StatelessWidget {
+  const _InvalidGalleryRoute({
+    this.message = '画廊地址无效。',
+  });
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(message, textAlign: TextAlign.center),
+        ),
+      ),
     );
   }
 }

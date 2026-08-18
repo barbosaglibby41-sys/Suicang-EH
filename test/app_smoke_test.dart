@@ -7,6 +7,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('发现'), findsOneWidget);
-    expect(find.text('TAROEH / FLUTTER'), findsOneWidget);
+    expect(find.text('TAROEH'), findsOneWidget);
   });
 }
