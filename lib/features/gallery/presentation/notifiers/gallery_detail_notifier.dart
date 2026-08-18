@@ -52,6 +52,12 @@ class GalleryDetailNotifier extends FamilyNotifier<GalleryDetailState, Gallery> 
     }
   }
 
+  Future<Uri?> loadTorrentUrl() async {
+    final direct = state.metadata.torrentUrl;
+    if (direct != null) return direct;
+    return _repository.torrentUrl(state.gallery);
+  }
+
   Future<void> enqueueDownload() async {
     if (state.isLoading) return;
     state = state.copyWith(isLoading: true, clearError: true);
@@ -90,6 +96,7 @@ class GalleryDetailNotifier extends FamilyNotifier<GalleryDetailState, Gallery> 
         gallery: detail.gallery,
         metadata: detail.metadata,
         comments: detail.comments,
+        previews: detail.previews,
         isLoading: false,
         clearError: true,
       );

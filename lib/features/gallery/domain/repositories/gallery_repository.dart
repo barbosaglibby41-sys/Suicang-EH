@@ -24,6 +24,7 @@ abstract interface class GalleryRepository {
   });
   Future<GalleryDetail> loadDetail(Gallery gallery, {bool includePageLinks = false});
   Future<Uri> resolveImageUrl(Uri pageUrl, {Uri? referer, bool forceRefresh = false});
+  Future<Uri?> torrentUrl(Gallery gallery);
 
   Future<Gallery?> findByKey(GalleryKey key);
   Future<void> upsert(Gallery gallery);

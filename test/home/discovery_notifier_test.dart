@@ -102,5 +102,8 @@ class _FakeGalleryRepository implements GalleryRepository {
   }) async => const [];
 
   @override
+  Future<Uri?> torrentUrl(Gallery gallery) async => null;
+
+  @override
   Future<void> upsert(Gallery gallery) async {}
 }

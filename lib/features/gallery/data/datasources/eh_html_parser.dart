@@ -6,6 +6,7 @@ import '../../domain/entities/gallery_page_result.dart';
 import '../../domain/entities/gallery_tag.dart';
 import '../../domain/entities/gallery_comment.dart';
 import '../../domain/entities/gallery_metadata.dart';
+import '../../domain/entities/page_preview.dart';
 
 class EhHtmlParser {
   const EhHtmlParser();
@@ -108,7 +109,43 @@ class EhHtmlParser {
         torrentUrl: torrent == null ? null : Uri.tryParse(_decode(torrent)),
       ),
       comments: comments(html),
+      previews: previews(html, sourceUri),
     );
+  }
+
+  List<PagePreview> previews(String html, Uri baseUri, {int limit = 20}) {
+    final start = html.indexOf('id="gdt"');
+    if (start < 0) return const [];
+    final end = html.indexOf('id="gdo"', start);
+    final region = html.substring(start, end < 0 ? html.length : end);
+    final expression = RegExp(
+      r'''<a href=["']([^"']*/s/[^"']+)["'][^>]*><div title=["']Page (\d+):[^"']*["'] style=["'][^"']*width:(\d+)px;height:(\d+)px;background:transparent url\(([^)]+)\)\s*(-?\d+)px\s+(-?\d+)''',
+      caseSensitive: false,
+    );
+    final seen = <int>{};
+    final result = <PagePreview>[];
+    for (final match in expression.allMatches(region)) {
+      final page = int.tryParse(match.group(2) ?? '');
+      final width = int.tryParse(match.group(3) ?? '');
+      final height = int.tryParse(match.group(4) ?? '');
+      final x = int.tryParse(match.group(6) ?? '');
+      final y = int.tryParse(match.group(7) ?? '');
+      if (page == null || width == null || height == null || x == null || y == null || !seen.add(page)) continue;
+      final sprite = Uri.tryParse(_decode(match.group(5) ?? ''));
+      if (sprite == null) continue;
+      result.add(PagePreview(
+        page: page,
+        spriteUrl: sprite,
+        xOffset: x.abs(),
+        yOffset: y.abs(),
+        width: width,
+        height: height,
+        pageUrl: baseUri.resolve(_decode(match.group(1) ?? '')),
+      ));
+      if (result.length == limit) break;
+    }
+    result.sort((left, right) => left.page.compareTo(right.page));
+    return result;
   }
 
   List<GalleryComment> comments(String html) {

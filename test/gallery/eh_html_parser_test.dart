@@ -56,6 +56,9 @@ void main() {
     expect(detail.comments.single.author, 'Uploader');
     expect(detail.comments.single.content, 'Hello\nworld');
     expect(detail.comments.single.isUploader, isTrue);
+    expect(detail.previews.single.page, 1);
+    expect(detail.previews.single.spriteUrl, Uri.parse('https://thumb.example/sprite.jpg'));
+    expect(detail.previews.single.yOffset, 300);
     expect(detail.pageLinks.map((url) => url.path),
         ['/s/abc123/101-1', '/s/abc123/101-2']);
   });

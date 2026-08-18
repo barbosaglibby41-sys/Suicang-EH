@@ -126,6 +126,26 @@ class EhGalleryRepository implements GalleryRepository {
   }
 
   @override
+  Future<Uri?> torrentUrl(Gallery gallery) async {
+    final sourceUrl = gallery.sourceUrl;
+    if (sourceUrl == null) return null;
+    final parts = sourceUrl.pathSegments;
+    if (parts.length < 3) return null;
+    final gid = parts[1];
+    final token = parts[2];
+    final endpoint = _buildSiteUri(
+      source: gallery.key.source,
+      path: '/gallerytorrents.php',
+      queryParameters: {'gid': gid, 't': token},
+    );
+    final html = await _client.getText(endpoint, source: gallery.key.source);
+    final raw = RegExp(r'''href=["'](https?://[^"']+\.torrent)["']''', caseSensitive: false)
+        .firstMatch(html)
+        ?.group(1);
+    return raw == null ? null : Uri.tryParse(raw.replaceAll('&amp;', '&'));
+  }
+
+  @override
   Future<Gallery?> findByKey(GalleryKey key) async {
     final row = await (_database.select(_database.galleries)
           ..where(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/image/image_request.dart';
 import '../../../core/image/pipeline_image.dart';
@@ -10,6 +11,7 @@ import 'notifiers/gallery_detail_notifier.dart';
 import 'widgets/gallery_comment_card.dart';
 import 'widgets/gallery_info_card.dart';
 import 'widgets/gallery_cover_placeholder.dart';
+import 'widgets/preview_strip.dart';
 
 class GalleryDetailScreen extends ConsumerStatefulWidget {
   const GalleryDetailScreen({
@@ -141,6 +143,17 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
                     ),
                     const SizedBox(width: 12),
                     IconButton(
+                      tooltip: '打开种子链接',
+                      onPressed: () async {
+                        final url = await notifier.loadTorrentUrl();
+                        if (url != null && await canLaunchUrl(url)) {
+                          await launchUrl(url, mode: LaunchMode.externalApplication);
+                        }
+                      },
+                      icon: const Icon(Icons.download_for_offline_outlined),
+                    ),
+                    const SizedBox(width: 12),
+                    IconButton(
                       tooltip: '加入账户收藏夹 1',
                       onPressed: state.isLoading
                           ? null
@@ -167,6 +180,12 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
                     message: state.errorMessage!,
                     onRetry: notifier.load,
                   ),
+                ],
+                if (state.previews.isNotEmpty) ...[
+                  const SizedBox(height: 30),
+                  Text('内容预览', style: theme.textTheme.titleLarge),
+                  const SizedBox(height: 12),
+                  PreviewStrip(previews: state.previews, source: gallery.key.source),
                 ],
                 if (state.comments.isNotEmpty) ...[
                   const SizedBox(height: 30),
