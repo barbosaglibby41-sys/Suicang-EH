@@ -17,7 +17,7 @@ apply plugin: 'kotlin-android'
 
 android {
     namespace 'com.taro.eh.web_login_bridge'
-    compileSdk 34
+    compileSdk 36
 
     defaultConfig {
         minSdk 23
