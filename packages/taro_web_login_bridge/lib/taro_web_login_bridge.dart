@@ -40,6 +40,10 @@ class NativeLoginCookie {
 class TaroWebLoginBridge {
   static const _channel = MethodChannel('com.taro.eh/web_login_bridge');
 
+  Future<void> setKeepScreenOn(bool enabled) {
+    return _channel.invokeMethod<void>('setKeepScreenOn', {'enabled': enabled});
+  }
+
   Future<List<NativeLoginCookie>> authenticate({required Uri initialUrl}) async {
     final response = await _channel.invokeListMethod<Object?>(
       'authenticate',

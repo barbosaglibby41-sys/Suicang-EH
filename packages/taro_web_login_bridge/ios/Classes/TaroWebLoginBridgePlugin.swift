@@ -16,6 +16,15 @@ public class TaroWebLoginBridgePlugin: NSObject, FlutterPlugin {
   }
 
   public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    if call.method == "setKeepScreenOn" {
+      let arguments = call.arguments as? [String: Any]
+      let enabled = arguments?["enabled"] as? Bool ?? false
+      DispatchQueue.main.async {
+        UIApplication.shared.isIdleTimerDisabled = enabled
+        result(nil)
+      }
+      return
+    }
     guard call.method == "authenticate",
           let arguments = call.arguments as? [String: Any],
           let rawURL = arguments["initialUrl"] as? String,

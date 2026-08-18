@@ -11,6 +11,7 @@ import '../../../gallery/domain/entities/gallery.dart';
 import '../domain/engine/manga_reader_engine.dart';
 import '../domain/entities/reader_models.dart';
 import '../domain/page_source/page_source.dart';
+import 'providers/keep_screen_on_providers.dart';
 import 'providers/reader_controller.dart';
 import 'providers/reader_preferences_providers.dart';
 import 'providers/reading_progress_providers.dart';
@@ -34,12 +35,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   StreamSubscription<ReaderState>? _states;
   StreamSubscription<int>? _preloads;
   ReaderState? _state;
+  late final ReaderKeepScreenOnController _keepScreenOn;
   final _pages = <int, Future<Uint8List>>{};
   bool _ready = false;
 
   @override
   void initState() {
     super.initState();
+    _keepScreenOn = ref.read(readerKeepScreenOnControllerProvider);
     unawaited(_initialize());
   }
 
@@ -47,6 +50,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   void dispose() {
     _states?.cancel();
     _preloads?.cancel();
+    unawaited(_keepScreenOn.dispose());
     super.dispose();
   }
 
@@ -115,6 +119,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 
   Future<void> _initialize() async {
     final preferences = await ref.read(readerPreferencesProvider.future);
+    await _keepScreenOn.sync(
+      readerVisible: true,
+      preference: preferences.keepScreenOn,
+    );
     final saved = await ref
         .read(readingProgressRepositoryProvider)
         .get(widget.gallery.key);

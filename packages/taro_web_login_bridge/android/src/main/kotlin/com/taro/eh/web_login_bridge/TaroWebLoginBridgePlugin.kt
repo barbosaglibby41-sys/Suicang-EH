@@ -26,6 +26,23 @@ class TaroWebLoginBridgePlugin : FlutterPlugin, MethodChannel.MethodCallHandler,
   }
 
   override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
+    if (call.method == "setKeepScreenOn") {
+      val enabled = call.argument<Boolean>("enabled") ?: false
+      val host = activity
+      if (host == null) {
+        result.error("unavailable", "No active activity is available.", null)
+        return
+      }
+      host.runOnUiThread {
+        if (enabled) {
+          host.window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } else {
+          host.window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+        result.success(null)
+      }
+      return
+    }
     if (call.method != "authenticate") {
       result.notImplemented()
       return
