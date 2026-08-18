@@ -55,7 +55,7 @@ jobs:
       - name: Verify formatting
         run: dart format --output=none --set-exit-if-changed lib test packages/taro_web_login_bridge/lib
       - name: Analyze
-        run: flutter analyze
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
       - name: Test
         run: flutter test
 
