@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../reader/presentation/reader_settings_screen.dart';
+import 'migration_import_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -18,6 +19,17 @@ class SettingsScreen extends StatelessWidget {
             title: const Text('账户与会话'),
             subtitle: const Text('导入 Cookie、验证站点会话与刷新 ExHentai。'),
             onTap: () => context.push('/account'),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          child: ListTile(
+            leading: Icon(Icons.move_to_inbox_outlined, color: theme.colorScheme.primary),
+            title: const Text('导入旧版数据'),
+            subtitle: const Text('导入收藏、历史和阅读进度，不导入账号会话。'),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const MigrationImportScreen()),
+            ),
           ),
         ),
         const SizedBox(height: 12),
