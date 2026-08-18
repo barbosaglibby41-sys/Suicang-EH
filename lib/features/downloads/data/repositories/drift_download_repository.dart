@@ -146,8 +146,8 @@ class DriftDownloadRepository implements DownloadRepository {
   @override
   Future<void> recoverInterrupted() async {
     await (_database.update(_database.downloadTasks)
-          ..where(
-              (table) => table.status.equals(domain.DownloadStatus.downloading.name)))
+          ..where((table) =>
+              table.status.equals(domain.DownloadStatus.downloading.name)))
         .write(
       DownloadTasksCompanion(
         status: Value(domain.DownloadStatus.queued.name),
@@ -183,7 +183,8 @@ class DriftDownloadRepository implements DownloadRepository {
   Future<void> _schedule() async {
     while (_workers.length < maxConcurrentTasks) {
       final next = await (_database.select(_database.downloadTasks)
-            ..where((table) => table.status.equals(domain.DownloadStatus.queued.name))
+            ..where((table) =>
+                table.status.equals(domain.DownloadStatus.queued.name))
             ..orderBy([(table) => OrderingTerm.asc(table.createdAt)])
             ..limit(1))
           .getSingleOrNull();

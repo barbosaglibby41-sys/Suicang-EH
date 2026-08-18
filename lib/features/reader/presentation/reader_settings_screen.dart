@@ -59,7 +59,8 @@ class ReaderSettingsScreen extends ConsumerWidget {
                     title: const Text('从左到右'),
                     onChanged: (direction) {
                       if (direction != null) {
-                        notifier.setPreferences(value.copyWith(direction: direction));
+                        notifier.setPreferences(
+                            value.copyWith(direction: direction));
                       }
                     },
                   ),
@@ -69,7 +70,8 @@ class ReaderSettingsScreen extends ConsumerWidget {
                     title: const Text('从右到左'),
                     onChanged: (direction) {
                       if (direction != null) {
-                        notifier.setPreferences(value.copyWith(direction: direction));
+                        notifier.setPreferences(
+                            value.copyWith(direction: direction));
                       }
                     },
                   ),
@@ -109,8 +111,8 @@ class ReaderSettingsScreen extends ConsumerWidget {
                 value: value.keepScreenOn,
                 title: const Text('阅读时保持屏幕常亮'),
                 subtitle: const Text('偏好已保存；系统保持唤醒能力将在原生 adapter 接入后生效。'),
-                onChanged: (enabled) =>
-                    notifier.setPreferences(value.copyWith(keepScreenOn: enabled)),
+                onChanged: (enabled) => notifier
+                    .setPreferences(value.copyWith(keepScreenOn: enabled)),
               ),
             ),
           ],
