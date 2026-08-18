@@ -7,6 +7,7 @@ abstract interface class AuthRepository {
   Future<AuthSession> currentSession();
   Future<void> importCookieHeader(String header);
   Future<void> replaceCookies(Iterable<SessionCookie> cookies);
+  Future<void> removeCookiesByName(Iterable<String> names);
   Future<List<SessionCookie>> cookiesFor(SiteSource source);
   Future<void> clearSession();
 }

@@ -10,6 +10,7 @@ import '../../features/gallery/presentation/providers/gallery_providers.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/library/presentation/library_screen.dart';
 import '../../features/downloads/presentation/downloads_screen.dart';
+import '../../features/authentication/presentation/account_screen.dart';
 import '../../features/favorites/presentation/cloud_favorites_screen.dart';
 import '../../features/offline/presentation/offline_library_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
@@ -18,6 +19,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: AppRoute.home.path,
     routes: [
+      GoRoute(
+        path: '/account',
+        builder: (context, state) => const AccountScreen(),
+      ),
       GoRoute(
         path: '/cloud-favorites',
         builder: (context, state) => const CloudFavoritesScreen(),

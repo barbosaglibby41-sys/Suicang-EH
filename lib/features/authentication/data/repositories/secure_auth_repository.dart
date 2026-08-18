@@ -44,6 +44,16 @@ class SecureAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<void> removeCookiesByName(Iterable<String> names) async {
+    final blocked = names.map((name) => name.toLowerCase()).toSet();
+    final remaining = (await _store.readAll())
+        .where((cookie) => !blocked.contains(cookie.name.toLowerCase()))
+        .toList(growable: false);
+    await _store.writeAll(remaining);
+    _emit(remaining);
+  }
+
+  @override
   Future<List<SessionCookie>> cookiesFor(SiteSource source) async {
     final session = _cached ?? await currentSession();
     return session.cookies
