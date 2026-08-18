@@ -9,6 +9,7 @@ import '../../tags/presentation/providers/subscribed_tags_providers.dart';
 import '../domain/entities/gallery.dart';
 import 'notifiers/gallery_detail_notifier.dart';
 import 'widgets/gallery_comment_card.dart';
+import 'widgets/comment_editor_sheet.dart';
 import 'widgets/gallery_info_card.dart';
 import 'widgets/gallery_cover_placeholder.dart';
 import 'widgets/preview_strip.dart';
@@ -193,10 +194,29 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
                   PreviewStrip(
                       previews: state.previews, source: gallery.key.source),
                 ],
-                if (state.comments.isNotEmpty) ...[
+                if (state.comments.isNotEmpty || gallery.sourceUrl != null) ...[
                   const SizedBox(height: 30),
-                  Text('评论 · ${state.comments.length}',
-                      style: theme.textTheme.titleLarge),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text('评论 · ${state.comments.length}',
+                            style: theme.textTheme.titleLarge),
+                      ),
+                      TextButton.icon(
+                        onPressed: state.isLoading
+                            ? null
+                            : () => showModalBottomSheet<void>(
+                                  context: context,
+                                  isScrollControlled: true,
+                                  builder: (_) => CommentEditorSheet(
+                                    onSubmit: notifier.postComment,
+                                  ),
+                                ),
+                        icon: const Icon(Icons.edit_outlined),
+                        label: const Text('发表评论'),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 12),
                   for (final comment in state.comments) ...[
                     GalleryCommentCard(comment: comment),

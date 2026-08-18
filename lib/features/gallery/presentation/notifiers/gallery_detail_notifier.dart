@@ -4,6 +4,7 @@ import '../../../downloads/domain/entities/download_request.dart';
 import '../../../downloads/presentation/providers/download_providers.dart';
 import '../../../library/presentation/providers/library_providers.dart';
 import '../../../favorites/presentation/providers/cloud_favorites_providers.dart';
+import '../providers/gallery_interaction_providers.dart';
 import '../../domain/entities/gallery.dart';
 import '../../domain/repositories/gallery_repository.dart';
 import '../providers/gallery_providers.dart';
@@ -51,6 +52,26 @@ class GalleryDetailNotifier
       state = state.copyWith(
         isLoading: false,
         errorMessage: '账户收藏更新失败。请先登录并确认站点会话。',
+      );
+    }
+  }
+
+  Future<void> postComment(String content) async {
+    if (state.isLoading) return;
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final comments = await ref
+          .read(galleryInteractionRepositoryProvider)
+          .postComment(gallery: state.gallery, content: content);
+      state = state.copyWith(
+        comments: comments,
+        isLoading: false,
+        clearError: true,
+      );
+    } catch (_) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: '评论发送失败。请确认已登录且内容不少于 3 个字符。',
       );
     }
   }
