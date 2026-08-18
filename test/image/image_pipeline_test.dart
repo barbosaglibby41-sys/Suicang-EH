@@ -82,7 +82,8 @@ class _MemoryDiskCache extends DiskImageCache {
   final values = <String, Uint8List>{};
 
   @override
-  Future<Uint8List?> read(ImageRequest request) async => values[request.cacheKey];
+  Future<Uint8List?> read(ImageRequest request) async =>
+      values[request.cacheKey];
 
   @override
   Future<void> write(ImageRequest request, List<int> bytes) async {
