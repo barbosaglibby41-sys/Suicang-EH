@@ -6,6 +6,7 @@ import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/database/app_database.dart';
+import '../../../../core/network/network_exception.dart';
 import '../../../../core/network/site_http_client.dart';
 import '../../../gallery/domain/entities/gallery.dart';
 import '../../../gallery/domain/entities/gallery_key.dart';
@@ -34,6 +35,7 @@ class DriftDownloadRepository implements DownloadRepository {
   final GalleryRepository _galleryRepository;
   final int maxConcurrentTasks;
   final _workers = <String, Future<void>>{};
+  final _cancellations = <String, CancelToken>{};
 
   @override
   Stream<List<DownloadTask>> watchAll() {
@@ -103,6 +105,7 @@ class DriftDownloadRepository implements DownloadRepository {
 
   @override
   Future<void> pause(String id) async {
+    _cancellations.remove(id)?.cancel('Download paused by user.');
     await _setTaskStatus(id, DownloadStatus.paused);
   }
 
@@ -124,6 +127,7 @@ class DriftDownloadRepository implements DownloadRepository {
           ..where((table) => table.id.equals(id)))
         .getSingleOrNull();
     if (task == null) return;
+    _cancellations.remove(id)?.cancel('Download cancelled by user.');
     await _setTaskStatus(id, DownloadStatus.cancelled);
     if (deleteFiles) {
       await _fileStore.deleteDirectory(
@@ -197,6 +201,9 @@ class DriftDownloadRepository implements DownloadRepository {
     if (task == null) return;
     final source = SiteSource.fromStorageValue(task.source);
     final key = GalleryKey(source: source, gid: task.gid);
+    await _fileStore.removePartFiles(key);
+    final cancelToken = CancelToken();
+    _cancellations[id] = cancelToken;
     await _setTaskStatus(id, DownloadStatus.downloading);
     try {
       final pages = await (_database.select(_database.downloadPages)
@@ -221,7 +228,12 @@ class DriftDownloadRepository implements DownloadRepository {
             updatedAt: Value(DateTime.now().toUtc()),
           ),
         );
-        final bytes = await _client.getBytes(url, source: source, acceptsImages: true);
+        final bytes = await _client.getBytes(
+          url,
+          source: source,
+          acceptsImages: true,
+          cancelToken: cancelToken,
+        );
         final data = bytes.data;
         if (data == null || data.isEmpty) throw StateError('Downloaded page is empty.');
         final temporary = File('${target.path}.part');
@@ -241,11 +253,19 @@ class DriftDownloadRepository implements DownloadRepository {
         await _updateCompletion(id);
       }
       await _setTaskStatus(id, DownloadStatus.completed);
+    } on NetworkException catch (error) {
+      final current = await _taskStatus(id);
+      if (current == DownloadStatus.downloading &&
+          error.kind != NetworkFailureKind.cancelled) {
+        await _setTaskStatus(id, DownloadStatus.failed, failureCode: 'download_failed');
+      }
     } catch (_) {
       final current = await _taskStatus(id);
       if (current == DownloadStatus.downloading) {
         await _setTaskStatus(id, DownloadStatus.failed, failureCode: 'download_failed');
       }
+    } finally {
+      _cancellations.remove(id);
     }
   }
 

@@ -21,6 +21,19 @@ class DownloadFileStore {
     return File(path.join(directory.path, '${(index + 1).toString().padLeft(4, '0')}.$extension'));
   }
 
+  Future<void> removePartFiles(GalleryKey key) async {
+    final root = await getApplicationSupportDirectory();
+    final directory = Directory(
+      path.join(root.path, 'offline', key.source.storageValue, '${key.gid}'),
+    );
+    if (!await directory.exists()) return;
+    await for (final entity in directory.list()) {
+      if (entity is File && entity.path.endsWith('.part')) {
+        await entity.delete();
+      }
+    }
+  }
+
   Future<void> deleteDirectory(GalleryKey key) async {
     final root = await getApplicationSupportDirectory();
     final directory = Directory(
