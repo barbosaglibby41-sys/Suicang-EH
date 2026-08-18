@@ -4,6 +4,8 @@ import '../../domain/entities/gallery_detail.dart';
 import '../../domain/entities/gallery_key.dart';
 import '../../domain/entities/gallery_page_result.dart';
 import '../../domain/entities/gallery_tag.dart';
+import '../../domain/entities/gallery_comment.dart';
+import '../../domain/entities/gallery_metadata.dart';
 
 class EhHtmlParser {
   const EhHtmlParser();
@@ -64,6 +66,17 @@ class EhHtmlParser {
     );
     final pages = _first(r'([0-9,]+)\s+pages', html);
     final cover = _first(r'url\((https?[^)]+)\)', html);
+    final language = _detailValue(html, 'Language');
+    final fileSize = _detailValue(html, 'File Size');
+    final favoriteCount = int.tryParse(
+      (_first(r'''id=["']favcount["'][^>]*>\s*([0-9,]+)\s+times''', html) ?? '')
+          .replaceAll(',', ''),
+    );
+    final ratingCount = int.tryParse(
+      (_first(r'''id=["']rating_count["'][^>]*>\s*([0-9,]+)\s*</''', html) ?? '')
+          .replaceAll(',', ''),
+    );
+    final torrent = _first(r'''href=["'](https?://[^"']+\.torrent)["']''', html);
     final rawTags = RegExp(
       r'''id=["']ta_([^"']+)["']''',
       caseSensitive: false,
@@ -87,8 +100,66 @@ class EhHtmlParser {
     return GalleryDetail(
       gallery: gallery,
       pageLinks: includePageLinks ? imagePageLinks(html, sourceUri) : const [],
+      metadata: GalleryMetadata(
+        language: language,
+        fileSize: fileSize,
+        favoriteCount: favoriteCount,
+        ratingCount: ratingCount,
+        torrentUrl: torrent == null ? null : Uri.tryParse(_decode(torrent)),
+      ),
+      comments: comments(html),
     );
   }
+
+  List<GalleryComment> comments(String html) {
+    final start = html.indexOf('id="cdiv"');
+    if (start < 0) return const [];
+    final end = html.indexOf('id="chd"', start);
+    final region = html.substring(start, end < 0 ? html.length : end);
+    final blocks = RegExp(
+      r'''<div class=["']c1["'].*?(?=<div class=["']c1["']|<div id=["']chd["']|$)''',
+      caseSensitive: false,
+      dotAll: true,
+    );
+    final result = <GalleryComment>[];
+    for (final blockMatch in blocks.allMatches(region)) {
+      final block = blockMatch.group(0) ?? '';
+      final content = _first(r'''<div class=["']c6["'] id=["']comment_\d+["']>(.*?)</div>''', block);
+      if (content == null) continue;
+      final id = int.tryParse(_first(r'''id=["']comment_(\d+)["']''', block) ?? '') ?? 0;
+      final author = _first(r'''by:?\s*&nbsp;\s*<a[^>]*>(.*?)</a>''', block);
+      final posted = _first(r'''Posted on (.*?) by''', block);
+      final score = int.tryParse(_first(r'''<span id=["']comment_score_\d+["'][^>]*>([+-]?\d+)</span>''', block) ?? '');
+      final votes = _first(r'''<div class=["']c7["'] id=["']cvotes_\d+["'][^>]*>(.*?)</div>''', block);
+      result.add(GalleryComment(
+        id: id,
+        author: author == null ? '匿名' : _clean(author),
+        postedAt: posted == null ? '' : _clean(posted),
+        score: score,
+        isUploader: block.contains('Uploader Comment'),
+        content: _htmlToText(content),
+        votes: votes == null ? null : _clean(votes),
+      ));
+    }
+    return result;
+  }
+
+  String? _detailValue(String html, String label) {
+    final expression = RegExp(
+      '''<td[^>]*class=["']gdt1["'][^>]*>\\s*$label:\\s*</td>\\s*<td[^>]*class=["']gdt2["'][^>]*>(.*?)</td>''',
+      caseSensitive: false,
+      dotAll: true,
+    );
+    final value = expression.firstMatch(html)?.group(1);
+    return value == null ? null : _clean(value);
+  }
+
+  String _htmlToText(String html) => _decode(html)
+      .replaceAll(RegExp(r'<br[^>]*>', caseSensitive: false), '\n')
+      .replaceAll(RegExp(r'<[^>]+>'), '')
+      .replaceAll(RegExp(r'[ \t]+\n'), '\n')
+      .replaceAll(RegExp(r'\n{3,}'), '\n\n')
+      .trim();
 
   List<Uri> imagePageLinks(String html, Uri baseUri) {
     final expression = RegExp(

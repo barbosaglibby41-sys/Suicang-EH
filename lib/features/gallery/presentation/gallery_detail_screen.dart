@@ -7,6 +7,8 @@ import '../../../core/image/pipeline_image.dart';
 import '../../../tags/presentation/providers/subscribed_tags_providers.dart';
 import '../domain/entities/gallery.dart';
 import 'notifiers/gallery_detail_notifier.dart';
+import 'widgets/gallery_comment_card.dart';
+import 'widgets/gallery_info_card.dart';
 import 'widgets/gallery_cover_placeholder.dart';
 
 class GalleryDetailScreen extends ConsumerStatefulWidget {
@@ -100,6 +102,8 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
+                const SizedBox(height: 20),
+                GalleryInfoCard(gallery: gallery, metadata: state.metadata),
                 const SizedBox(height: 24),
                 SizedBox(
                   height: 48,
@@ -163,6 +167,15 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
                     message: state.errorMessage!,
                     onRetry: notifier.load,
                   ),
+                ],
+                if (state.comments.isNotEmpty) ...[
+                  const SizedBox(height: 30),
+                  Text('评论 · ${state.comments.length}', style: theme.textTheme.titleLarge),
+                  const SizedBox(height: 12),
+                  for (final comment in state.comments) ...[
+                    GalleryCommentCard(comment: comment),
+                    const SizedBox(height: 10),
+                  ],
                 ],
                 if (gallery.tags.isNotEmpty) ...[
                   const SizedBox(height: 30),

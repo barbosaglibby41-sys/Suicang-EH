@@ -88,6 +88,8 @@ class GalleryDetailNotifier extends FamilyNotifier<GalleryDetailState, Gallery> 
       final detail = await _repository.loadDetail(state.gallery);
       state = state.copyWith(
         gallery: detail.gallery,
+        metadata: detail.metadata,
+        comments: detail.comments,
         isLoading: false,
         clearError: true,
       );
