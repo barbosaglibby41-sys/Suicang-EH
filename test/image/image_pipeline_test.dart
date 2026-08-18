@@ -11,6 +11,8 @@ import 'package:taro_eh_flutter/features/authentication/domain/entities/session_
 import 'package:taro_eh_flutter/features/gallery/domain/entities/gallery_key.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   test('coalesces concurrent requests for the same cache key', () async {
     final dio = Dio();
     var calls = 0;

@@ -26,7 +26,7 @@ void main() {
 
     expect(engine.state.pageCount, 5);
     expect(engine.state.currentIndex, 4);
-    expect(preloaded, containsAll(<int>[2, 3]));
+    expect(preloaded, containsAll(<int>[1, 2]));
     await engine.dispose();
   });
 

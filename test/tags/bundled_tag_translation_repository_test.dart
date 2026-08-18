@@ -2,6 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:taro_eh_flutter/features/tags/data/repositories/bundled_tag_translation_repository.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   test('keeps the English query while translating Chinese tag tokens',
       () async {
     final repository = BundledTagTranslationRepository();

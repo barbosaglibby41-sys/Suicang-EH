@@ -32,14 +32,23 @@ class CloudFavoritesParser {
       caseSensitive: false,
       dotAll: true,
     );
-    for (final match in [
-      ...options.allMatches(html),
-      ...folders.allMatches(html)
-    ]) {
+    for (final match in options.allMatches(html)) {
       final id = int.tryParse(match.group(1) ?? '');
       final name =
           _clean(match.group(2) ?? '').replaceFirst(RegExp(r'^\d+\s*'), '');
       if (id != null && id >= 0 && id <= 9 && name.isNotEmpty) {
+        output[id] = CloudFavoriteCategory(id: id, name: name);
+      }
+    }
+    for (final match in folders.allMatches(html)) {
+      final id = int.tryParse(match.group(1) ?? '');
+      final name =
+          _clean(match.group(2) ?? '').replaceFirst(RegExp(r'^\d+\s*'), '');
+      if (id != null &&
+          id >= 0 &&
+          id <= 9 &&
+          name.isNotEmpty &&
+          !output.containsKey(id)) {
         output[id] = CloudFavoriteCategory(id: id, name: name);
       }
     }

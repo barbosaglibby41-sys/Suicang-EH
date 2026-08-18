@@ -12,7 +12,10 @@ class DriftSearchHistoryRepository implements SearchHistoryRepository {
   @override
   Stream<List<SearchHistoryEntry>> watchRecent({int limit = 12}) {
     return (_database.select(_database.searchHistoryEntries)
-          ..orderBy([(table) => OrderingTerm.desc(table.usedAt)])
+          ..orderBy([
+            (table) => OrderingTerm.desc(table.usedAt),
+            (table) => OrderingTerm.desc(table.id),
+          ])
           ..limit(limit))
         .watch()
         .map(

@@ -164,6 +164,7 @@ class DiscoveryNotifier extends Notifier<DiscoveryState> {
       state = state.copyWith(
         galleries: appended,
         nextCursor: result.nextCursor,
+        clearNextCursor: result.nextCursor == null,
         isLoadingMore: false,
         clearError: true,
       );

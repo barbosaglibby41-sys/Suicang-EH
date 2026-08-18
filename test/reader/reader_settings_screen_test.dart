@@ -15,7 +15,8 @@ void main() {
         child: const MaterialApp(home: ReaderSettingsScreen()),
       ),
     );
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
 
     expect(find.text('横向分页'), findsOneWidget);
     expect(find.text('从右到左'), findsOneWidget);
