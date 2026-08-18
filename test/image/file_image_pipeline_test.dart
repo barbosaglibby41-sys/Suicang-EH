@@ -11,7 +11,8 @@ import 'package:taro_eh_flutter/features/authentication/data/repositories/secure
 import 'package:taro_eh_flutter/features/gallery/domain/entities/gallery_key.dart';
 
 void main() {
-  test('reads offline file requests without starting a network request', () async {
+  test('reads offline file requests without starting a network request',
+      () async {
     final directory = await Directory.systemTemp.createTemp('taro-reader-');
     addTearDown(() => directory.delete(recursive: true));
     final file = File('${directory.path}/page.jpg');

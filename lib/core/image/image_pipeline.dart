@@ -37,7 +37,8 @@ class ImagePipeline {
       return existing;
     }
 
-    final future = _loadUncached(request, source: source, cancelHandle: cancelHandle);
+    final future =
+        _loadUncached(request, source: source, cancelHandle: cancelHandle);
     _inFlight[request.cacheKey] = future;
     try {
       final bytes = await future;

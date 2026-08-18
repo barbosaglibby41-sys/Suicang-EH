@@ -58,12 +58,14 @@ void main() {
     expect(detail.metadata.fileSize, '123 MB');
     expect(detail.metadata.favoriteCount, 456);
     expect(detail.metadata.ratingCount, 78);
-    expect(detail.metadata.torrentUrl, Uri.parse('https://torrent.example/file.torrent'));
+    expect(detail.metadata.torrentUrl,
+        Uri.parse('https://torrent.example/file.torrent'));
     expect(detail.comments.single.author, 'Uploader');
     expect(detail.comments.single.content, 'Hello\nworld');
     expect(detail.comments.single.isUploader, isTrue);
     expect(detail.previews.single.page, 1);
-    expect(detail.previews.single.spriteUrl, Uri.parse('https://thumb.example/sprite.jpg'));
+    expect(detail.previews.single.spriteUrl,
+        Uri.parse('https://thumb.example/sprite.jpg'));
     expect(detail.previews.single.yOffset, 300);
     expect(detail.pageLinks.map((url) => url.path),
         ['/s/abc123/101-1', '/s/abc123/101-2']);

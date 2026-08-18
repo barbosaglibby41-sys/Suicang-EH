@@ -29,10 +29,11 @@ class EhCloudFavoritesRepository implements CloudFavoritesRepository {
     Uri? pageUrl,
   }) async {
     final base = _base(source);
-    final target = pageUrl ?? base.replace(
-      path: '/favorites.php',
-      queryParameters: {'favcat': '$category'},
-    );
+    final target = pageUrl ??
+        base.replace(
+          path: '/favorites.php',
+          queryParameters: {'favcat': '$category'},
+        );
     final html = await _client.getText(target, source: source);
     return _parser.parse(html: html, source: source, baseUri: base);
   }
@@ -45,7 +46,8 @@ class EhCloudFavoritesRepository implements CloudFavoritesRepository {
   }) async {
     final detailUrl = gallery.sourceUrl;
     if (detailUrl == null) {
-      throw ArgumentError.value(gallery, 'gallery', 'Gallery source URL is required.');
+      throw ArgumentError.value(
+          gallery, 'gallery', 'Gallery source URL is required.');
     }
     final source = gallery.key.source;
     final html = await _client.getText(detailUrl, source: source);
@@ -83,7 +85,8 @@ class EhCloudFavoritesRepository implements CloudFavoritesRepository {
       r'''name=["']token["'][^>]+value=["']([^"']+)''',
     ];
     for (final pattern in patterns) {
-      final token = RegExp(pattern, caseSensitive: false).firstMatch(html)?.group(1);
+      final token =
+          RegExp(pattern, caseSensitive: false).firstMatch(html)?.group(1);
       if (token != null) return token;
     }
     return null;

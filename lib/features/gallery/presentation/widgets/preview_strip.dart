@@ -61,15 +61,18 @@ class _PreviewTile extends ConsumerWidget {
         future: future,
         builder: (context, snapshot) {
           if (snapshot.hasError) return const Icon(Icons.broken_image_outlined);
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+          if (!snapshot.hasData)
+            return const Center(child: CircularProgressIndicator());
           return FutureBuilder<ui.Codec>(
             future: ui.instantiateImageCodec(snapshot.data!),
             builder: (context, codecSnapshot) {
-              if (!codecSnapshot.hasData) return const Center(child: CircularProgressIndicator());
+              if (!codecSnapshot.hasData)
+                return const Center(child: CircularProgressIndicator());
               return FutureBuilder<ui.FrameInfo>(
                 future: codecSnapshot.data!.getNextFrame(),
                 builder: (context, frameSnapshot) {
-                  if (!frameSnapshot.hasData) return const Center(child: CircularProgressIndicator());
+                  if (!frameSnapshot.hasData)
+                    return const Center(child: CircularProgressIndicator());
                   final image = frameSnapshot.data!.image;
                   return ClipRRect(
                     borderRadius: BorderRadius.circular(8),
@@ -80,9 +83,11 @@ class _PreviewTile extends ConsumerWidget {
                         alignment: Alignment.bottomRight,
                         child: Container(
                           margin: const EdgeInsets.all(5),
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
                           color: Colors.black.withValues(alpha: 0.7),
-                          child: Text('${preview.page}', style: const TextStyle(color: Colors.white)),
+                          child: Text('${preview.page}',
+                              style: const TextStyle(color: Colors.white)),
                         ),
                       ),
                     ),
@@ -114,7 +119,8 @@ class _SpritePainter extends CustomPainter {
     final scale = size.width / preview.width;
     final targetHeight = preview.height * scale;
     final destination = Rect.fromLTWH(0, 0, size.width, targetHeight);
-    canvas.drawImageRect(image, source, destination, Paint(filterQuality: FilterQuality.medium));
+    canvas.drawImageRect(
+        image, source, destination, Paint(filterQuality: FilterQuality.medium));
   }
 
   @override

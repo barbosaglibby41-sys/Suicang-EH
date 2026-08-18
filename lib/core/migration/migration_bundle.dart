@@ -23,7 +23,8 @@ class MigrationBundle {
         for (final value in (json['galleries'] as List<dynamic>? ?? const []))
           MigrationGallery.fromJson(value as Map<String, dynamic>),
       ],
-      favorites: (json['favorites'] as List<dynamic>? ?? const []).cast<String>(),
+      favorites:
+          (json['favorites'] as List<dynamic>? ?? const []).cast<String>(),
       history: (json['history'] as List<dynamic>? ?? const []).cast<String>(),
       progress: [
         for (final value in (json['progress'] as List<dynamic>? ?? const []))
@@ -54,7 +55,8 @@ class MigrationGallery {
   final String? sourceUrl;
   final String tagsJson;
 
-  factory MigrationGallery.fromJson(Map<String, dynamic> json) => MigrationGallery(
+  factory MigrationGallery.fromJson(Map<String, dynamic> json) =>
+      MigrationGallery(
         key: json['key'] as String,
         title: json['title'] as String? ?? '',
         pageCount: json['pageCount'] as int? ?? 0,
@@ -79,7 +81,8 @@ class MigrationProgress {
   final int pageCount;
   final DateTime updatedAt;
 
-  factory MigrationProgress.fromJson(Map<String, dynamic> json) => MigrationProgress(
+  factory MigrationProgress.fromJson(Map<String, dynamic> json) =>
+      MigrationProgress(
         key: json['key'] as String,
         pageIndex: json['pageIndex'] as int? ?? 0,
         pageCount: json['pageCount'] as int? ?? 0,

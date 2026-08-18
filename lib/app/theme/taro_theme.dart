@@ -68,7 +68,8 @@ abstract final class TaroTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         height: 68,
-        backgroundColor: isDark ? TaroColors.darkSurface : TaroColors.lightSurface,
+        backgroundColor:
+            isDark ? TaroColors.darkSurface : TaroColors.lightSurface,
         indicatorColor: colorScheme.secondaryContainer,
       ),
       pageTransitionsTheme: const PageTransitionsTheme(

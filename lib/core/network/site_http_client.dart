@@ -19,7 +19,8 @@ class SiteHttpClient {
   })  : _dio = dio,
         _authRepository = authRepository,
         _requestPolicy = requestPolicy,
-        _coalescer = coalescer ?? RequestCoalescer<String, Response<List<int>>>(),
+        _coalescer =
+            coalescer ?? RequestCoalescer<String, Response<List<int>>>(),
         _retryPolicy = retryPolicy;
 
   final Dio _dio;

@@ -64,7 +64,8 @@ class _FakeGalleryRepository implements GalleryRepository {
   Future<GalleryPageResult> discover({
     required SiteSource source,
     int? cursor,
-  }) async => pages[_index++];
+  }) async =>
+      pages[_index++];
 
   @override
   Future<Gallery?> findByKey(GalleryKey key) async => null;
@@ -73,34 +74,40 @@ class _FakeGalleryRepository implements GalleryRepository {
   Future<GalleryDetail> loadDetail(
     Gallery gallery, {
     bool includePageLinks = false,
-  }) async => GalleryDetail(gallery: gallery, pageLinks: const []);
+  }) async =>
+      GalleryDetail(gallery: gallery, pageLinks: const []);
 
   @override
   Future<Uri> resolveImageUrl(
     Uri pageUrl, {
     Uri? referer,
     bool forceRefresh = false,
-  }) async => pageUrl;
+  }) async =>
+      pageUrl;
 
   @override
-  Future<GalleryPageResult> search(GallerySearchQuery query) async => pages[_index++];
+  Future<GalleryPageResult> search(GallerySearchQuery query) async =>
+      pages[_index++];
 
   @override
-  Future<GalleryPageResult> popular({required SiteSource source}) async => pages[_index++];
+  Future<GalleryPageResult> popular({required SiteSource source}) async =>
+      pages[_index++];
 
   @override
   Future<RankingPage> rankings({
     required SiteSource source,
     required RankingPeriod period,
     int page = 0,
-  }) async => const RankingPage(galleries: []);
+  }) async =>
+      const RankingPage(galleries: []);
 
   @override
   Future<List<Gallery>> random({
     required SiteSource source,
     int count = 12,
     Set<int> excluding = const {},
-  }) async => const [];
+  }) async =>
+      const [];
 
   @override
   Future<Uri?> torrentUrl(Gallery gallery) async => null;

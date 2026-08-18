@@ -4,7 +4,8 @@ import '../../data/repositories/shared_preferences_site_preferences_repository.d
 import '../../domain/entities/site_preferences.dart';
 import '../../domain/repositories/site_preferences_repository.dart';
 
-final sitePreferencesRepositoryProvider = Provider<SitePreferencesRepository>((ref) {
+final sitePreferencesRepositoryProvider =
+    Provider<SitePreferencesRepository>((ref) {
   return SharedPreferencesSitePreferencesRepository();
 });
 

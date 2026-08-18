@@ -43,9 +43,8 @@ class BundledTagTranslationRepository implements TagTranslationRepository {
   @override
   TranslatedTag? find(String value) {
     final normalized = value.trim().toLowerCase();
-    final exact = _byId[normalized] ??
-        _byEnglish[normalized] ??
-        _byChinese[normalized];
+    final exact =
+        _byId[normalized] ?? _byEnglish[normalized] ?? _byChinese[normalized];
     if (exact != null) return exact;
     for (final tag in _tags) {
       if (tag.name.toLowerCase().contains(normalized)) return tag;
@@ -79,13 +78,18 @@ class BundledTagTranslationRepository implements TagTranslationRepository {
 
   @override
   String translateQuery(String query) {
-    return query.split(RegExp(r'\s+')).where((token) => token.isNotEmpty).map((token) {
-      final prefix = token.startsWith('-') || token.startsWith('~') ? token[0] : '';
+    return query
+        .split(RegExp(r'\s+'))
+        .where((token) => token.isNotEmpty)
+        .map((token) {
+      final prefix =
+          token.startsWith('-') || token.startsWith('~') ? token[0] : '';
       final value = prefix.isEmpty ? token : token.substring(1);
       final separator = value.indexOf(':');
       final candidate = separator < 0 ? value : value.substring(separator + 1);
       final tag = find(candidate);
-      if (tag == null || !RegExp(r'[\u3400-\u9fff]').hasMatch(candidate)) return token;
+      if (tag == null || !RegExp(r'[\u3400-\u9fff]').hasMatch(candidate))
+        return token;
       return '$prefix${tag.namespace}:"${tag.key}\$"';
     }).join(' ');
   }

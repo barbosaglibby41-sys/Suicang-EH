@@ -37,9 +37,12 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
             error: (_, __) => const Text('无法读取安全会话。'),
             data: (value) => Card(
               child: ListTile(
-                leading: Icon(value.hasCredentials ? Icons.verified_user_outlined : Icons.person_outline),
+                leading: Icon(value.hasCredentials
+                    ? Icons.verified_user_outlined
+                    : Icons.person_outline),
                 title: Text(value.hasCredentials ? '已保存站点凭据' : '尚未登录'),
-                subtitle: Text('${value.cookies.length} 个安全 Cookie，仅保存在本机加密存储。'),
+                subtitle:
+                    Text('${value.cookies.length} 个安全 Cookie，仅保存在本机加密存储。'),
               ),
             ),
           ),
@@ -120,7 +123,9 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
   Future<void> _importCookies() async {
     setState(() => _working = true);
     try {
-      await ref.read(authRepositoryProvider).importCookieHeader(_controller.text);
+      await ref
+          .read(authRepositoryProvider)
+          .importCookieHeader(_controller.text);
       _controller.clear();
       if (mounted) _show('Cookie 已保存到本机安全存储。');
     } catch (_) {
@@ -133,16 +138,26 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
   Future<void> _validate(SiteSource source) async {
     setState(() => _working = true);
     final result = await ref.read(sessionServiceProvider).validate(source);
-    if (mounted) setState(() { _validation = result; _working = false; });
+    if (mounted)
+      setState(() {
+        _validation = result;
+        _working = false;
+      });
   }
 
   Future<void> _refreshExHentai() async {
     setState(() => _working = true);
-    final result = await ref.read(sessionServiceProvider).refreshExHentaiSession();
-    if (mounted) setState(() { _validation = result; _working = false; });
+    final result =
+        await ref.read(sessionServiceProvider).refreshExHentaiSession();
+    if (mounted)
+      setState(() {
+        _validation = result;
+        _working = false;
+      });
   }
 
-  void _show(String message) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  void _show(String message) => ScaffoldMessenger.of(context)
+      .showSnackBar(SnackBar(content: Text(message)));
 }
 
 class _ValidationCard extends StatelessWidget {

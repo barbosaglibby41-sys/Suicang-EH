@@ -64,7 +64,8 @@ class EhGalleryRepository implements GalleryRepository {
       queryParameters: {'tl': period.endpointValue, 'p': '$page'},
     );
     final html = await _client.getText(uri, source: source);
-    final parsed = _parser.galleriesPage(html: html, source: source, baseUri: uri);
+    final parsed =
+        _parser.galleriesPage(html: html, source: source, baseUri: uri);
     await _storeGalleries(parsed.galleries);
     return RankingPage(
       galleries: parsed.galleries,
@@ -79,8 +80,8 @@ class EhGalleryRepository implements GalleryRepository {
     Set<int> excluding = const {},
   }) async {
     final first = await discover(source: source);
-    final maxId = first.galleries.fold<int>(1, (max, gallery) =>
-        gallery.key.gid > max ? gallery.key.gid : max);
+    final maxId = first.galleries.fold<int>(
+        1, (max, gallery) => gallery.key.gid > max ? gallery.key.gid : max);
     final result = <Gallery>[];
     final known = {...excluding};
     final cursors = <int>{};
@@ -105,7 +106,8 @@ class EhGalleryRepository implements GalleryRepository {
   }) async {
     final sourceUri = gallery.sourceUrl;
     if (sourceUri == null) {
-      throw ArgumentError.value(gallery, 'gallery', 'A source URL is required.');
+      throw ArgumentError.value(
+          gallery, 'gallery', 'A source URL is required.');
     }
     final html = await _client.getText(sourceUri, source: gallery.key.source);
     final detail = _parser.detail(
@@ -144,7 +146,8 @@ class EhGalleryRepository implements GalleryRepository {
       queryParameters: {'gid': gid, 't': token},
     );
     final html = await _client.getText(endpoint, source: gallery.key.source);
-    final raw = RegExp(r'''href=["'](https?://[^"']+\.torrent)["']''', caseSensitive: false)
+    final raw = RegExp(r'''href=["'](https?://[^"']+\.torrent)["']''',
+            caseSensitive: false)
         .firstMatch(html)
         ?.group(1);
     return raw == null ? null : Uri.tryParse(raw.replaceAll('&amp;', '&'));
@@ -251,7 +254,8 @@ class EhGalleryRepository implements GalleryRepository {
         },
       );
 
-  GalleriesCompanion _galleryCompanion(Gallery gallery) => GalleriesCompanion.insert(
+  GalleriesCompanion _galleryCompanion(Gallery gallery) =>
+      GalleriesCompanion.insert(
         source: gallery.key.source.storageValue,
         gid: gallery.key.gid,
         title: gallery.title,

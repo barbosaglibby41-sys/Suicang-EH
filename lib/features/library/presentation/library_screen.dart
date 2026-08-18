@@ -62,7 +62,8 @@ class _GalleryCollection extends StatelessWidget {
                     mainAxisSpacing: 18,
                     childAspectRatio: 0.57,
                   ),
-                  itemBuilder: (context, index) => _GalleryCard(gallery: items[index]),
+                  itemBuilder: (context, index) =>
+                      _GalleryCard(gallery: items[index]),
                 );
               },
             ),

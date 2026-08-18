@@ -3,7 +3,8 @@ import 'package:taro_eh_flutter/core/platform/keep_screen_on.dart';
 import 'package:taro_eh_flutter/features/reader/presentation/providers/keep_screen_on_providers.dart';
 
 void main() {
-  test('only enables native keep-screen-on for visible opted-in reader', () async {
+  test('only enables native keep-screen-on for visible opted-in reader',
+      () async {
     final platform = _FakeKeepScreenOn();
     final controller = ReaderKeepScreenOnController(platform);
 

@@ -31,7 +31,8 @@ class OfflineLibraryScreen extends ConsumerWidget {
                 padding: const EdgeInsets.all(16),
                 itemCount: items.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 10),
-                itemBuilder: (context, index) => _OfflineTile(item: items[index]),
+                itemBuilder: (context, index) =>
+                    _OfflineTile(item: items[index]),
               ),
       ),
     );
@@ -48,8 +49,10 @@ class _OfflineTile extends ConsumerWidget {
     return Card(
       child: ListTile(
         leading: const Icon(Icons.offline_pin_outlined),
-        title: Text(item.gallery.title, maxLines: 2, overflow: TextOverflow.ellipsis),
-        subtitle: Text('${item.pagePaths.length} 页 · ${_formatBytes(item.totalBytes)}'),
+        title: Text(item.gallery.title,
+            maxLines: 2, overflow: TextOverflow.ellipsis),
+        subtitle: Text(
+            '${item.pagePaths.length} 页 · ${_formatBytes(item.totalBytes)}'),
         onTap: item.isReadable
             ? () => Navigator.of(context).push(
                   MaterialPageRoute<void>(
@@ -65,7 +68,8 @@ class _OfflineTile extends ConsumerWidget {
         trailing: IconButton(
           tooltip: '删除离线副本',
           icon: const Icon(Icons.delete_outline),
-          onPressed: () => ref.read(offlineLibraryRepositoryProvider).delete(item),
+          onPressed: () =>
+              ref.read(offlineLibraryRepositoryProvider).delete(item),
         ),
       ),
     );

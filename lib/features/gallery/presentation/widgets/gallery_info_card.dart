@@ -18,7 +18,11 @@ class GalleryInfoCard extends StatelessWidget {
     final values = [
       ('语言', metadata.language ?? '未知', Icons.language_outlined),
       ('页数', '${gallery.pageCount}', Icons.layers_outlined),
-      ('发布', gallery.postedAt?.split(' ').first ?? '未知', Icons.calendar_today_outlined),
+      (
+        '发布',
+        gallery.postedAt?.split(' ').first ?? '未知',
+        Icons.calendar_today_outlined
+      ),
       ('大小', metadata.fileSize ?? '未知', Icons.storage_outlined),
       ('收藏', metadata.favoriteCount?.toString() ?? '—', Icons.favorite_border),
       ('评分', gallery.rating?.toStringAsFixed(2) ?? '—', Icons.star_outline),

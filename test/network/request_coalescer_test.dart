@@ -13,7 +13,8 @@ void main() {
       return 42;
     }
 
-    final results = await Future.wait([coalescer.run('same', work), coalescer.run('same', work)]);
+    final results = await Future.wait(
+        [coalescer.run('same', work), coalescer.run('same', work)]);
 
     expect(results, [42, 42]);
     expect(calls, 1);
@@ -26,7 +27,8 @@ void main() {
     final value = await policy.run(() async {
       attempts += 1;
       if (attempts < 3) {
-        throw const NetworkException(kind: NetworkFailureKind.timeout, message: 'timeout');
+        throw const NetworkException(
+            kind: NetworkFailureKind.timeout, message: 'timeout');
       }
       return 'ok';
     });

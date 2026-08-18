@@ -1,7 +1,9 @@
 import '../../../gallery/domain/entities/gallery_key.dart';
 
 enum ReaderMode { horizontal, vertical }
+
 enum ReaderDirection { ltr, rtl }
+
 enum ReaderFit { contain, cover }
 
 class ReaderPage {

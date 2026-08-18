@@ -10,7 +10,8 @@ class CloudFavoritesScreen extends ConsumerStatefulWidget {
   const CloudFavoritesScreen({super.key});
 
   @override
-  ConsumerState<CloudFavoritesScreen> createState() => _CloudFavoritesScreenState();
+  ConsumerState<CloudFavoritesScreen> createState() =>
+      _CloudFavoritesScreenState();
 }
 
 class _CloudFavoritesScreenState extends ConsumerState<CloudFavoritesScreen> {
@@ -35,7 +36,9 @@ class _CloudFavoritesScreenState extends ConsumerState<CloudFavoritesScreen> {
         actions: [
           IconButton(
             tooltip: '刷新',
-            onPressed: state.isLoading ? null : () => notifier.load(category: state.category),
+            onPressed: state.isLoading
+                ? null
+                : () => notifier.load(category: state.category),
             icon: const Icon(Icons.refresh),
           ),
         ],
@@ -48,7 +51,8 @@ class _CloudFavoritesScreenState extends ConsumerState<CloudFavoritesScreen> {
               value: state.category,
               items: [
                 for (final category in categories)
-                  DropdownMenuItem(value: category.id, child: Text(category.name)),
+                  DropdownMenuItem(
+                      value: category.id, child: Text(category.name)),
               ],
               onChanged: state.isLoading
                   ? null
@@ -73,8 +77,10 @@ class _CloudFavoritesScreenState extends ConsumerState<CloudFavoritesScreen> {
                     ? const Center(child: Text('这个收藏夹还是空的。'))
                     : GridView.builder(
                         padding: const EdgeInsets.all(20),
-                        itemCount: state.galleries.length + (state.nextUrl == null ? 0 : 1),
-                        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                        itemCount: state.galleries.length +
+                            (state.nextUrl == null ? 0 : 1),
+                        gridDelegate:
+                            const SliverGridDelegateWithMaxCrossAxisExtent(
                           maxCrossAxisExtent: 180,
                           mainAxisSpacing: 16,
                           crossAxisSpacing: 14,
@@ -84,7 +90,9 @@ class _CloudFavoritesScreenState extends ConsumerState<CloudFavoritesScreen> {
                           if (index == state.galleries.length) {
                             return Card(
                               child: InkWell(
-                                onTap: state.isLoading ? null : () => notifier.load(more: true),
+                                onTap: state.isLoading
+                                    ? null
+                                    : () => notifier.load(more: true),
                                 child: Center(
                                   child: state.isLoading
                                       ? const CircularProgressIndicator()
@@ -93,7 +101,8 @@ class _CloudFavoritesScreenState extends ConsumerState<CloudFavoritesScreen> {
                               ),
                             );
                           }
-                          return _CloudGalleryCard(gallery: state.galleries[index]);
+                          return _CloudGalleryCard(
+                              gallery: state.galleries[index]);
                         },
                       ),
           ),

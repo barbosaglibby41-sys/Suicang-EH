@@ -21,7 +21,8 @@ class DownloadsScreen extends ConsumerWidget {
                 padding: const EdgeInsets.all(16),
                 itemCount: items.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 10),
-                itemBuilder: (context, index) => _DownloadTaskTile(task: items[index]),
+                itemBuilder: (context, index) =>
+                    _DownloadTaskTile(task: items[index]),
               ),
       ),
     );
@@ -58,7 +59,8 @@ class _DownloadTaskTile extends ConsumerWidget {
             Text('${task.completedPages} / ${task.totalPages} 页'),
             if (task.failureCode != null) ...[
               const SizedBox(height: 4),
-              Text('下载失败，可重试。', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              Text('下载失败，可重试。',
+                  style: TextStyle(color: Theme.of(context).colorScheme.error)),
             ],
             const SizedBox(height: 4),
             Row(
@@ -85,7 +87,8 @@ class _DownloadTaskTile extends ConsumerWidget {
                   ),
                 IconButton(
                   tooltip: '取消并删除文件',
-                  onPressed: () => repository.cancel(task.id, deleteFiles: true),
+                  onPressed: () =>
+                      repository.cancel(task.id, deleteFiles: true),
                   icon: const Icon(Icons.delete_outline),
                 ),
               ],

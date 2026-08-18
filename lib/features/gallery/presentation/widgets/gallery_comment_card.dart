@@ -29,7 +29,8 @@ class GalleryCommentCard extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: Text(comment.author, style: Theme.of(context).textTheme.titleSmall),
+                  child: Text(comment.author,
+                      style: Theme.of(context).textTheme.titleSmall),
                 ),
                 if (comment.isUploader)
                   const Padding(
@@ -37,14 +38,18 @@ class GalleryCommentCard extends StatelessWidget {
                     child: Chip(label: Text('上传者')),
                   ),
                 if (score != null)
-                  Text(score > 0 ? '+$score' : '$score', style: TextStyle(color: scoreColor)),
+                  Text(score > 0 ? '+$score' : '$score',
+                      style: TextStyle(color: scoreColor)),
               ],
             ),
             const SizedBox(height: 8),
             SelectableText(comment.content),
             const SizedBox(height: 10),
             Text(
-              [comment.postedAt, if (comment.votes?.isNotEmpty ?? false) comment.votes!].join(' · '),
+              [
+                comment.postedAt,
+                if (comment.votes?.isNotEmpty ?? false) comment.votes!
+              ].join(' · '),
               style: Theme.of(context).textTheme.labelSmall,
             ),
           ],

@@ -1,6 +1,13 @@
 import '../../../gallery/domain/entities/gallery_key.dart';
 
-enum DownloadStatus { queued, downloading, paused, completed, failed, cancelled }
+enum DownloadStatus {
+  queued,
+  downloading,
+  paused,
+  completed,
+  failed,
+  cancelled
+}
 
 class DownloadTask {
   const DownloadTask({

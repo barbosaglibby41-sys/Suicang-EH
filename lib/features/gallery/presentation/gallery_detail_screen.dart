@@ -22,7 +22,8 @@ class GalleryDetailScreen extends ConsumerStatefulWidget {
   final Gallery gallery;
 
   @override
-  ConsumerState<GalleryDetailScreen> createState() => _GalleryDetailScreenState();
+  ConsumerState<GalleryDetailScreen> createState() =>
+      _GalleryDetailScreenState();
 }
 
 class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
@@ -33,7 +34,8 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
     super.initState();
     _favorite = Future.value(false);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final notifier = ref.read(galleryDetailNotifierProvider(widget.gallery).notifier);
+      final notifier =
+          ref.read(galleryDetailNotifierProvider(widget.gallery).notifier);
       notifier.load();
       notifier.recordOpened();
       if (mounted) setState(() => _favorite = notifier.isFavorite());
@@ -147,7 +149,8 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
                       onPressed: () async {
                         final url = await notifier.loadTorrentUrl();
                         if (url != null && await canLaunchUrl(url)) {
-                          await launchUrl(url, mode: LaunchMode.externalApplication);
+                          await launchUrl(url,
+                              mode: LaunchMode.externalApplication);
                         }
                       },
                       icon: const Icon(Icons.download_for_offline_outlined),
@@ -157,13 +160,15 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
                       tooltip: '加入账户收藏夹 1',
                       onPressed: state.isLoading
                           ? null
-                          : () => notifier.setCloudFavorite(category: 0, value: true),
+                          : () => notifier.setCloudFavorite(
+                              category: 0, value: true),
                       icon: const Icon(Icons.cloud_upload_outlined),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: state.isLoading ? null : notifier.enqueueDownload,
+                        onPressed:
+                            state.isLoading ? null : notifier.enqueueDownload,
                         icon: const Icon(Icons.download_outlined),
                         label: const Text('下载'),
                       ),
@@ -185,11 +190,13 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
                   const SizedBox(height: 30),
                   Text('内容预览', style: theme.textTheme.titleLarge),
                   const SizedBox(height: 12),
-                  PreviewStrip(previews: state.previews, source: gallery.key.source),
+                  PreviewStrip(
+                      previews: state.previews, source: gallery.key.source),
                 ],
                 if (state.comments.isNotEmpty) ...[
                   const SizedBox(height: 30),
-                  Text('评论 · ${state.comments.length}', style: theme.textTheme.titleLarge),
+                  Text('评论 · ${state.comments.length}',
+                      style: theme.textTheme.titleLarge),
                   const SizedBox(height: 12),
                   for (final comment in state.comments) ...[
                     GalleryCommentCard(comment: comment),
@@ -207,7 +214,8 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
                       for (final tag in gallery.tags)
                         Consumer(
                           builder: (context, ref, _) {
-                            final subscriptions = ref.watch(subscribedTagsProvider);
+                            final subscriptions =
+                                ref.watch(subscribedTagsProvider);
                             final isSubscribed = subscriptions.valueOrNull
                                     ?.contains(tag.rawName) ??
                                 false;

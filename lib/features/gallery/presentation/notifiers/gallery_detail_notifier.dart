@@ -9,16 +9,18 @@ import '../../domain/repositories/gallery_repository.dart';
 import '../providers/gallery_providers.dart';
 import '../state/gallery_detail_state.dart';
 
-final galleryDetailNotifierProvider = NotifierProvider.family<
-    GalleryDetailNotifier, GalleryDetailState, Gallery>(
+final galleryDetailNotifierProvider =
+    NotifierProvider.family<GalleryDetailNotifier, GalleryDetailState, Gallery>(
   GalleryDetailNotifier.new,
 );
 
-class GalleryDetailNotifier extends FamilyNotifier<GalleryDetailState, Gallery> {
+class GalleryDetailNotifier
+    extends FamilyNotifier<GalleryDetailState, Gallery> {
   GalleryRepository get _repository => ref.read(galleryRepositoryProvider);
 
   @override
-  GalleryDetailState build(Gallery gallery) => GalleryDetailState(gallery: gallery);
+  GalleryDetailState build(Gallery gallery) =>
+      GalleryDetailState(gallery: gallery);
 
   Future<bool> isFavorite() {
     return ref.read(libraryRepositoryProvider).isFavorite(state.gallery.key);
@@ -34,7 +36,8 @@ class GalleryDetailNotifier extends FamilyNotifier<GalleryDetailState, Gallery> 
     return ref.read(libraryRepositoryProvider).recordOpened(state.gallery);
   }
 
-  Future<void> setCloudFavorite({required int category, required bool value}) async {
+  Future<void> setCloudFavorite(
+      {required int category, required bool value}) async {
     if (state.isLoading) return;
     state = state.copyWith(isLoading: true, clearError: true);
     try {
@@ -70,7 +73,8 @@ class GalleryDetailNotifier extends FamilyNotifier<GalleryDetailState, Gallery> 
         throw StateError('No downloadable pages found.');
       }
       await ref.read(downloadRepositoryProvider).enqueue(
-            DownloadRequest(gallery: detail.gallery, pageUrls: detail.pageLinks),
+            DownloadRequest(
+                gallery: detail.gallery, pageUrls: detail.pageLinks),
           );
       state = state.copyWith(
         gallery: detail.gallery,

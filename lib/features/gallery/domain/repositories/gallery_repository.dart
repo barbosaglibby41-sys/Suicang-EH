@@ -23,8 +23,10 @@ abstract interface class GalleryRepository {
     int count = 12,
     Set<int> excluding = const {},
   });
-  Future<GalleryDetail> loadDetail(Gallery gallery, {bool includePageLinks = false});
-  Future<Uri> resolveImageUrl(Uri pageUrl, {Uri? referer, bool forceRefresh = false});
+  Future<GalleryDetail> loadDetail(Gallery gallery,
+      {bool includePageLinks = false});
+  Future<Uri> resolveImageUrl(Uri pageUrl,
+      {Uri? referer, bool forceRefresh = false});
   Future<Uri?> torrentUrl(Gallery gallery);
 
   Future<Gallery?> findByKey(GalleryKey key);

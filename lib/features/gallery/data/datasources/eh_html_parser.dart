@@ -80,10 +80,12 @@ class EhHtmlParser {
           .replaceAll(',', ''),
     );
     final ratingCount = int.tryParse(
-      (_first(r'''id=["']rating_count["'][^>]*>\s*([0-9,]+)\s*</''', html) ?? '')
+      (_first(r'''id=["']rating_count["'][^>]*>\s*([0-9,]+)\s*</''', html) ??
+              '')
           .replaceAll(',', ''),
     );
-    final torrent = _first(r'''href=["'](https?://[^"']+\.torrent)["']''', html);
+    final torrent =
+        _first(r'''href=["'](https?://[^"']+\.torrent)["']''', html);
     final rawTags = RegExp(
       r'''id=["']ta_([^"']+)["']''',
       caseSensitive: false,
@@ -91,9 +93,11 @@ class EhHtmlParser {
     final uniqueTags = rawTags
         .map(GalleryTag.parse)
         .fold(<String, GalleryTag>{}, (tags, tag) {
-      tags[tag.rawName] = tag;
-      return tags;
-    }).values.toList()
+          tags[tag.rawName] = tag;
+          return tags;
+        })
+        .values
+        .toList()
       ..sort((left, right) => left.rawName.compareTo(right.rawName));
 
     final gallery = fallback.copyWith(
@@ -136,7 +140,12 @@ class EhHtmlParser {
       final height = int.tryParse(match.group(4) ?? '');
       final x = int.tryParse(match.group(6) ?? '');
       final y = int.tryParse(match.group(7) ?? '');
-      if (page == null || width == null || height == null || x == null || y == null || !seen.add(page)) continue;
+      if (page == null ||
+          width == null ||
+          height == null ||
+          x == null ||
+          y == null ||
+          !seen.add(page)) continue;
       final sprite = Uri.tryParse(_decode(match.group(5) ?? ''));
       if (sprite == null) continue;
       result.add(PagePreview(
@@ -167,13 +176,22 @@ class EhHtmlParser {
     final result = <GalleryComment>[];
     for (final blockMatch in blocks.allMatches(region)) {
       final block = blockMatch.group(0) ?? '';
-      final content = _first(r'''<div class=["']c6["'] id=["']comment_\d+["']>(.*?)</div>''', block);
+      final content = _first(
+          r'''<div class=["']c6["'] id=["']comment_\d+["']>(.*?)</div>''',
+          block);
       if (content == null) continue;
-      final id = int.tryParse(_first(r'''id=["']comment_(\d+)["']''', block) ?? '') ?? 0;
+      final id =
+          int.tryParse(_first(r'''id=["']comment_(\d+)["']''', block) ?? '') ??
+              0;
       final author = _first(r'''by:?\s*&nbsp;\s*<a[^>]*>(.*?)</a>''', block);
       final posted = _first(r'''Posted on (.*?) by''', block);
-      final score = int.tryParse(_first(r'''<span id=["']comment_score_\d+["'][^>]*>([+-]?\d+)</span>''', block) ?? '');
-      final votes = _first(r'''<div class=["']c7["'] id=["']cvotes_\d+["'][^>]*>(.*?)</div>''', block);
+      final score = int.tryParse(_first(
+              r'''<span id=["']comment_score_\d+["'][^>]*>([+-]?\d+)</span>''',
+              block) ??
+          '');
+      final votes = _first(
+          r'''<div class=["']c7["'] id=["']cvotes_\d+["'][^>]*>(.*?)</div>''',
+          block);
       result.add(GalleryComment(
         id: id,
         author: author == null ? '匿名' : _clean(author),
@@ -237,17 +255,22 @@ class EhHtmlParser {
     final pages = RegExp(
       r'''href=["'][^"']*toplist\.php[^"']*[?&]p=(\d+)[^"']*["']''',
       caseSensitive: false,
-    ).allMatches(html).map((match) => int.tryParse(match.group(1) ?? '')).whereType<int>();
+    )
+        .allMatches(html)
+        .map((match) => int.tryParse(match.group(1) ?? ''))
+        .whereType<int>();
     final next = pages.where((page) => page > currentPage).toList()..sort();
     return next.isEmpty ? null : next.first;
   }
 
   int? _nextCursor(String html) {
-    final value = _first(r'''class=["'][^"']*dnext[^"']*["'][^>]+href=["']([^"']+)''', html);
+    final value = _first(
+        r'''class=["'][^"']*dnext[^"']*["'][^>]+href=["']([^"']+)''', html);
     if (value == null) {
       return null;
     }
-    return int.tryParse(Uri.tryParse(_decode(value))?.queryParameters['next'] ?? '');
+    return int.tryParse(
+        Uri.tryParse(_decode(value))?.queryParameters['next'] ?? '');
   }
 
   Map<int, _ListMetadata> _listMetadata(String html, Uri baseUri) {
@@ -265,21 +288,32 @@ class EhHtmlParser {
       final tags = RegExp(
         r'''class=["'][^"']*gt[^"']*["'][^>]*title=["']([^"']+)["']''',
         caseSensitive: false,
-      ).allMatches(row).map((value) => GalleryTag.parse(_decode(value.group(1) ?? ''))).toList();
+      )
+          .allMatches(row)
+          .map((value) => GalleryTag.parse(_decode(value.group(1) ?? '')))
+          .toList();
       result[gid] = _ListMetadata(
-        thumbnailUrl: rawImage == null ? null : _resolve(baseUri, _decode(rawImage)),
+        thumbnailUrl:
+            rawImage == null ? null : _resolve(baseUri, _decode(rawImage)),
         pageCount: int.tryParse(
               (_first(r'''([0-9,]+)\s+pages''', row) ?? '').replaceAll(',', ''),
             ) ??
             0,
-        category: _clean(_first(r'''class=["'][^"']*cn[^"']*["'][^>]*>(.*?)</div>''', row) ?? ''),
+        category: _clean(
+            _first(r'''class=["'][^"']*cn[^"']*["'][^>]*>(.*?)</div>''', row) ??
+                ''),
         uploader: _clean(
-          _first(r'''class=["']gl4c[^"']*["'][^>]*>.*?<a[^>]*>(.*?)</a>''', row) ?? '',
+          _first(r'''class=["']gl4c[^"']*["'][^>]*>.*?<a[^>]*>(.*?)</a>''',
+                  row) ??
+              '',
         ),
         postedAt: DateTime.tryParse(
-          _clean(_first(r'''id=["']postedpop_\d+["'][^>]*>(.*?)</div>''', row) ?? ''),
+          _clean(
+              _first(r'''id=["']postedpop_\d+["'][^>]*>(.*?)</div>''', row) ??
+                  ''),
         ),
-        rating: double.tryParse(_first(r'''Average:\s*([0-9]+(?:\.[0-9]+)?)''', row) ?? ''),
+        rating: double.tryParse(
+            _first(r'''Average:\s*([0-9]+(?:\.[0-9]+)?)''', row) ?? ''),
         tags: tags,
       );
     }
@@ -303,7 +337,9 @@ class EhHtmlParser {
   int _pageNumber(Uri uri) {
     final segment = uri.pathSegments.isEmpty ? '' : uri.pathSegments.last;
     final dash = segment.lastIndexOf('-');
-    return dash < 0 ? 1 << 30 : int.tryParse(segment.substring(dash + 1)) ?? 1 << 30;
+    return dash < 0
+        ? 1 << 30
+        : int.tryParse(segment.substring(dash + 1)) ?? 1 << 30;
   }
 
   String _clean(String value) => _decode(value)

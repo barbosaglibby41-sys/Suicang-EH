@@ -29,7 +29,9 @@ class EhRequestPolicy {
           : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
       if (referer != null) 'Referer': referer.toString(),
       if (active.isNotEmpty)
-        'Cookie': active.entries.map((entry) => '${entry.key}=${entry.value}').join('; '),
+        'Cookie': active.entries
+            .map((entry) => '${entry.key}=${entry.value}')
+            .join('; '),
     };
   }
 
@@ -56,17 +58,18 @@ class EhRequestPolicy {
       var httpOnly = false;
       for (final fragment in fragments.skip(1)) {
         final separator = fragment.indexOf('=');
-        final key = (separator < 0 ? fragment : fragment.substring(0, separator))
-            .trim()
-            .toLowerCase();
-        final value = separator < 0 ? '' : fragment.substring(separator + 1).trim();
+        final key =
+            (separator < 0 ? fragment : fragment.substring(0, separator))
+                .trim()
+                .toLowerCase();
+        final value =
+            separator < 0 ? '' : fragment.substring(separator + 1).trim();
         if (key == 'secure') secure = true;
         if (key == 'httponly') httpOnly = true;
         if (key.isNotEmpty) attributes[key] = value;
       }
-      final defaultDomain = source == SiteSource.eHentai
-          ? 'e-hentai.org'
-          : 'exhentai.org';
+      final defaultDomain =
+          source == SiteSource.eHentai ? 'e-hentai.org' : 'exhentai.org';
       final expiry = _parseExpiry(attributes, timestamp);
       output.add(
         SessionCookie(
@@ -74,9 +77,8 @@ class EhRequestPolicy {
           value: first.substring(equals + 1).trim(),
           domain: attributes['domain']?.replaceFirst(RegExp(r'^\.'), '') ??
               defaultDomain,
-          path: (attributes['path']?.isEmpty ?? true)
-              ? '/'
-              : attributes['path']!,
+          path:
+              (attributes['path']?.isEmpty ?? true) ? '/' : attributes['path']!,
           updatedAt: timestamp,
           expiresAt: expiry,
           secure: secure,

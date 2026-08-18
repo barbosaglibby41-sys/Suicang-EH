@@ -152,7 +152,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   Future<void> _updateMode(MangaReaderEngine engine, ReaderMode mode) async {
     engine.setMode(mode);
     final current = await ref.read(readerPreferencesProvider.future);
-    await ref.read(readerPreferencesProvider.notifier).update(current.copyWith(mode: mode));
+    await ref
+        .read(readerPreferencesProvider.notifier)
+        .update(current.copyWith(mode: mode));
   }
 
   Future<void> _updateDirection(
@@ -169,7 +171,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   Future<void> _updateFit(MangaReaderEngine engine, ReaderFit fit) async {
     engine.setFit(fit);
     final current = await ref.read(readerPreferencesProvider.future);
-    await ref.read(readerPreferencesProvider.notifier).update(current.copyWith(fit: fit));
+    await ref
+        .read(readerPreferencesProvider.notifier)
+        .update(current.copyWith(fit: fit));
   }
 
   Future<Uint8List> _loadPage(int index) {
@@ -425,7 +429,8 @@ class _ReaderControlsState extends State<_ReaderControls> {
                   IconButton(
                     tooltip: '切换适配模式',
                     onPressed: widget.onToggleFit,
-                    icon: const Icon(Icons.fit_screen_outlined, color: Colors.white),
+                    icon: const Icon(Icons.fit_screen_outlined,
+                        color: Colors.white),
                   ),
                 ],
               ),
@@ -465,8 +470,10 @@ class _ReaderControlsState extends State<_ReaderControls> {
                       value: _sliderValue,
                       min: 0,
                       max: (state.pageCount - 1).toDouble(),
-                      divisions: state.pageCount > 1 ? state.pageCount - 1 : null,
-                      onChanged: (value) => setState(() => _sliderValue = value),
+                      divisions:
+                          state.pageCount > 1 ? state.pageCount - 1 : null,
+                      onChanged: (value) =>
+                          setState(() => _sliderValue = value),
                       onChangeEnd: (value) => widget.onJumpTo(value.round()),
                     ),
                   ],

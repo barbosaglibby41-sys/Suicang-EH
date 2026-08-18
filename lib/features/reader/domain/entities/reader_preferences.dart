@@ -18,7 +18,8 @@ class ReaderPreferences {
     ReaderDirection? direction,
     ReaderFit? fit,
     bool? keepScreenOn,
-  }) => ReaderPreferences(
+  }) =>
+      ReaderPreferences(
         mode: mode ?? this.mode,
         direction: direction ?? this.direction,
         fit: fit ?? this.fit,

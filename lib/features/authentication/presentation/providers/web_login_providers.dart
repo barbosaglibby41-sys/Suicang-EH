@@ -27,10 +27,12 @@ class WebLoginService {
 
   Future<void> authenticate() async {
     final cookies = await _bridge.authenticate(
-      initialUrl: Uri.parse('https://forums.e-hentai.org/index.php?act=Login&CODE=00'),
+      initialUrl:
+          Uri.parse('https://forums.e-hentai.org/index.php?act=Login&CODE=00'),
     );
     if (cookies.isEmpty) {
-      throw StateError('Native login did not capture an authenticated session.');
+      throw StateError(
+          'Native login did not capture an authenticated session.');
     }
     await _authRepository.replaceCookies(cookies);
   }

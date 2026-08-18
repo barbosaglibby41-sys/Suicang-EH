@@ -14,7 +14,8 @@ class MigrationImporter {
 
   Future<MigrationImportResult> importJson(String raw) async {
     final checksum = sha256.convert(utf8.encode(raw)).toString();
-    final bundle = MigrationBundle.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    final bundle =
+        MigrationBundle.fromJson(jsonDecode(raw) as Map<String, dynamic>);
     if (bundle.id.trim().isEmpty) {
       throw const MigrationException('Migration bundle ID is required.');
     }
@@ -90,7 +91,9 @@ class MigrationImporter {
       for (final item in bundle.progress) {
         final key = _parseKey(item.key);
         if (key == null) continue;
-        await _database.into(_database.readingProgressEntries).insertOnConflictUpdate(
+        await _database
+            .into(_database.readingProgressEntries)
+            .insertOnConflictUpdate(
               ReadingProgressEntriesCompanion.insert(
                 source: key.$1,
                 gid: key.$2,

@@ -32,14 +32,19 @@ class CloudFavoritesParser {
       caseSensitive: false,
       dotAll: true,
     );
-    for (final match in [...options.allMatches(html), ...folders.allMatches(html)]) {
+    for (final match in [
+      ...options.allMatches(html),
+      ...folders.allMatches(html)
+    ]) {
       final id = int.tryParse(match.group(1) ?? '');
-      final name = _clean(match.group(2) ?? '').replaceFirst(RegExp(r'^\d+\s*'), '');
+      final name =
+          _clean(match.group(2) ?? '').replaceFirst(RegExp(r'^\d+\s*'), '');
       if (id != null && id >= 0 && id <= 9 && name.isNotEmpty) {
         output[id] = CloudFavoriteCategory(id: id, name: name);
       }
     }
-    return output.values.toList()..sort((left, right) => left.id.compareTo(right.id));
+    return output.values.toList()
+      ..sort((left, right) => left.id.compareTo(right.id));
   }
 
   List<Gallery> _galleries(String html, SiteSource source, Uri baseUri) {
@@ -61,15 +66,17 @@ class CloudFavoritesParser {
       ).firstMatch(body);
       final title = _clean(titleMatch?.group(1) ?? body);
       if (title.isEmpty) continue;
-      final thumbnail = RegExp(r'''(?:data-src|src)=["']([^"']+)["']''', caseSensitive: false)
-          .firstMatch(body)
-          ?.group(1);
+      final thumbnail =
+          RegExp(r'''(?:data-src|src)=["']([^"']+)["']''', caseSensitive: false)
+              .firstMatch(body)
+              ?.group(1);
       output.add(Gallery(
         key: GalleryKey(source: source, gid: gid),
         title: title,
         pageCount: 0,
         sourceUrl: baseUri.resolve(_decode(match.group(1) ?? '')),
-        thumbnailUrl: thumbnail == null ? null : baseUri.resolve(_decode(thumbnail)),
+        thumbnailUrl:
+            thumbnail == null ? null : baseUri.resolve(_decode(thumbnail)),
       ));
     }
     return output;
@@ -80,7 +87,9 @@ class CloudFavoritesParser {
       r'''<a[^>]+class=["'][^"']*dnext[^"']*["'][^>]+href=["']([^"']+)''',
       caseSensitive: false,
     ).firstMatch(html);
-    return match == null ? null : baseUri.resolve(_decode(match.group(1) ?? ''));
+    return match == null
+        ? null
+        : baseUri.resolve(_decode(match.group(1) ?? ''));
   }
 
   String _clean(String value) => _decode(value)

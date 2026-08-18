@@ -110,7 +110,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     runSpacing: 8,
                     children: [
                       OutlinedButton.icon(
-                        onPressed: state.isLoading ? null : notifier.loadPopular,
+                        onPressed:
+                            state.isLoading ? null : notifier.loadPopular,
                         icon: const Icon(Icons.local_fire_department_outlined),
                         label: const Text('热门'),
                       ),
@@ -164,7 +165,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   final start = query.length - token.length;
                                   _searchController.text =
                                       '${query.substring(0, start)}${tag.key} ';
-                                  _searchController.selection = TextSelection.collapsed(
+                                  _searchController.selection =
+                                      TextSelection.collapsed(
                                     offset: _searchController.text.length,
                                   );
                                   setState(() {});
@@ -187,11 +189,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 children: [
                                   Row(
                                     children: [
-                                      Text('最近搜索', style: theme.textTheme.titleSmall),
+                                      Text('最近搜索',
+                                          style: theme.textTheme.titleSmall),
                                       const Spacer(),
                                       TextButton(
                                         onPressed: () => ref
-                                            .read(searchHistoryRepositoryProvider)
+                                            .read(
+                                                searchHistoryRepositoryProvider)
                                             .clear(),
                                         child: const Text('清除'),
                                       ),
@@ -205,7 +209,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                         InputChip(
                                           label: Text(entry.query),
                                           onPressed: () {
-                                            _searchController.text = entry.query;
+                                            _searchController.text =
+                                                entry.query;
                                             _searchController.selection =
                                                 TextSelection.collapsed(
                                               offset: entry.query.length,
@@ -213,7 +218,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                             notifier.search(entry.query);
                                           },
                                           onDeleted: () => ref
-                                              .read(searchHistoryRepositoryProvider)
+                                              .read(
+                                                  searchHistoryRepositoryProvider)
                                               .remove(entry.id),
                                         ),
                                     ],
@@ -346,7 +352,10 @@ class _GalleryTile extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              [if (gallery.category.isNotEmpty) gallery.category, if (gallery.pageCount > 0) '${gallery.pageCount} 页'].join(' · '),
+              [
+                if (gallery.category.isNotEmpty) gallery.category,
+                if (gallery.pageCount > 0) '${gallery.pageCount} 页'
+              ].join(' · '),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.labelSmall?.copyWith(

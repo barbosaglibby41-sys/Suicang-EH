@@ -17,9 +17,10 @@ void main() {
     dio.httpClientAdapter = _CountingAdapter(() async {
       calls += 1;
       await Future<void>.delayed(const Duration(milliseconds: 5));
-      return ResponseBody.fromBytes([1, 2, 3], 200, headers: {
-        Headers.contentTypeHeader: ['image/jpeg'],
-      });
+      return ResponseBody.fromBytes([1, 2, 3], 200,
+          headers: {
+            Headers.contentTypeHeader: ['image/jpeg'],
+          });
     });
     final client = SiteHttpClient(
       dio: dio,
@@ -51,7 +52,8 @@ class _CountingAdapter implements HttpClientAdapter {
     RequestOptions options,
     Stream<Uint8List>? requestStream,
     Future<void>? cancelFuture,
-  ) => handler();
+  ) =>
+      handler();
 
   @override
   void close({bool force = false}) {}

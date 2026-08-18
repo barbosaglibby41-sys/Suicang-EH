@@ -13,7 +13,8 @@ class ReaderKeepScreenOnController {
   final KeepScreenOn _platform;
   var _enabled = false;
 
-  Future<void> sync({required bool readerVisible, required bool preference}) async {
+  Future<void> sync(
+      {required bool readerVisible, required bool preference}) async {
     final next = readerVisible && preference;
     if (_enabled == next) return;
     _enabled = next;
@@ -29,7 +30,8 @@ class ReaderKeepScreenOnController {
 
 final readerKeepScreenOnControllerProvider =
     Provider.autoDispose<ReaderKeepScreenOnController>((ref) {
-  final controller = ReaderKeepScreenOnController(ref.watch(keepScreenOnProvider));
+  final controller =
+      ReaderKeepScreenOnController(ref.watch(keepScreenOnProvider));
   ref.onDispose(controller.dispose);
   return controller;
 });

@@ -11,7 +11,8 @@ class MigrationImportScreen extends ConsumerStatefulWidget {
   const MigrationImportScreen({super.key});
 
   @override
-  ConsumerState<MigrationImportScreen> createState() => _MigrationImportScreenState();
+  ConsumerState<MigrationImportScreen> createState() =>
+      _MigrationImportScreenState();
 }
 
 class _MigrationImportScreenState extends ConsumerState<MigrationImportScreen> {
@@ -41,7 +42,8 @@ class _MigrationImportScreenState extends ConsumerState<MigrationImportScreen> {
           const Card(
             child: Padding(
               padding: EdgeInsets.all(14),
-              child: Text('Cookie、Keychain、网页登录会话、密码、Token、API Key 和离线文件路径。登录需要在 Flutter 版本中重新登录或导入 Cookie。'),
+              child: Text(
+                  'Cookie、Keychain、网页登录会话、密码、Token、API Key 和离线文件路径。登录需要在 Flutter 版本中重新登录或导入 Cookie。'),
             ),
           ),
           const SizedBox(height: 24),
@@ -103,7 +105,8 @@ class _MigrationImportScreenState extends ConsumerState<MigrationImportScreen> {
         _message = '迁移文件超过 10 MB 限制，未导入。';
       } else {
         final raw = utf8.decode(bytes, allowMalformed: false);
-        final result = await ref.read(migrationImporterProvider).importJson(raw);
+        final result =
+            await ref.read(migrationImporterProvider).importJson(raw);
         _result = result;
         _message = result.alreadyImported ? '该迁移包此前已完成导入，无需重复写入。' : '迁移包已安全导入。';
       }

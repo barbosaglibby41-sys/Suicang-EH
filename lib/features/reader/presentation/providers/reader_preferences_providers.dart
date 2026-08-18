@@ -4,7 +4,8 @@ import '../../data/repositories/shared_preferences_reader_preferences_repository
 import '../../domain/entities/reader_preferences.dart';
 import '../../domain/repositories/reader_preferences_repository.dart';
 
-final readerPreferencesRepositoryProvider = Provider<ReaderPreferencesRepository>((ref) {
+final readerPreferencesRepositoryProvider =
+    Provider<ReaderPreferencesRepository>((ref) {
   return SharedPreferencesReaderPreferencesRepository();
 });
 

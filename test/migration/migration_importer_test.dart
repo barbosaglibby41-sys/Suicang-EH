@@ -16,7 +16,8 @@ void main() {
 
   tearDown(() => database.close());
 
-  test('imports non-sensitive library data once and journals checksum', () async {
+  test('imports non-sensitive library data once and journals checksum',
+      () async {
     final bundle = jsonEncode({
       'id': 'legacy-v1-device-export',
       'sourceVersion': 1,
@@ -49,8 +50,10 @@ void main() {
     expect(first.progress, 1);
     expect(second.alreadyImported, isTrue);
     expect(await database.select(database.galleries).get(), hasLength(1));
-    expect(await database.select(database.readingProgressEntries).get(), hasLength(1));
-    final journal = await database.select(database.migrationJournal).getSingle();
+    expect(await database.select(database.readingProgressEntries).get(),
+        hasLength(1));
+    final journal =
+        await database.select(database.migrationJournal).getSingle();
     expect(journal.status, 'completed');
   });
 }

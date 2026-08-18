@@ -36,7 +36,9 @@ class DriftReadingProgressRepository implements ReadingProgressRepository {
 
   @override
   Future<void> save(ReadingProgress progress) {
-    return _database.into(_database.readingProgressEntries).insertOnConflictUpdate(
+    return _database
+        .into(_database.readingProgressEntries)
+        .insertOnConflictUpdate(
           ReadingProgressEntriesCompanion.insert(
             source: progress.galleryKey.source.storageValue,
             gid: progress.galleryKey.gid,

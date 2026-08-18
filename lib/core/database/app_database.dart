@@ -152,7 +152,8 @@ class AppDatabase extends _$AppDatabase {
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (migrator) async => migrator.createAll(),
         onUpgrade: (migrator, from, to) async {
-          throw UnsupportedError('No database upgrade is defined for $from → $to');
+          throw UnsupportedError(
+              'No database upgrade is defined for $from → $to');
         },
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');

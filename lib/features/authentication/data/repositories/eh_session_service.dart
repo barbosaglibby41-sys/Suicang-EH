@@ -28,7 +28,8 @@ class EhSessionService implements SessionService {
     }
     try {
       await _client.getText(_base(source), source: source);
-      return SessionValidation(source: source, status: SessionValidationStatus.valid);
+      return SessionValidation(
+          source: source, status: SessionValidationStatus.valid);
     } on NetworkException catch (error) {
       return SessionValidation(
         source: source,
@@ -60,8 +61,10 @@ class EhSessionService implements SessionService {
     }
     await _authRepository.removeCookiesByName(['igneous']);
     try {
-      await _client.getText(_base(SiteSource.eHentai), source: SiteSource.eHentai);
-      final publicCookies = await _authRepository.cookiesFor(SiteSource.eHentai);
+      await _client.getText(_base(SiteSource.eHentai),
+          source: SiteSource.eHentai);
+      final publicCookies =
+          await _authRepository.cookiesFor(SiteSource.eHentai);
       final copied = <SessionCookie>[];
       for (final cookie in publicCookies) {
         if (const {'ipb_member_id', 'ipb_pass_hash', 'sk', 'nw', 'datatags'}
@@ -70,7 +73,8 @@ class EhSessionService implements SessionService {
         }
       }
       if (copied.isNotEmpty) await _authRepository.replaceCookies(copied);
-      await _client.getText(_base(SiteSource.exHentai), source: SiteSource.exHentai);
+      await _client.getText(_base(SiteSource.exHentai),
+          source: SiteSource.exHentai);
       return await validate(SiteSource.exHentai);
     } on NetworkException catch (error) {
       return SessionValidation(

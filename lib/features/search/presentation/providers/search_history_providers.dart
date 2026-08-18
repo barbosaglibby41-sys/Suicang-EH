@@ -5,7 +5,8 @@ import '../../data/repositories/drift_search_history_repository.dart';
 import '../../domain/entities/search_history_entry.dart';
 import '../../domain/repositories/search_history_repository.dart';
 
-final searchHistoryRepositoryProvider = Provider<SearchHistoryRepository>((ref) {
+final searchHistoryRepositoryProvider =
+    Provider<SearchHistoryRepository>((ref) {
   return DriftSearchHistoryRepository(ref.watch(appDatabaseProvider));
 });
 

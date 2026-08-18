@@ -37,7 +37,8 @@ class RankingsState {
     Set<RankingPeriod>? loadingMore,
     String? errorMessage,
     bool clearError = false,
-  }) => RankingsState(
+  }) =>
+      RankingsState(
         source: source ?? this.source,
         byPeriod: byPeriod ?? this.byPeriod,
         nextPages: nextPages ?? this.nextPages,
@@ -58,7 +59,8 @@ class RankingsNotifier extends Notifier<RankingsState> {
   }
 
   Future<void> load(RankingPeriod period, {bool force = false}) async {
-    if (state.isLoading || (!force && state.galleries(period).isNotEmpty)) return;
+    if (state.isLoading || (!force && state.galleries(period).isNotEmpty))
+      return;
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       final page = await ref.read(galleryRepositoryProvider).rankings(
@@ -92,7 +94,8 @@ class RankingsNotifier extends Notifier<RankingsState> {
             period: period,
             page: next,
           );
-      final known = state.galleries(period).map((gallery) => gallery.key).toSet();
+      final known =
+          state.galleries(period).map((gallery) => gallery.key).toSet();
       final combined = [
         ...state.galleries(period),
         ...page.galleries.where((gallery) => known.add(gallery.key)),

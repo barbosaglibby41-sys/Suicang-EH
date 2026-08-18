@@ -17,13 +17,15 @@ class SharedPreferencesReaderPreferencesRepository
   Future<ReaderPreferences> load() async {
     final preferences = await _preferences;
     return ReaderPreferences(
-      mode: _enumOr(ReaderMode.values, preferences.getString(_modeKey), ReaderMode.horizontal),
+      mode: _enumOr(ReaderMode.values, preferences.getString(_modeKey),
+          ReaderMode.horizontal),
       direction: _enumOr(
         ReaderDirection.values,
         preferences.getString(_directionKey),
         ReaderDirection.ltr,
       ),
-      fit: _enumOr(ReaderFit.values, preferences.getString(_fitKey), ReaderFit.contain),
+      fit: _enumOr(
+          ReaderFit.values, preferences.getString(_fitKey), ReaderFit.contain),
       keepScreenOn: preferences.getBool(_keepScreenOnKey) ?? true,
     );
   }

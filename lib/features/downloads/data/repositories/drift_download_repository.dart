@@ -145,7 +145,8 @@ class DriftDownloadRepository implements DownloadRepository {
   @override
   Future<void> recoverInterrupted() async {
     await (_database.update(_database.downloadTasks)
-          ..where((table) => table.status.equals(DownloadStatus.downloading.name)))
+          ..where(
+              (table) => table.status.equals(DownloadStatus.downloading.name)))
         .write(
       DownloadTasksCompanion(
         status: const Value(DownloadStatus.queued.name),
@@ -154,7 +155,8 @@ class DriftDownloadRepository implements DownloadRepository {
     );
     final pendingPages = await (_database.select(_database.downloadPages)
           ..where((table) =>
-              table.status.equals('queued') | table.status.equals('downloading')))
+              table.status.equals('queued') |
+              table.status.equals('downloading')))
         .get();
     for (final page in pendingPages) {
       final localPath = page.localPath;
@@ -220,7 +222,8 @@ class DriftDownloadRepository implements DownloadRepository {
         final target = await _fileStore.pageFile(key, page.pageIndex, url);
         await (_database.update(_database.downloadPages)
               ..where((table) =>
-                  table.taskId.equals(id) & table.pageIndex.equals(page.pageIndex)))
+                  table.taskId.equals(id) &
+                  table.pageIndex.equals(page.pageIndex)))
             .write(
           DownloadPagesCompanion(
             localPath: Value(target.path),
@@ -235,13 +238,15 @@ class DriftDownloadRepository implements DownloadRepository {
           cancelToken: cancelToken,
         );
         final data = bytes.data;
-        if (data == null || data.isEmpty) throw StateError('Downloaded page is empty.');
+        if (data == null || data.isEmpty)
+          throw StateError('Downloaded page is empty.');
         final temporary = File('${target.path}.part');
         await temporary.writeAsBytes(data, flush: true);
         await temporary.rename(target.path);
         await (_database.update(_database.downloadPages)
               ..where((table) =>
-                  table.taskId.equals(id) & table.pageIndex.equals(page.pageIndex)))
+                  table.taskId.equals(id) &
+                  table.pageIndex.equals(page.pageIndex)))
             .write(
           DownloadPagesCompanion(
             localPath: Value(target.path),
@@ -257,12 +262,14 @@ class DriftDownloadRepository implements DownloadRepository {
       final current = await _taskStatus(id);
       if (current == DownloadStatus.downloading &&
           error.kind != NetworkFailureKind.cancelled) {
-        await _setTaskStatus(id, DownloadStatus.failed, failureCode: 'download_failed');
+        await _setTaskStatus(id, DownloadStatus.failed,
+            failureCode: 'download_failed');
       }
     } catch (_) {
       final current = await _taskStatus(id);
       if (current == DownloadStatus.downloading) {
-        await _setTaskStatus(id, DownloadStatus.failed, failureCode: 'download_failed');
+        await _setTaskStatus(id, DownloadStatus.failed,
+            failureCode: 'download_failed');
       }
     } finally {
       _cancellations.remove(id);
@@ -271,10 +278,12 @@ class DriftDownloadRepository implements DownloadRepository {
 
   Future<void> _updateCompletion(String id) async {
     final completed = await (_database.select(_database.downloadPages)
-          ..where((table) => table.taskId.equals(id) & table.status.equals('completed')))
+          ..where((table) =>
+              table.taskId.equals(id) & table.status.equals('completed')))
         .get()
         .then((rows) => rows.length);
-    await (_database.update(_database.downloadTasks)..where((table) => table.id.equals(id)))
+    await (_database.update(_database.downloadTasks)
+          ..where((table) => table.id.equals(id)))
         .write(
       DownloadTasksCompanion(
         completedPages: Value(completed),
@@ -289,7 +298,8 @@ class DriftDownloadRepository implements DownloadRepository {
     String? failureCode,
     bool clearFailure = false,
   }) {
-    return (_database.update(_database.downloadTasks)..where((table) => table.id.equals(id)))
+    return (_database.update(_database.downloadTasks)
+          ..where((table) => table.id.equals(id)))
         .write(
       DownloadTasksCompanion(
         status: Value(status.name),
@@ -310,7 +320,8 @@ class DriftDownloadRepository implements DownloadRepository {
       .into(_database.galleries)
       .insertOnConflictUpdate(_galleryCompanion(gallery));
 
-  GalleriesCompanion _galleryCompanion(Gallery gallery) => GalleriesCompanion.insert(
+  GalleriesCompanion _galleryCompanion(Gallery gallery) =>
+      GalleriesCompanion.insert(
         source: gallery.key.source.storageValue,
         gid: gallery.key.gid,
         title: gallery.title,
@@ -319,7 +330,14 @@ class DriftDownloadRepository implements DownloadRepository {
         thumbnailUrl: Value(gallery.thumbnailUrl?.toString()),
         sourceUrl: Value(gallery.sourceUrl?.toString()),
         pageCount: Value(gallery.pageCount),
-        tagsJson: Value(jsonEncode([for (final tag in gallery.tags) {'namespace': tag.namespace, 'key': tag.key, 'translatedName': tag.translatedName}])) ,
+        tagsJson: Value(jsonEncode([
+          for (final tag in gallery.tags)
+            {
+              'namespace': tag.namespace,
+              'key': tag.key,
+              'translatedName': tag.translatedName
+            }
+        ])),
         rating: Value(gallery.rating),
         postedAt: Value(gallery.postedAt),
         updatedAt: DateTime.now().toUtc(),
@@ -327,7 +345,8 @@ class DriftDownloadRepository implements DownloadRepository {
 
   DownloadTask _fromRow(DownloadTaskData row) => DownloadTask(
         id: row.id,
-        galleryKey: GalleryKey(source: SiteSource.fromStorageValue(row.source), gid: row.gid),
+        galleryKey: GalleryKey(
+            source: SiteSource.fromStorageValue(row.source), gid: row.gid),
         totalPages: row.totalPages,
         completedPages: row.completedPages,
         status: DownloadStatus.values.byName(row.status),

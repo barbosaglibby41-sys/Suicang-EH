@@ -28,17 +28,20 @@ class FlutterSecureCookieStore implements SecureCookieStore {
     } on FormatException catch (error) {
       throw StorageException('Saved session data is invalid.', cause: error);
     } catch (error) {
-      throw StorageException('Unable to read the secure session.', cause: error);
+      throw StorageException('Unable to read the secure session.',
+          cause: error);
     }
   }
 
   @override
   Future<void> writeAll(Iterable<SessionCookie> cookies) async {
     try {
-      final payload = jsonEncode([for (final cookie in cookies) _toJson(cookie)]);
+      final payload =
+          jsonEncode([for (final cookie in cookies) _toJson(cookie)]);
       await _storage.write(key: _key, value: payload);
     } catch (error) {
-      throw StorageException('Unable to save the secure session.', cause: error);
+      throw StorageException('Unable to save the secure session.',
+          cause: error);
     }
   }
 
@@ -47,7 +50,8 @@ class FlutterSecureCookieStore implements SecureCookieStore {
     try {
       await _storage.delete(key: _key);
     } catch (error) {
-      throw StorageException('Unable to clear the secure session.', cause: error);
+      throw StorageException('Unable to clear the secure session.',
+          cause: error);
     }
   }
 

@@ -30,7 +30,8 @@ class ReaderSettingsScreen extends ConsumerWidget {
                     title: const Text('横向分页'),
                     subtitle: const Text('逐页滑动，适合传统漫画阅读。'),
                     onChanged: (mode) {
-                      if (mode != null) notifier.update(value.copyWith(mode: mode));
+                      if (mode != null)
+                        notifier.update(value.copyWith(mode: mode));
                     },
                   ),
                   RadioListTile<ReaderMode>(
@@ -39,7 +40,8 @@ class ReaderSettingsScreen extends ConsumerWidget {
                     title: const Text('纵向长条'),
                     subtitle: const Text('连续滚动，适合长图。'),
                     onChanged: (mode) {
-                      if (mode != null) notifier.update(value.copyWith(mode: mode));
+                      if (mode != null)
+                        notifier.update(value.copyWith(mode: mode));
                     },
                   ),
                 ],
@@ -85,7 +87,8 @@ class ReaderSettingsScreen extends ConsumerWidget {
                     groupValue: value.fit,
                     title: const Text('完整显示'),
                     onChanged: (fit) {
-                      if (fit != null) notifier.update(value.copyWith(fit: fit));
+                      if (fit != null)
+                        notifier.update(value.copyWith(fit: fit));
                     },
                   ),
                   RadioListTile<ReaderFit>(
@@ -93,7 +96,8 @@ class ReaderSettingsScreen extends ConsumerWidget {
                     groupValue: value.fit,
                     title: const Text('填充屏幕'),
                     onChanged: (fit) {
-                      if (fit != null) notifier.update(value.copyWith(fit: fit));
+                      if (fit != null)
+                        notifier.update(value.copyWith(fit: fit));
                     },
                   ),
                 ],

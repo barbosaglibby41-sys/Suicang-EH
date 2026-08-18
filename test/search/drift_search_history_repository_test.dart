@@ -14,13 +14,15 @@ void main() {
 
   tearDown(() => database.close());
 
-  test('deduplicates equivalent search records and promotes latest usage', () async {
+  test('deduplicates equivalent search records and promotes latest usage',
+      () async {
     await repository.record('artist:sample');
     await repository.record('female:example');
     await repository.record('artist:sample');
 
     final entries = await repository.watchRecent().first;
-    expect(entries.map((entry) => entry.query), ['artist:sample', 'female:example']);
+    expect(entries.map((entry) => entry.query),
+        ['artist:sample', 'female:example']);
   });
 
   test('removes a single record and clears all records', () async {

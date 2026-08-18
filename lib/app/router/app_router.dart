@@ -168,7 +168,8 @@ class AppScaffold extends StatelessWidget {
           body: body,
           bottomNavigationBar: NavigationBar(
             selectedIndex: safeIndex,
-            onDestinationSelected: (index) => context.go(destinations[index].path),
+            onDestinationSelected: (index) =>
+                context.go(destinations[index].path),
             destinations: [
               for (final route in destinations)
                 NavigationDestination(

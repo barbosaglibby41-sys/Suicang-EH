@@ -7,12 +7,14 @@ import '../../domain/repositories/cloud_favorites_repository.dart';
 import '../../../gallery/domain/entities/gallery.dart';
 import '../../../gallery/domain/entities/gallery_key.dart';
 
-final cloudFavoritesRepositoryProvider = Provider<CloudFavoritesRepository>((ref) {
+final cloudFavoritesRepositoryProvider =
+    Provider<CloudFavoritesRepository>((ref) {
   return EhCloudFavoritesRepository(client: ref.watch(siteHttpClientProvider));
 });
 
-final cloudFavoritesNotifierProvider = NotifierProvider<
-    CloudFavoritesNotifier, CloudFavoritesState>(CloudFavoritesNotifier.new);
+final cloudFavoritesNotifierProvider =
+    NotifierProvider<CloudFavoritesNotifier, CloudFavoritesState>(
+        CloudFavoritesNotifier.new);
 
 class CloudFavoritesState {
   const CloudFavoritesState({
@@ -43,7 +45,8 @@ class CloudFavoritesState {
     bool? isLoading,
     String? errorMessage,
     bool clearError = false,
-  }) => CloudFavoritesState(
+  }) =>
+      CloudFavoritesState(
         source: source ?? this.source,
         category: category ?? this.category,
         categories: categories ?? this.categories,
@@ -56,7 +59,8 @@ class CloudFavoritesState {
 
 class CloudFavoritesNotifier extends Notifier<CloudFavoritesState> {
   @override
-  CloudFavoritesState build() => const CloudFavoritesState(source: SiteSource.eHentai);
+  CloudFavoritesState build() =>
+      const CloudFavoritesState(source: SiteSource.eHentai);
 
   Future<void> load({int? category, bool more = false}) async {
     if (state.isLoading) return;
@@ -72,7 +76,10 @@ class CloudFavoritesNotifier extends Notifier<CloudFavoritesState> {
           );
       final known = state.galleries.map((gallery) => gallery.key).toSet();
       final galleries = more
-          ? [...state.galleries, ...page.galleries.where((gallery) => known.add(gallery.key))]
+          ? [
+              ...state.galleries,
+              ...page.galleries.where((gallery) => known.add(gallery.key))
+            ]
           : page.galleries;
       state = state.copyWith(
         category: selected,

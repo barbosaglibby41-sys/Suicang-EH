@@ -18,7 +18,8 @@ class DownloadFileStore {
   Future<File> pageFile(GalleryKey key, int index, Uri sourceUrl) async {
     final directory = await directoryFor(key);
     final extension = _extension(sourceUrl);
-    return File(path.join(directory.path, '${(index + 1).toString().padLeft(4, '0')}.$extension'));
+    return File(path.join(directory.path,
+        '${(index + 1).toString().padLeft(4, '0')}.$extension'));
   }
 
   Future<void> removePartFiles(GalleryKey key) async {
@@ -45,7 +46,8 @@ class DownloadFileStore {
   }
 
   String _extension(Uri url) {
-    final candidate = path.extension(url.path).replaceFirst('.', '').toLowerCase();
+    final candidate =
+        path.extension(url.path).replaceFirst('.', '').toLowerCase();
     return {'jpg', 'jpeg', 'png', 'webp', 'gif'}.contains(candidate)
         ? candidate
         : 'jpg';

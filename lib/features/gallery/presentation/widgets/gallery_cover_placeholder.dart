@@ -24,10 +24,13 @@ class GalleryCoverPlaceholder extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.auto_stories_outlined, color: scheme.onSecondaryContainer),
+              Icon(Icons.auto_stories_outlined,
+                  color: scheme.onSecondaryContainer),
               const Spacer(),
               Text(
-                gallery.category.isEmpty ? 'GALLERY' : gallery.category.toUpperCase(),
+                gallery.category.isEmpty
+                    ? 'GALLERY'
+                    : gallery.category.toUpperCase(),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(

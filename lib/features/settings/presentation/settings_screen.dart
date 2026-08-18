@@ -57,7 +57,8 @@ class SettingsScreen extends ConsumerWidget {
         const SizedBox(height: 24),
         Card(
           child: ListTile(
-            leading: Icon(Icons.person_outline, color: theme.colorScheme.primary),
+            leading:
+                Icon(Icons.person_outline, color: theme.colorScheme.primary),
             title: const Text('账户与会话'),
             subtitle: const Text('导入 Cookie、验证站点会话与刷新 ExHentai。'),
             onTap: () => context.push('/account'),
@@ -66,22 +67,26 @@ class SettingsScreen extends ConsumerWidget {
         const SizedBox(height: 12),
         Card(
           child: ListTile(
-            leading: Icon(Icons.move_to_inbox_outlined, color: theme.colorScheme.primary),
+            leading: Icon(Icons.move_to_inbox_outlined,
+                color: theme.colorScheme.primary),
             title: const Text('导入旧版数据'),
             subtitle: const Text('导入收藏、历史和阅读进度，不导入账号会话。'),
             onTap: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => const MigrationImportScreen()),
+              MaterialPageRoute<void>(
+                  builder: (_) => const MigrationImportScreen()),
             ),
           ),
         ),
         const SizedBox(height: 12),
         Card(
           child: ListTile(
-            leading: Icon(Icons.menu_book_outlined, color: theme.colorScheme.primary),
+            leading: Icon(Icons.menu_book_outlined,
+                color: theme.colorScheme.primary),
             title: const Text('阅读设置'),
             subtitle: const Text('阅读方式、方向、页面适配和屏幕常亮。'),
             onTap: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => const ReaderSettingsScreen()),
+              MaterialPageRoute<void>(
+                  builder: (_) => const ReaderSettingsScreen()),
             ),
           ),
         ),
@@ -96,7 +101,8 @@ class SettingsScreen extends ConsumerWidget {
         const SizedBox(height: 12),
         Card(
           child: ListTile(
-            leading: Icon(Icons.palette_outlined, color: theme.colorScheme.primary),
+            leading:
+                Icon(Icons.palette_outlined, color: theme.colorScheme.primary),
             title: const Text('外观'),
             subtitle: const Text('亮色、暗色与自适应布局已建立基础主题。'),
           ),

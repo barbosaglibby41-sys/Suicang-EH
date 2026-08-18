@@ -53,8 +53,8 @@ class _RankingsScreenState extends ConsumerState<RankingsScreen> {
               ? Center(child: Text(state.errorMessage ?? '暂无排行数据'))
               : ListView.separated(
                   padding: const EdgeInsets.all(16),
-                  itemCount: galleries.length +
-                      (state.canLoadMore(_period) ? 1 : 0),
+                  itemCount:
+                      galleries.length + (state.canLoadMore(_period) ? 1 : 0),
                   separatorBuilder: (_, __) => const Divider(height: 1),
                   itemBuilder: (context, index) {
                     if (index == galleries.length) {
@@ -118,7 +118,8 @@ class _RankingRow extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(gallery.title, maxLines: 2, overflow: TextOverflow.ellipsis),
+                    Text(gallery.title,
+                        maxLines: 2, overflow: TextOverflow.ellipsis),
                     const SizedBox(height: 4),
                     Text(
                       gallery.uploader.isEmpty ? '未知作者' : gallery.uploader,

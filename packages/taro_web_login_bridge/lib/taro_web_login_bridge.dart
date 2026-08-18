@@ -44,7 +44,8 @@ class TaroWebLoginBridge {
     return _channel.invokeMethod<void>('setKeepScreenOn', {'enabled': enabled});
   }
 
-  Future<List<NativeLoginCookie>> authenticate({required Uri initialUrl}) async {
+  Future<List<NativeLoginCookie>> authenticate(
+      {required Uri initialUrl}) async {
     final response = await _channel.invokeListMethod<Object?>(
       'authenticate',
       {'initialUrl': initialUrl.toString()},

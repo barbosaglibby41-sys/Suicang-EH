@@ -4,7 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:taro_eh_flutter/features/settings/presentation/migration_import_screen.dart';
 
 void main() {
-  testWidgets('communicates non-sensitive migration boundaries', (tester) async {
+  testWidgets('communicates non-sensitive migration boundaries',
+      (tester) async {
     await tester.pumpWidget(
       const ProviderScope(
         child: MaterialApp(home: MigrationImportScreen()),

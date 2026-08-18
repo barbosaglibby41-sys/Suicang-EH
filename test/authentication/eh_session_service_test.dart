@@ -10,9 +10,24 @@ void main() {
     final repository = SecureAuthRepository(store);
     final now = DateTime.utc(2026, 8, 19);
     await repository.replaceCookies([
-      SessionCookie(name: 'igneous', value: 'old', domain: 'e-hentai.org', path: '/', updatedAt: now),
-      SessionCookie(name: 'igneous', value: 'old', domain: 'exhentai.org', path: '/', updatedAt: now),
-      SessionCookie(name: 'ipb_member_id', value: '1', domain: 'e-hentai.org', path: '/', updatedAt: now),
+      SessionCookie(
+          name: 'igneous',
+          value: 'old',
+          domain: 'e-hentai.org',
+          path: '/',
+          updatedAt: now),
+      SessionCookie(
+          name: 'igneous',
+          value: 'old',
+          domain: 'exhentai.org',
+          path: '/',
+          updatedAt: now),
+      SessionCookie(
+          name: 'ipb_member_id',
+          value: '1',
+          domain: 'e-hentai.org',
+          path: '/',
+          updatedAt: now),
     ]);
 
     await repository.removeCookiesByName(['igneous']);

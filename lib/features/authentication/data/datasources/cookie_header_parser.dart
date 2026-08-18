@@ -24,7 +24,8 @@ abstract final class CookieHeaderParser {
     }
 
     if (values.isEmpty) {
-      throw const ValidationException('No valid Cookie name=value pairs found.');
+      throw const ValidationException(
+          'No valid Cookie name=value pairs found.');
     }
 
     return [

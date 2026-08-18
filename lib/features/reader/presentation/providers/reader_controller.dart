@@ -13,8 +13,8 @@ import '../../domain/entities/reader_preferences.dart';
 import '../../domain/page_source/page_source.dart';
 import 'reader_preferences_providers.dart';
 
-final readerEngineProvider = Provider.family<
-    MangaReaderEngine, ReaderSessionConfig>((ref, config) {
+final readerEngineProvider =
+    Provider.family<MangaReaderEngine, ReaderSessionConfig>((ref, config) {
   final repository = ref.read(galleryRepositoryProvider);
   final pageSource = config.pageSource ??
       OnlinePageSource(gallery: config.gallery, repository: repository);

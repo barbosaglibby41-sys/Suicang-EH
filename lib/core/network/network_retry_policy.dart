@@ -26,16 +26,18 @@ class NetworkRetryPolicy {
         );
       }
     }
-    throw last ?? const NetworkException(
-      kind: NetworkFailureKind.unknown,
-      message: 'Network request failed.',
-    );
+    throw last ??
+        const NetworkException(
+          kind: NetworkFailureKind.unknown,
+          message: 'Network request failed.',
+        );
   }
 
   bool _isRetryable(NetworkException error) => switch (error.kind) {
         NetworkFailureKind.timeout ||
         NetworkFailureKind.noConnection ||
-        NetworkFailureKind.transient => true,
+        NetworkFailureKind.transient =>
+          true,
         _ => false,
       };
 }
