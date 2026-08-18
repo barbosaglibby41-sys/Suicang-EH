@@ -32,6 +32,7 @@ void main() {
     expect(result.galleries.first.rating, 4.5);
     expect(result.galleries.first.tags.single.rawName, 'artist:sample');
     expect(result.nextCursor, 987654);
+    expect(parser.toplistNextPage(fixture('gallery_listing.html'), 0), 1);
   });
 
   test('parses gallery detail metadata, tags and ordered page links', () {

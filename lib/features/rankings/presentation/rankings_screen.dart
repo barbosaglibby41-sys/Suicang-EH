@@ -22,7 +22,7 @@ class _RankingsScreenState extends ConsumerState<RankingsScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(rankingsNotifierProvider.notifier).load(_period);
+      ref.read(rankingsNotifierProvider.notifier).initialize(_period);
     });
   }
 
@@ -53,12 +53,30 @@ class _RankingsScreenState extends ConsumerState<RankingsScreen> {
               ? Center(child: Text(state.errorMessage ?? '暂无排行数据'))
               : ListView.separated(
                   padding: const EdgeInsets.all(16),
-                  itemCount: galleries.length,
+                  itemCount: galleries.length +
+                      (state.canLoadMore(_period) ? 1 : 0),
                   separatorBuilder: (_, __) => const Divider(height: 1),
-                  itemBuilder: (context, index) => _RankingRow(
-                    gallery: galleries[index],
-                    rank: index + 1,
-                  ),
+                  itemBuilder: (context, index) {
+                    if (index == galleries.length) {
+                      final loading = state.loadingMore.contains(_period);
+                      return Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: loading
+                              ? const CircularProgressIndicator()
+                              : OutlinedButton.icon(
+                                  onPressed: () => notifier.loadMore(_period),
+                                  icon: const Icon(Icons.add),
+                                  label: const Text('加载更多'),
+                                ),
+                        ),
+                      );
+                    }
+                    return _RankingRow(
+                      gallery: galleries[index],
+                      rank: index + 1,
+                    );
+                  },
                 ),
     );
   }

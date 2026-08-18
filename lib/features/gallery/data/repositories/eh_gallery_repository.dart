@@ -53,17 +53,22 @@ class EhGalleryRepository implements GalleryRepository {
   }
 
   @override
-  Future<GalleryPageResult> rankings({
+  Future<RankingPage> rankings({
     required SiteSource source,
     required RankingPeriod period,
     int page = 0,
-  }) {
-    return _loadPage(
-      _buildSiteUri(
-        source: source,
-        path: '/toplist.php',
-        queryParameters: {'tl': period.endpointValue, 'p': '$page'},
-      ),
+  }) async {
+    final uri = _buildSiteUri(
+      source: source,
+      path: '/toplist.php',
+      queryParameters: {'tl': period.endpointValue, 'p': '$page'},
+    );
+    final html = await _client.getText(uri, source: source);
+    final parsed = _parser.galleriesPage(html: html, source: source, baseUri: uri);
+    await _storeGalleries(parsed.galleries);
+    return RankingPage(
+      galleries: parsed.galleries,
+      nextPage: _parser.toplistNextPage(html, page),
     );
   }
 
@@ -194,16 +199,17 @@ class EhGalleryRepository implements GalleryRepository {
       source: source,
       baseUri: uri,
     );
-    await _database.batch((batch) {
+    await _storeGalleries(result.galleries);
+    return result;
+  }
+
+  Future<void> _storeGalleries(List<Gallery> galleries) {
+    return _database.batch((batch) {
       batch.insertAllOnConflictUpdate(
         _database.galleries,
-        [
-          for (final gallery in result.galleries)
-            _galleryCompanion(gallery),
-        ],
+        [for (final gallery in galleries) _galleryCompanion(gallery)],
       );
     });
-    return result;
   }
 
   Uri _buildSiteUri({

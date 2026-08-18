@@ -4,6 +4,7 @@ import '../entities/gallery_key.dart';
 import '../entities/gallery_page_result.dart';
 import '../entities/gallery_search_query.dart';
 import '../../../rankings/domain/entities/ranking_period.dart';
+import '../../../rankings/domain/entities/ranking_page.dart';
 
 abstract interface class GalleryRepository {
   Future<GalleryPageResult> discover({
@@ -12,7 +13,7 @@ abstract interface class GalleryRepository {
   });
   Future<GalleryPageResult> search(GallerySearchQuery query);
   Future<GalleryPageResult> popular({required SiteSource source});
-  Future<GalleryPageResult> rankings({
+  Future<RankingPage> rankings({
     required SiteSource source,
     required RankingPeriod period,
     int page = 0,

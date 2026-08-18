@@ -233,6 +233,15 @@ class EhHtmlParser {
     return uri;
   }
 
+  int? toplistNextPage(String html, int currentPage) {
+    final pages = RegExp(
+      r'''href=["'][^"']*toplist\.php[^"']*[?&]p=(\d+)[^"']*["']''',
+      caseSensitive: false,
+    ).allMatches(html).map((match) => int.tryParse(match.group(1) ?? '')).whereType<int>();
+    final next = pages.where((page) => page > currentPage).toList()..sort();
+    return next.isEmpty ? null : next.first;
+  }
+
   int? _nextCursor(String html) {
     final value = _first(r'''class=["'][^"']*dnext[^"']*["'][^>]+href=["']([^"']+)''', html);
     if (value == null) {
