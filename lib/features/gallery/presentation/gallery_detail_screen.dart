@@ -200,15 +200,18 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
                   ),
                 ],
                 if (state.previews.isNotEmpty) ...[
-                  const SizedBox(height: 30),
-                  Text('内容预览', style: theme.textTheme.titleLarge),
-                  const SizedBox(height: 12),
-                  PreviewStrip(
-                    previews: state.previews,
-                    source: gallery.key.source,
-                    onSelectPage: (preview) => context.push(
-                      '/reader/${gallery.key.source.storageValue}/${gallery.key.gid}?page=${preview.page}',
-                      extra: gallery,
+                  const SizedBox(height: 24),
+                  _DetailSection(
+                    title: '内容预览',
+                    count: state.previews.length,
+                    initiallyExpanded: true,
+                    child: PreviewStrip(
+                      previews: state.previews,
+                      source: gallery.key.source,
+                      onSelectPage: (preview) => context.push(
+                        '/reader/${gallery.key.source.storageValue}/${gallery.key.gid}?page=${preview.page}',
+                        extra: gallery,
+                      ),
                     ),
                   ),
                 ],
@@ -249,13 +252,15 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
                   ],
                 ],
                 if (gallery.tags.isNotEmpty) ...[
-                  const SizedBox(height: 30),
-                  Text('标签', style: theme.textTheme.titleLarge),
-                  const SizedBox(height: 12),
-                  TranslatedTagGroups(
-                    tags: gallery.tags,
-                    onSearch: (tag) => context.push(
-                      '/home?query=${Uri.encodeComponent(tag.rawName)}',
+                  const SizedBox(height: 24),
+                  _DetailSection(
+                    title: '标签',
+                    count: gallery.tags.length,
+                    child: TranslatedTagGroups(
+                      tags: gallery.tags,
+                      onSearch: (tag) => context.push(
+                        '/home?query=${Uri.encodeComponent(tag.rawName)}',
+                      ),
                     ),
                   ),
                 ],
@@ -294,6 +299,74 @@ class _DetailError extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _DetailSection extends StatefulWidget {
+  const _DetailSection({
+    required this.title,
+    required this.child,
+    this.count,
+    this.initiallyExpanded = false,
+  });
+
+  final String title;
+  final Widget child;
+  final int? count;
+  final bool initiallyExpanded;
+
+  @override
+  State<_DetailSection> createState() => _DetailSectionState();
+}
+
+class _DetailSectionState extends State<_DetailSection> {
+  late var _expanded = widget.initiallyExpanded;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: () => setState(() => _expanded = !_expanded),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Row(
+              children: [
+                Text(widget.title, style: theme.textTheme.titleLarge),
+                if (widget.count != null) ...[
+                  const SizedBox(width: 8),
+                  Text(
+                    '${widget.count}',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+                const Spacer(),
+                Icon(
+                  _expanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                  size: 22,
+                ),
+              ],
+            ),
+          ),
+        ),
+        AnimatedCrossFade(
+          firstChild: Padding(
+            padding: const EdgeInsets.only(top: 10),
+            child: widget.child,
+          ),
+          secondChild: const SizedBox.shrink(),
+          crossFadeState: _expanded
+              ? CrossFadeState.showFirst
+              : CrossFadeState.showSecond,
+          duration: const Duration(milliseconds: 160),
+        ),
+      ],
     );
   }
 }
