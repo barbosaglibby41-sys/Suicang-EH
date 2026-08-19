@@ -5,9 +5,11 @@ import 'package:dio/dio.dart';
 
 import '../../features/gallery/domain/entities/gallery_key.dart';
 import '../../core/network/site_http_client.dart';
+import 'decode_scheduler.dart';
 import 'disk_image_cache.dart';
 import 'image_decoder.dart';
 import 'image_request.dart';
+import 'media_kind.dart';
 import 'memory_image_cache.dart';
 
 class ImagePipeline {
@@ -16,15 +18,18 @@ class ImagePipeline {
     DiskImageCache? diskCache,
     MemoryImageCache<Uint8List>? memoryCache,
     ImageDecoder decoder = const ImageDecoder(),
+    DecodeScheduler? decodeScheduler,
   })  : _client = client,
         _diskCache = diskCache ?? DiskImageCache(),
         _memoryCache = memoryCache ?? MemoryImageCache<Uint8List>(),
-        _decoder = decoder;
+        _decoder = decoder,
+        _decodeScheduler = decodeScheduler ?? DecodeScheduler();
 
   final SiteHttpClient _client;
   final DiskImageCache _diskCache;
   final MemoryImageCache<Uint8List> _memoryCache;
   final ImageDecoder _decoder;
+  final DecodeScheduler _decodeScheduler;
   final _inFlight = <String, Future<DecodedImage>>{};
 
   Future<Uint8List> load(
@@ -87,7 +92,20 @@ class ImagePipeline {
       source: source,
       cancelHandle: cancelHandle,
     );
-    return _decoder.decode(bytes, targetPixels: request.decodeTargetPixels);
+    if (MediaKindResolver.fromUri(request.url) != MediaKind.image) {
+      return DecodedImage(
+        bytes: bytes,
+        width: 1,
+        height: bytes.length,
+      );
+    }
+    return _decodeScheduler.schedule(
+      visible: cancelHandle != null,
+      operation: () => _decoder.decode(
+        bytes,
+        targetPixels: request.decodeTargetPixels,
+      ),
+    );
   }
 
   Future<Uint8List> _loadRawBytes(

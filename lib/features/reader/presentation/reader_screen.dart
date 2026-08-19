@@ -6,10 +6,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/image/image_providers.dart';
 import '../../../core/image/image_request.dart';
+import '../../../core/image/media_kind.dart';
 import '../../gallery/domain/entities/gallery.dart';
 import '../domain/engine/manga_reader_engine.dart';
 import '../domain/entities/reader_models.dart';
 import '../domain/page_source/page_source.dart';
+import 'widgets/reader_media.dart';
 import 'providers/keep_screen_on_providers.dart';
 import 'providers/reader_controller.dart';
 import 'providers/reader_preferences_providers.dart';
@@ -35,7 +37,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   StreamSubscription<int>? _preloads;
   ReaderState? _state;
   late final ReaderKeepScreenOnController _keepScreenOn;
-  final _pages = <int, Future<Uint8List>>{};
+  final _pages = <int, Future<_LoadedPage>>{};
   bool _ready = false;
 
   @override
@@ -175,15 +177,18 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         .setPreferences(current.copyWith(fit: fit));
   }
 
-  Future<Uint8List> _loadPage(int index) {
+  Future<_LoadedPage> _loadPage(int index) {
     final engine = _engine;
     if (engine == null) {
-      return Future<Uint8List>.error(StateError('Reader is not initialized.'));
+      return Future<_LoadedPage>.error(StateError('Reader is not initialized.'));
     }
     return _pages.putIfAbsent(index, () async {
       final page = await engine.pageAt(index);
+      if (MediaKindResolver.fromUri(page.source) == MediaKind.video) {
+        return _LoadedPage(url: page.source, bytes: Uint8List(0));
+      }
       final pipeline = ref.read(imagePipelineProvider);
-      return pipeline.load(
+      final bytes = await pipeline.load(
         ImageRequest(
           url: page.source,
           referer: widget.gallery.sourceUrl,
@@ -192,6 +197,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         ),
         source: widget.gallery.key.source,
       );
+      return _LoadedPage(url: page.source, bytes: bytes);
     });
   }
 }
@@ -205,7 +211,7 @@ class _HorizontalReader extends StatefulWidget {
 
   final MangaReaderEngine engine;
   final ReaderState state;
-  final Future<Uint8List> Function(int index) loadPage;
+  final Future<_LoadedPage> Function(int index) loadPage;
 
   @override
   State<_HorizontalReader> createState() => _HorizontalReaderState();
@@ -256,6 +262,7 @@ class _HorizontalReaderState extends State<_HorizontalReader> {
         onDoubleTap: () => widget.engine.setZoom(
           widget.state.zoom == 1 ? 2 : 1,
         ),
+        source: widget.engine.state.galleryKey.source,
       ),
     );
   }
@@ -270,7 +277,7 @@ class _VerticalReader extends StatelessWidget {
 
   final MangaReaderEngine engine;
   final ReaderState state;
-  final Future<Uint8List> Function(int index) loadPage;
+  final Future<_LoadedPage> Function(int index) loadPage;
 
   @override
   Widget build(BuildContext context) {
@@ -282,6 +289,7 @@ class _VerticalReader extends StatelessWidget {
         zoom: state.zoom,
         onTap: engine.toggleControls,
         onDoubleTap: () => engine.setZoom(state.zoom == 1 ? 2 : 1),
+        source: engine.state.galleryKey.source,
       ),
     );
   }
@@ -294,20 +302,22 @@ class _ReaderPage extends StatelessWidget {
     required this.zoom,
     required this.onTap,
     required this.onDoubleTap,
+    required this.source,
   });
 
-  final Future<Uint8List> future;
+  final Future<_LoadedPage> future;
   final ReaderFit fit;
   final double zoom;
   final VoidCallback onTap;
   final VoidCallback onDoubleTap;
+  final SiteSource source;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       onDoubleTap: onDoubleTap,
-      child: FutureBuilder<Uint8List>(
+      child: FutureBuilder<_LoadedPage>(
         future: future,
         builder: (context, snapshot) {
           if (snapshot.hasError) {
@@ -322,19 +332,13 @@ class _ReaderPage extends StatelessWidget {
               child: Center(child: CircularProgressIndicator()),
             );
           }
-          return InteractiveViewer(
-            minScale: 1,
-            maxScale: 4,
-            scaleEnabled: true,
-            child: Transform.scale(
-              scale: zoom,
-              child: Image.memory(
-                snapshot.data!,
-                fit: fit == ReaderFit.contain ? BoxFit.contain : BoxFit.cover,
-                width: double.infinity,
-                filterQuality: FilterQuality.high,
-              ),
-            ),
+          final page = snapshot.data!;
+          return ReaderMedia(
+            url: page.url,
+            bytes: page.bytes,
+            source: source,
+            fit: fit,
+            zoom: zoom,
           );
         },
       ),
@@ -484,4 +488,11 @@ class _ReaderControlsState extends State<_ReaderControls> {
       ),
     );
   }
+}
+
+class _LoadedPage {
+  const _LoadedPage({required this.url, required this.bytes});
+
+  final Uri url;
+  final Uint8List bytes;
 }

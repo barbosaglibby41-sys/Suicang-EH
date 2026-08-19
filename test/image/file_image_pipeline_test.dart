@@ -1,8 +1,10 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:taro_eh_flutter/features/authentication/domain/entities/session_cookie.dart';
+import 'package:taro_eh_flutter/core/image/image_decoder.dart';
 import 'package:taro_eh_flutter/core/image/image_pipeline.dart';
 import 'package:taro_eh_flutter/core/image/image_request.dart';
 import 'package:taro_eh_flutter/core/network/site_http_client.dart';
@@ -21,7 +23,10 @@ void main() {
       dio: Dio(),
       authRepository: SecureAuthRepository(_MemoryCookieStore()),
     );
-    final pipeline = ImagePipeline(client: client);
+    final pipeline = ImagePipeline(
+      client: client,
+      decoder: _PassthroughDecoder(),
+    );
 
     final data = await pipeline.load(
       ImageRequest(url: file.uri, variant: ImageVariant.reader),
@@ -41,4 +46,14 @@ class _MemoryCookieStore implements SecureCookieStore {
 
   @override
   Future<void> writeAll(Iterable<SessionCookie> cookies) async {}
+}
+
+class _PassthroughDecoder extends ImageDecoder {
+  _PassthroughDecoder();
+
+  @override
+  Future<DecodedImage> decode(
+    Uint8List source, {
+    required int targetPixels,
+  }) async => DecodedImage(bytes: source, width: 1, height: source.length);
 }
