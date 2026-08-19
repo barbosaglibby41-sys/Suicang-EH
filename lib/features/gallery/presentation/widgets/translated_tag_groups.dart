@@ -158,7 +158,8 @@ class _TagPill extends StatelessWidget {
               : null,
           label: Text(label),
           labelStyle: const TextStyle(fontWeight: FontWeight.w500),
-          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+          backgroundColor:
+              Theme.of(context).colorScheme.surfaceContainerHighest,
           side: BorderSide.none,
           visualDensity: VisualDensity.compact,
           onPressed: onSearch,

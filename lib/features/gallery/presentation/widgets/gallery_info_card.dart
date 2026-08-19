@@ -71,9 +71,11 @@ class GalleryInfoCard extends StatelessWidget {
                         VerticalDivider(
                           width: 1,
                           thickness: 1,
-                          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+                          color:
+                              colorScheme.outlineVariant.withValues(alpha: 0.5),
                         ),
-                      Expanded(child: _InfoCell(item: values[row * 3 + column])),
+                      Expanded(
+                          child: _InfoCell(item: values[row * 3 + column])),
                     ],
                   ],
                 ),

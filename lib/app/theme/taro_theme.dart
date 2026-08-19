@@ -106,9 +106,13 @@ abstract final class TaroTheme {
       navigationBarTheme: NavigationBarThemeData(
         height: 68,
         backgroundColor: dark ? const Color(0xEE101117) : Colors.white,
-        indicatorColor: dark ? SuicangColors.elevated : scheme.secondaryContainer,
+        indicatorColor:
+            dark ? SuicangColors.elevated : scheme.secondaryContainer,
         labelTextStyle: WidgetStatePropertyAll(
-          TextStyle(color: scheme.onSurface, fontSize: 11, fontWeight: FontWeight.w600),
+          TextStyle(
+              color: scheme.onSurface,
+              fontSize: 11,
+              fontWeight: FontWeight.w600),
         ),
       ),
       pageTransitionsTheme: const PageTransitionsTheme(

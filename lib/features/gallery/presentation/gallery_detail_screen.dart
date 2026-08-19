@@ -60,7 +60,9 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
           SliverAppBar(
             pinned: true,
             expandedHeight: 330,
-            backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.88),
+            backgroundColor: Theme.of(context)
+                .scaffoldBackgroundColor
+                .withValues(alpha: 0.88),
             flexibleSpace: FlexibleSpaceBar(
               background: Hero(
                 tag: 'gallery-cover-${gallery.key.stableId}',

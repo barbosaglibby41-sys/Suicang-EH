@@ -5,7 +5,8 @@ import 'package:suicang_eh/features/gallery/domain/entities/gallery_key.dart';
 import 'package:suicang_eh/features/gallery/presentation/widgets/gallery_card_meta.dart';
 
 void main() {
-  testWidgets('shows category pages and relative published time', (tester) async {
+  testWidgets('shows category pages and relative published time',
+      (tester) async {
     final now = DateTime.now().toUtc();
     final gallery = Gallery(
       key: const GalleryKey(source: SiteSource.eHentai, gid: 1),
