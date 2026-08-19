@@ -32,7 +32,7 @@ class TranslatedTagGroups extends ConsumerWidget {
             namespace: namespace,
             tags: groups[namespace]!,
             translations: translations,
-            subscribed: subscriptions.valueOrNull ?? const {},
+            subscribed: subscriptions.valueOrNull?.toSet() ?? const <String>{},
             onSearch: onSearch,
           ),
           const SizedBox(height: 10),
