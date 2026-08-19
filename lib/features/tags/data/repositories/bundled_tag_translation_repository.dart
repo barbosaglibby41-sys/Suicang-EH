@@ -1,15 +1,28 @@
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
+import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
 
+import '../../domain/entities/tag_database_status.dart';
 import '../../domain/entities/translated_tag.dart';
 import '../../domain/repositories/tag_translation_repository.dart';
 
 class BundledTagTranslationRepository implements TagTranslationRepository {
+  static const _assetPath = 'assets/tag_translation_seed.json';
+  static const _fileName = 'tag_translation.json';
+  static const _remoteUrl =
+      'https://fastly.jsdelivr.net/gh/EhTagTranslation/DatabaseReleases/db.html.json';
+
   final _tags = <TranslatedTag>[];
   final _byId = <String, TranslatedTag>{};
   final _byEnglish = <String, TranslatedTag>{};
   final _byChinese = <String, TranslatedTag>{};
+  int _version = 0;
+  DateTime? _updatedAt;
+  bool _isBundled = true;
   bool _ready = false;
 
   @override
@@ -18,26 +31,54 @@ class BundledTagTranslationRepository implements TagTranslationRepository {
   @override
   Future<void> loadBundled() async {
     if (_ready) return;
-    final raw = await rootBundle.loadString('assets/tag_translation_seed.json');
-    final envelope = jsonDecode(raw) as Map<String, dynamic>;
-    final values = envelope['tags'] as List<dynamic>? ?? const [];
-    for (final value in values.whereType<Map<String, dynamic>>()) {
-      final namespace = value['namespace'] as String? ?? 'other';
-      final key = value['key'] as String? ?? '';
-      final name = value['name'] as String? ?? key;
-      if (key.isEmpty) continue;
-      final tag = TranslatedTag(
-        namespace: namespace,
-        key: key,
-        name: _stripMarkup(name),
-        intro: value['intro'] as String?,
-      );
-      _tags.add(tag);
-      _byId[tag.id.toLowerCase()] = tag;
-      _byEnglish.putIfAbsent(tag.key.toLowerCase(), () => tag);
-      _byChinese.putIfAbsent(tag.name.toLowerCase(), () => tag);
+    final local = await _localFile();
+    if (await local.exists()) {
+      try {
+        await _apply(await local.readAsString(), isBundled: false);
+        return;
+      } catch (_) {
+        await local.delete();
+      }
     }
-    _ready = true;
+    await _apply(await rootBundle.loadString(_assetPath), isBundled: true);
+  }
+
+  @override
+  Future<TagDatabaseStatus> status() async {
+    await loadBundled();
+    return TagDatabaseStatus(
+      version: _version,
+      updatedAt: _updatedAt,
+      tagCount: _tags.length,
+      isBundled: _isBundled,
+    );
+  }
+
+  @override
+  Future<TagDatabaseStatus> updateFromRemote() async {
+    await loadBundled();
+    final response = await Dio().get<String>(
+      _remoteUrl,
+      options: Options(responseType: ResponseType.plain),
+    );
+    final raw = response.data;
+    if (raw == null || raw.isEmpty) {
+      throw StateError('Tag database update returned no data.');
+    }
+    final normalized = _normalizeRemote(raw);
+    final local = await _localFile();
+    final temporary = File('${local.path}.part');
+    await temporary.writeAsString(normalized, flush: true);
+    await temporary.rename(local.path);
+    await _apply(normalized, isBundled: false);
+    return status();
+  }
+
+  @override
+  Future<void> restoreBundled() async {
+    final local = await _localFile();
+    if (await local.exists()) await local.delete();
+    await _apply(await rootBundle.loadString(_assetPath), isBundled: true);
   }
 
   @override
@@ -55,7 +96,7 @@ class BundledTagTranslationRepository implements TagTranslationRepository {
   @override
   List<TranslatedTag> suggestions(String token, {int limit = 12}) {
     final term = token.trim().toLowerCase();
-    if (term.length < 1) return const [];
+    if (term.isEmpty) return const [];
     final scored = <({TranslatedTag tag, int score})>[];
     for (final tag in _tags) {
       final name = tag.name.toLowerCase();
@@ -88,10 +129,71 @@ class BundledTagTranslationRepository implements TagTranslationRepository {
       final separator = value.indexOf(':');
       final candidate = separator < 0 ? value : value.substring(separator + 1);
       final tag = find(candidate);
-      if (tag == null || !RegExp(r'[\u3400-\u9fff]').hasMatch(candidate))
+      if (tag == null || !RegExp(r'[\u3400-\u9fff]').hasMatch(candidate)) {
         return token;
+      }
       return '$prefix${tag.namespace}:"${tag.key}\$"';
     }).join(' ');
+  }
+
+  Future<void> _apply(String raw, {required bool isBundled}) async {
+    final decoded = jsonDecode(raw) as Map<String, dynamic>;
+    final tags = decoded['tags'] as List<dynamic>? ?? const [];
+    _tags.clear();
+    _byId.clear();
+    _byEnglish.clear();
+    _byChinese.clear();
+    for (final value in tags.whereType<Map<String, dynamic>>()) {
+      final namespace = value['namespace'] as String? ?? 'other';
+      final key = value['key'] as String? ?? '';
+      final name = value['name'] as String? ?? key;
+      if (key.isEmpty) continue;
+      final tag = TranslatedTag(
+        namespace: namespace,
+        key: key,
+        name: _stripMarkup(name),
+        intro: value['intro'] as String?,
+      );
+      _tags.add(tag);
+      _byId[tag.id.toLowerCase()] = tag;
+      _byEnglish.putIfAbsent(tag.key.toLowerCase(), () => tag);
+      _byChinese.putIfAbsent(tag.name.toLowerCase(), () => tag);
+    }
+    _version = decoded['version'] as int? ?? 0;
+    _updatedAt = DateTime.tryParse(decoded['updatedAt'] as String? ?? '')?.toUtc();
+    _isBundled = isBundled;
+    _ready = true;
+  }
+
+  String _normalizeRemote(String raw) {
+    final decoded = jsonDecode(raw) as Map<String, dynamic>;
+    if (decoded['tags'] is List) return raw;
+    final groups = decoded['data'] as List<dynamic>? ?? const [];
+    final tags = <Map<String, String>>[];
+    for (final group in groups.whereType<Map<String, dynamic>>()) {
+      final namespace = group['namespace'] as String? ?? 'other';
+      final values = group['data'] as Map<String, dynamic>? ?? const {};
+      for (final entry in values.entries) {
+        final item = entry.value as Map<String, dynamic>? ?? const {};
+        tags.add({
+          'namespace': namespace,
+          'key': entry.key,
+          'name': _stripMarkup(item['name'] as String? ?? entry.key),
+        });
+      }
+    }
+    final updatedAt = ((decoded['head'] as Map<String, dynamic>?)?['committer']
+        as Map<String, dynamic>?)?['when'] as String?;
+    return jsonEncode({
+      'version': decoded['version'] as int? ?? 0,
+      'updatedAt': updatedAt ?? DateTime.now().toUtc().toIso8601String(),
+      'tags': tags,
+    });
+  }
+
+  Future<File> _localFile() async {
+    final directory = await getApplicationSupportDirectory();
+    return File(path.join(directory.path, _fileName));
   }
 
   String _stripMarkup(String value) => value

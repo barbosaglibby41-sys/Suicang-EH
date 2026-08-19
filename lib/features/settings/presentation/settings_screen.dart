@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../gallery/domain/entities/gallery_key.dart';
 import '../../reader/presentation/reader_settings_screen.dart';
+import '../../tags/presentation/tag_translation_settings_screen.dart';
 import 'migration_import_screen.dart';
 import 'providers/site_preferences_providers.dart';
 
@@ -53,6 +54,19 @@ class SettingsScreen extends ConsumerWidget {
                   },
                 ),
               ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        Card(
+          child: ListTile(
+            leading: Icon(Icons.translate_outlined, color: theme.colorScheme.primary),
+            title: const Text('标签翻译数据库'),
+            subtitle: const Text('查看状态并更新最新中文翻译库。'),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const TagTranslationSettingsScreen(),
+              ),
             ),
           ),
         ),

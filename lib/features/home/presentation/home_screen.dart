@@ -25,12 +25,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    final initialQuery = GoRouterState.of(context).uri.queryParameters['query'];
+    if (initialQuery != null && initialQuery.isNotEmpty) {
+      _searchController.text = initialQuery;
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final preferences = await ref.read(sitePreferencesProvider.future);
       if (!mounted) return;
-      await ref
-          .read(discoveryNotifierProvider.notifier)
-          .initializeSource(preferences.source);
+      final notifier = ref.read(discoveryNotifierProvider.notifier);
+      await notifier.initializeSource(preferences.source);
+      if (_searchController.text.trim().isNotEmpty) {
+        await notifier.search(_searchController.text);
+      }
     });
   }
 
@@ -159,13 +165,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 dense: true,
                                 leading: const Icon(Icons.sell_outlined),
                                 title: Text(tag.name),
-                                subtitle: Text(tag.rawName),
+                                subtitle: Text('${tag.namespace} : ${tag.key}'),
                                 onTap: () {
                                   final query = _searchController.text;
                                   final token = _currentToken(query);
                                   final start = query.length - token.length;
+                                  final siteTag = '${tag.namespace}:"${tag.key}\$"';
                                   _searchController.text =
-                                      '${query.substring(0, start)}${tag.key} ';
+                                      '${query.substring(0, start)}$siteTag ';
                                   _searchController.selection =
                                       TextSelection.collapsed(
                                     offset: _searchController.text.length,
