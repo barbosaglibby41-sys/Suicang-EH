@@ -31,6 +31,7 @@ class LibraryEntries extends Table {
   TextColumn get source => text()();
   IntColumn get gid => integer()();
   BoolColumn get isFavorite => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get favoritedAt => dateTime().nullable()();
   DateTimeColumn get lastOpenedAt => dateTime().nullable()();
 
   @override
@@ -146,14 +147,19 @@ class AppDatabase extends _$AppDatabase {
   factory AppDatabase.open() => AppDatabase(_openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (migrator) async => migrator.createAll(),
         onUpgrade: (migrator, from, to) async {
-          throw UnsupportedError(
-              'No database upgrade is defined for $from → $to');
+          if (from < 2) {
+            await migrator.addColumn(libraryEntries, libraryEntries.favoritedAt);
+            await customStatement(
+              'UPDATE library_entries SET favorited_at = last_opened_at '
+              'WHERE is_favorite = 1 AND favorited_at IS NULL',
+            );
+          }
         },
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');
