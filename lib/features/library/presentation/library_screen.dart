@@ -6,6 +6,7 @@ import '../../../app/layout/adaptive_layout.dart';
 import '../../favorites/presentation/cloud_favorites_screen.dart';
 import '../../gallery/domain/entities/gallery.dart';
 import '../../gallery/presentation/widgets/gallery_cover.dart';
+import '../../gallery/presentation/widgets/gallery_card_meta.dart';
 import '../domain/entities/library_filter.dart';
 import 'providers/library_providers.dart';
 
@@ -154,12 +155,7 @@ class _GalleryCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(gallery.title, maxLines: 2, overflow: TextOverflow.ellipsis),
             const SizedBox(height: 3),
-            Text(
-              gallery.category,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelSmall,
-            ),
+            GalleryCardMeta(gallery: gallery),
           ],
         ),
       ),

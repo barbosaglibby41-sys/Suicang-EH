@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../gallery/domain/entities/gallery.dart';
 import '../../gallery/presentation/widgets/gallery_cover.dart';
+import '../../gallery/presentation/widgets/gallery_card_meta.dart';
 import '../../library/domain/entities/library_filter.dart';
 import 'providers/cloud_favorites_providers.dart';
 
@@ -168,6 +169,8 @@ class _CloudGalleryCard extends StatelessWidget {
               Expanded(child: GalleryCover(gallery: gallery)),
               const SizedBox(height: 8),
               Text(gallery.title, maxLines: 2, overflow: TextOverflow.ellipsis),
+              const SizedBox(height: 3),
+              GalleryCardMeta(gallery: gallery),
             ],
           ),
         ),

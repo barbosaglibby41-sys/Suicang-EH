@@ -7,6 +7,7 @@ import '../../../app/layout/adaptive_layout.dart';
 import '../../gallery/domain/entities/gallery.dart';
 import '../../gallery/domain/entities/gallery_key.dart';
 import '../../gallery/presentation/widgets/gallery_cover.dart';
+import '../../gallery/presentation/widgets/gallery_card_meta.dart';
 import '../../tags/presentation/providers/tag_translation_providers.dart';
 import '../../search/presentation/providers/search_history_providers.dart';
 import '../../settings/presentation/providers/site_preferences_providers.dart';
@@ -368,17 +369,7 @@ class _GalleryTile extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 4),
-            Text(
-              [
-                if (gallery.category.isNotEmpty) gallery.category,
-                if (gallery.pageCount > 0) '${gallery.pageCount} 页'
-              ].join(' · '),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
+            GalleryCardMeta(gallery: gallery),
           ],
         ),
       ),

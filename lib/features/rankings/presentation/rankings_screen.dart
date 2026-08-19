@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/image/image_request.dart';
 import '../../gallery/domain/entities/gallery.dart';
 import '../../gallery/presentation/widgets/gallery_cover.dart';
+import '../../gallery/presentation/widgets/gallery_card_meta.dart';
 import '../domain/entities/ranking_period.dart';
 import 'providers/rankings_providers.dart';
 
@@ -127,6 +128,8 @@ class _RankingRow extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.labelSmall,
                     ),
+                    const SizedBox(height: 3),
+                    GalleryCardMeta(gallery: gallery),
                   ],
                 ),
               ),
