@@ -23,26 +23,29 @@ class GalleryCoverPlaceholder extends StatelessWidget {
         ),
         child: SizedBox.expand(
           child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(Icons.auto_stories_outlined,
-                  color: scheme.onSecondaryContainer),
-              const Spacer(),
-              Text(
-                gallery.category.isEmpty
-                    ? 'GALLERY'
-                    : gallery.category.toUpperCase(),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: scheme.onSecondaryContainer,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1,
-                    ),
-              ),
-            ],
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.auto_stories_outlined,
+                  color: scheme.onSecondaryContainer,
+                ),
+                const Spacer(),
+                Text(
+                  gallery.category.isEmpty
+                      ? 'GALLERY'
+                      : gallery.category.toUpperCase(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: scheme.onSecondaryContainer,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1,
+                      ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
