@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/image/image_providers.dart';
@@ -47,6 +48,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   void initState() {
     super.initState();
     _keepScreenOn = ref.read(readerKeepScreenOnControllerProvider);
+    unawaited(_enterImmersiveReader());
     unawaited(_initialize());
   }
 
@@ -55,7 +57,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     _states?.cancel();
     _preloads?.cancel();
     unawaited(_keepScreenOn.dispose());
+    unawaited(_exitImmersiveReader());
     super.dispose();
+  }
+
+  Future<void> _enterImmersiveReader() {
+    return SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  }
+
+  Future<void> _exitImmersiveReader() {
+    return SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   }
 
   @override
@@ -78,7 +89,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          SafeArea(
+          Positioned.fill(
             child: state.mode == ReaderMode.vertical
                 ? _VerticalReader(
                     engine: engine,
