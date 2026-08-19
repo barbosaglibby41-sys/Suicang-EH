@@ -7,7 +7,12 @@ void main() {
   test('random state permits paging until an empty batch exhausts it', () {
     const initial = DiscoveryState(
       source: SiteSource.eHentai,
-      galleries: [Gallery(key: GalleryKey(source: SiteSource.eHentai, gid: 1), title: 'A', pageCount: 1)],
+      galleries: [
+        Gallery(
+            key: GalleryKey(source: SiteSource.eHentai, gid: 1),
+            title: 'A',
+            pageCount: 1)
+      ],
       isRandom: true,
       randomRound: 1,
     );

@@ -81,7 +81,9 @@ class DiscoveryNotifier extends Notifier<DiscoveryState> {
     try {
       final result = await _repository.random(
         source: state.source,
-        excluding: fresh ? const {} : state.galleries.map((gallery) => gallery.key.gid).toSet(),
+        excluding: fresh
+            ? const {}
+            : state.galleries.map((gallery) => gallery.key.gid).toSet(),
       );
       state = state.copyWith(
         galleries: fresh ? result : [...state.galleries, ...result],

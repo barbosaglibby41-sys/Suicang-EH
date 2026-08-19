@@ -139,51 +139,54 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
                 FutureBuilder<bool>(
                   future: _favorite,
                   builder: (context, favoriteSnapshot) => GalleryActionBar(
-                  isLoading: state.isLoading,
-                  isFavorite: favoriteSnapshot.data == true,
-                  onRead: gallery.sourceUrl == null
-                      ? () {}
-                      : () => context.push(
-                            '/reader/${gallery.key.source.storageValue}/${gallery.key.gid}',
-                            extra: gallery,
-                          ),
-                  onFavorite: () async {
-                    await notifier.toggleFavorite();
-                    if (mounted) setState(() => _favorite = notifier.isFavorite());
-                  },
-                  onDownload: notifier.enqueueDownload,
-                  onCloudFavorite: () => showModalBottomSheet<void>(
-                    context: context,
-                    isScrollControlled: true,
-                    builder: (_) => CloudFavoriteSheet(gallery: gallery),
-                  ),
-                  onFollow: () => showModalBottomSheet<void>(
-                    context: context,
-                    builder: (sheetContext) => SafeArea(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          ListTile(
-                            leading: const Icon(Icons.brush_outlined),
-                            title: const Text('关注作者'),
-                            onTap: () {
-                              Navigator.pop(sheetContext);
-                              notifier.followArtistOrUploader(FollowedCreatorKind.artist);
-                            },
-                          ),
-                          ListTile(
-                            leading: const Icon(Icons.person_outline),
-                            title: const Text('关注发布者'),
-                            onTap: () {
-                              Navigator.pop(sheetContext);
-                              notifier.followArtistOrUploader(FollowedCreatorKind.uploader);
-                            },
-                          ),
-                        ],
+                    isLoading: state.isLoading,
+                    isFavorite: favoriteSnapshot.data == true,
+                    onRead: gallery.sourceUrl == null
+                        ? () {}
+                        : () => context.push(
+                              '/reader/${gallery.key.source.storageValue}/${gallery.key.gid}',
+                              extra: gallery,
+                            ),
+                    onFavorite: () async {
+                      await notifier.toggleFavorite();
+                      if (mounted)
+                        setState(() => _favorite = notifier.isFavorite());
+                    },
+                    onDownload: notifier.enqueueDownload,
+                    onCloudFavorite: () => showModalBottomSheet<void>(
+                      context: context,
+                      isScrollControlled: true,
+                      builder: (_) => CloudFavoriteSheet(gallery: gallery),
+                    ),
+                    onFollow: () => showModalBottomSheet<void>(
+                      context: context,
+                      builder: (sheetContext) => SafeArea(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ListTile(
+                              leading: const Icon(Icons.brush_outlined),
+                              title: const Text('关注作者'),
+                              onTap: () {
+                                Navigator.pop(sheetContext);
+                                notifier.followArtistOrUploader(
+                                    FollowedCreatorKind.artist);
+                              },
+                            ),
+                            ListTile(
+                              leading: const Icon(Icons.person_outline),
+                              title: const Text('关注发布者'),
+                              onTap: () {
+                                Navigator.pop(sheetContext);
+                                notifier.followArtistOrUploader(
+                                    FollowedCreatorKind.uploader);
+                              },
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
                 ),
                 if (state.isLoading) ...[
                   const SizedBox(height: 24),

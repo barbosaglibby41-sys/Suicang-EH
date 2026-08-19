@@ -42,24 +42,24 @@ class _FollowedCreatorsScreenState
   Widget build(BuildContext context) {
     final followed = ref.watch(followedCreatorsProvider);
     final content = followed.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) => const Center(child: Text('无法读取关注列表。')),
-        data: (creators) => creators.isEmpty
-            ? const Center(child: Text('在作品详情页关注作者或发布者后，新作品会出现在这里。'))
-            : ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: creators.length,
-                itemBuilder: (context, index) => _CreatorSection(
-                  creator: creators[index],
-                  galleries: _results[creators[index].id] ?? const [],
-                  loading: _loading.contains(creators[index].id),
-                  onRefresh: () => _refresh(creators[index]),
-                  onUnfollow: () => ref
-                      .read(followedCreatorRepositoryProvider)
-                      .unfollow(creators[index].id),
-                ),
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => const Center(child: Text('无法读取关注列表。')),
+      data: (creators) => creators.isEmpty
+          ? const Center(child: Text('在作品详情页关注作者或发布者后，新作品会出现在这里。'))
+          : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: creators.length,
+              itemBuilder: (context, index) => _CreatorSection(
+                creator: creators[index],
+                galleries: _results[creators[index].id] ?? const [],
+                loading: _loading.contains(creators[index].id),
+                onRefresh: () => _refresh(creators[index]),
+                onUnfollow: () => ref
+                    .read(followedCreatorRepositoryProvider)
+                    .unfollow(creators[index].id),
               ),
-      );
+            ),
+    );
     if (widget.embedded) return content;
     return Scaffold(
       appBar: AppBar(title: const Text('关注')),

@@ -94,7 +94,8 @@ class _FollowedCreatorsCollection extends StatelessWidget {
   const _FollowedCreatorsCollection();
 
   @override
-  Widget build(BuildContext context) => const FollowedCreatorsScreen(embedded: true);
+  Widget build(BuildContext context) =>
+      const FollowedCreatorsScreen(embedded: true);
 }
 
 class _GalleryCollection extends StatelessWidget {

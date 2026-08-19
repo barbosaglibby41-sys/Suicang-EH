@@ -65,7 +65,8 @@ class GalleryActionBar extends StatelessWidget {
 }
 
 class _Action extends StatelessWidget {
-  const _Action({required this.icon, required this.label, required this.onPressed});
+  const _Action(
+      {required this.icon, required this.label, required this.onPressed});
 
   final IconData icon;
   final String label;

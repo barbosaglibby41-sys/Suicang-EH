@@ -13,7 +13,8 @@ class GalleryCardMeta extends StatelessWidget {
     final values = <String>[
       if (gallery.category.isNotEmpty) gallery.category,
       if (gallery.pageCount > 0) '${gallery.pageCount} 页',
-      if (gallery.postedAt != null) RelativeTime.chinaCardDate(gallery.postedAt!),
+      if (gallery.postedAt != null)
+        RelativeTime.chinaCardDate(gallery.postedAt!),
     ];
     if (values.isEmpty) return const SizedBox.shrink();
     return Text(

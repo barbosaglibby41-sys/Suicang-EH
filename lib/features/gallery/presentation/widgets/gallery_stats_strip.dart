@@ -30,8 +30,10 @@ class GalleryStatsStrip extends StatelessWidget {
             : '${RelativeTime.chinaDateTime(gallery.postedAt!)} 中国时间',
       ),
       _Stat('大小', metadata.fileSize ?? '—', Icons.storage_outlined),
-      _Stat('收藏', metadata.favoriteCount?.toString() ?? '—', Icons.favorite_border),
-      _Stat('评分', gallery.rating?.toStringAsFixed(2) ?? '—', Icons.star_outline),
+      _Stat('收藏', metadata.favoriteCount?.toString() ?? '—',
+          Icons.favorite_border),
+      _Stat(
+          '评分', gallery.rating?.toStringAsFixed(2) ?? '—', Icons.star_outline),
     ];
 
     return Semantics(
@@ -66,7 +68,8 @@ class _StatPill extends StatelessWidget {
         decoration: BoxDecoration(
           color: scheme.surfaceContainerHighest.withValues(alpha: 0.52),
           borderRadius: BorderRadius.circular(13),
-          border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.7)),
+          border:
+              Border.all(color: scheme.outlineVariant.withValues(alpha: 0.7)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

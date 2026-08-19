@@ -139,7 +139,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         label: const Text('热门'),
                       ),
                       OutlinedButton.icon(
-                        onPressed: state.isLoading ? null : () => notifier.loadRandom(fresh: true),
+                        onPressed: state.isLoading
+                            ? null
+                            : () => notifier.loadRandom(fresh: true),
                         icon: const Icon(Icons.casino_outlined),
                         label: Text(state.isRandom ? '换一批' : '随机'),
                       ),
@@ -274,7 +276,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ),
                       ],
                     ],
-                 ),
+                  ),
                   if (state.isSearch) ...[
                     const SizedBox(height: 4),
                     Text(
@@ -320,7 +322,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         final gallery = state.galleries[index];
                         return _GalleryTile(gallery: gallery);
                       },
-                      childCount: state.galleries.length + (state.hasMore ? 1 : 0),
+                      childCount:
+                          state.galleries.length + (state.hasMore ? 1 : 0),
                     ),
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: columns,
