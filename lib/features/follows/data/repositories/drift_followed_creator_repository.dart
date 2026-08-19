@@ -80,7 +80,8 @@ class DriftFollowedCreatorRepository implements FollowedCreatorRepository {
     return sorted;
   }
 
-  domain.FollowedCreator _fromRow(FollowedCreator row) => domain.FollowedCreator(
+  domain.FollowedCreator _fromRow(FollowedCreator row) =>
+      domain.FollowedCreator(
         id: row.id,
         source: SiteSource.fromStorageValue(row.source),
         kind: domain.FollowedCreatorKind.values.byName(row.kind),
