@@ -32,6 +32,9 @@ class BundledTagTranslationRepository extends ChangeNotifier
   int get revision => _revision;
 
   @override
+  bool get isReady => _ready;
+
+  @override
   Future<void> loadBundled() async {
     if (_ready) return;
     try {
