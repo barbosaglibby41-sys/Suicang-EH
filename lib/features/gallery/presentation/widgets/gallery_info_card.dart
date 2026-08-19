@@ -83,7 +83,6 @@ class GalleryInfoCard extends StatelessWidget {
         ),
       ),
     );
-    );
   }
 }
 
