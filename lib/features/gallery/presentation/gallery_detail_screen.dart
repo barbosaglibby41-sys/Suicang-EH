@@ -288,22 +288,24 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
                             final isSubscribed = subscriptions.valueOrNull
                                     ?.contains(tag.rawName) ??
                                 false;
-                            return ActionChip(
-                              avatar: Icon(
-                                isSubscribed
-                                    ? Icons.notifications_active_outlined
-                                    : Icons.sell_outlined,
-                                size: 16,
-                              ),
-                              label: Text(translated?.name ??
-                                  tag.translatedName ??
-                                  tag.rawName),
-                              onPressed: () => context.push(
-                                '/home?query=${Uri.encodeComponent(tag.rawName)}',
-                              ),
+                            return GestureDetector(
                               onLongPress: () => ref
                                   .read(subscribedTagsRepositoryProvider)
                                   .toggle(tag.rawName),
+                              child: ActionChip(
+                                avatar: Icon(
+                                  isSubscribed
+                                      ? Icons.notifications_active_outlined
+                                      : Icons.sell_outlined,
+                                  size: 16,
+                                ),
+                                label: Text(translated?.name ??
+                                    tag.translatedName ??
+                                    tag.rawName),
+                                onPressed: () => context.push(
+                                  '/home?query=${Uri.encodeComponent(tag.rawName)}',
+                                ),
+                              ),
                             );
                           },
                         ),
