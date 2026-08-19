@@ -9,11 +9,11 @@ on:
       tag:
         description: Existing GitHub Release tag
         required: true
-        default: v0.1.1-suicang-stable
+        default: v0.1.2-suicang-stable
       version:
         description: Display version
         required: true
-        default: 0.1.1
+        default: 0.1.2
 
 jobs:
   build-unsigned-ipa:

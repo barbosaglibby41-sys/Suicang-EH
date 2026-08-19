@@ -17,6 +17,19 @@ class FollowedCreatorsScreen extends ConsumerStatefulWidget {
 class _FollowedCreatorsScreenState extends ConsumerState<FollowedCreatorsScreen> {
   final _results = <String, List<Gallery>>{};
   final _loading = <String>{};
+  var _initialRefreshTriggered = false;
+
+  @override
+  void initState() {
+    super.initState();
+    ref.listenManual(followedCreatorsProvider, (_, next) {
+      final creators = next.valueOrNull;
+      if (!_initialRefreshTriggered && creators != null) {
+        _initialRefreshTriggered = true;
+        _refreshAll(creators);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +56,10 @@ class _FollowedCreatorsScreenState extends ConsumerState<FollowedCreatorsScreen>
               ),
       ),
     );
+  }
+
+  Future<void> _refreshAll(List<FollowedCreator> creators) async {
+    await Future.wait(creators.map(_refresh));
   }
 
   Future<void> _refresh(FollowedCreator creator) async {
