@@ -6,19 +6,20 @@ import '../../domain/entities/translated_tag.dart';
 import '../../domain/repositories/tag_translation_repository.dart';
 
 final tagTranslationRepositoryProvider =
-    Provider<TagTranslationRepository>((ref) {
+    ChangeNotifierProvider<BundledTagTranslationRepository>((ref) {
   return BundledTagTranslationRepository();
 });
 
 final tagTranslationReadyProvider = FutureProvider<bool>((ref) async {
   final repository = ref.watch(tagTranslationRepositoryProvider);
   await repository.loadBundled();
+  ref.watch(tagTranslationRepositoryProvider);
   return repository.isReady;
 });
 
-final tagDatabaseStatusProvider =
-    FutureProvider<TagDatabaseStatus>((ref) async {
-  return ref.watch(tagTranslationRepositoryProvider).status();
+final tagDatabaseStatusProvider = FutureProvider<TagDatabaseStatus>((ref) async {
+  final repository = ref.watch(tagTranslationRepositoryProvider);
+  return repository.status();
 });
 
 final tagSuggestionsProvider =

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
@@ -10,7 +11,8 @@ import '../../domain/entities/tag_database_status.dart';
 import '../../domain/entities/translated_tag.dart';
 import '../../domain/repositories/tag_translation_repository.dart';
 
-class BundledTagTranslationRepository implements TagTranslationRepository {
+class BundledTagTranslationRepository extends ChangeNotifier
+    implements TagTranslationRepository {
   static const _assetPath = 'assets/tag_translation_seed.json';
   static const _fileName = 'tag_translation.json';
   static const _remoteUrl =
@@ -24,9 +26,10 @@ class BundledTagTranslationRepository implements TagTranslationRepository {
   DateTime? _updatedAt;
   bool _isBundled = true;
   bool _ready = false;
+  int _revision = 0;
 
   @override
-  bool get isReady => _ready;
+  int get revision => _revision;
 
   @override
   Future<void> loadBundled() async {
@@ -149,15 +152,17 @@ class BundledTagTranslationRepository implements TagTranslationRepository {
     _byEnglish.clear();
     _byChinese.clear();
     for (final value in tags.whereType<Map<String, dynamic>>()) {
-      final namespace = value['namespace'] as String? ?? 'other';
-      final key = value['key'] as String? ?? '';
-      final name = value['name'] as String? ?? key;
+      final namespace = (value['namespace'] as String? ?? 'other').trim().toLowerCase();
+      final key = (value['key'] as String? ?? '').trim();
+      final name = (value['name'] as String? ?? key).trim();
       if (key.isEmpty) continue;
       final tag = TranslatedTag(
         namespace: namespace,
         key: key,
         name: _stripMarkup(name),
-        intro: value['intro'] as String?,
+        intro: value['intro'] == null
+            ? null
+            : _stripMarkup(value['intro'] as String),
       );
       _tags.add(tag);
       _byId[tag.id.toLowerCase()] = tag;
@@ -169,6 +174,8 @@ class BundledTagTranslationRepository implements TagTranslationRepository {
         DateTime.tryParse(decoded['updatedAt'] as String? ?? '')?.toUtc();
     _isBundled = isBundled;
     _ready = true;
+    _revision += 1;
+    notifyListeners();
   }
 
   String _normalizeRemote(String raw) {
@@ -178,6 +185,7 @@ class BundledTagTranslationRepository implements TagTranslationRepository {
     final tags = <Map<String, String>>[];
     for (final group in groups.whereType<Map<String, dynamic>>()) {
       final namespace = group['namespace'] as String? ?? 'other';
+      if (namespace == 'rows') continue;
       final values = group['data'] as Map<String, dynamic>? ?? const {};
       for (final entry in values.entries) {
         final item = entry.value as Map<String, dynamic>? ?? const {};

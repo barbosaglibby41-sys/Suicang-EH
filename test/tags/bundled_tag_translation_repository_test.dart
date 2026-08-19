@@ -12,6 +12,8 @@ void main() {
     final suggestions = repository.suggestions('女性');
     expect(suggestions, isNotEmpty);
     expect(repository.translateQuery('女性'), contains(':"'));
+    expect(repository.find('female:__unknown__'), isNull);
+    expect(repository.translateQuery('female:__unknown__'), 'female:__unknown__');
   });
 
   test('suggestions are ranked by exact or prefix matches', () async {
