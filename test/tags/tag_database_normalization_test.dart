@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:suicang_eh/features/tags/data/repositories/bundled_tag_translation_repository.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   test('bundled repository exposes normalized namespace key index', () async {
     final repository = BundledTagTranslationRepository();
     await repository.loadBundled();
