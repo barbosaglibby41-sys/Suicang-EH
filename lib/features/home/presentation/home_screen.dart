@@ -54,6 +54,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     });
   }
 
+  void _dismissKeyboard() {
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+
+  void _popSearchIfNeeded() {
+    _dismissKeyboard();
+    if (context.canPop()) {
+      context.pop();
+    }
+  }
+
   String _currentToken(String value) {
     final parts = value.split(RegExp(r'\s+'));
     return parts.isEmpty ? '' : parts.last;
@@ -84,6 +95,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ? notifier.loadRandom(fresh: true)
               : notifier.load(force: true),
       child: CustomScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         slivers: [
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(24, 28, 24, 16),
@@ -93,6 +105,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 children: [
                   Row(
                     children: [
+                      if (state.isSearch && context.canPop())
+                        IconButton(
+                          tooltip: '返回详情',
+                          onPressed: _popSearchIfNeeded,
+                          icon: const Icon(Icons.arrow_back),
+                        ),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -164,13 +182,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           icon: const Icon(Icons.close),
                           onPressed: () {
                             _searchController.clear();
+                            _dismissKeyboard();
                             notifier.load(force: true);
                             setState(() {});
                           },
                         ),
                     ],
                     onChanged: (_) => setState(() {}),
-                    onSubmitted: notifier.search,
+                    onSubmitted: (value) {
+                      _dismissKeyboard();
+                      notifier.search(value);
+                    },
                   ),
                   if (suggestions.isNotEmpty)
                     Padding(
@@ -196,7 +218,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                       TextSelection.collapsed(
                                     offset: _searchController.text.length,
                                   );
+                                  _dismissKeyboard();
                                   setState(() {});
+                                  notifier.search(_searchController.text.trim());
                                 },
                               ),
                           ],

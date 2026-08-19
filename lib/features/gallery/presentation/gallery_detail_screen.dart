@@ -254,7 +254,7 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
                   const SizedBox(height: 12),
                   TranslatedTagGroups(
                     tags: gallery.tags,
-                    onSearch: (tag) => context.go(
+                    onSearch: (tag) => context.push(
                       '/home?query=${Uri.encodeComponent(tag.rawName)}',
                     ),
                   ),
