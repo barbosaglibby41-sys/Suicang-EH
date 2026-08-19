@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../gallery/domain/entities/gallery_key.dart';
-import '../../../core/network/network_exception.dart';
+import '../../../../core/network/network_exception.dart';
 import '../../../authentication/presentation/providers/auth_providers.dart';
 import '../../../authentication/domain/entities/session_validation.dart';
 import '../../../gallery/domain/entities/gallery_search_query.dart';

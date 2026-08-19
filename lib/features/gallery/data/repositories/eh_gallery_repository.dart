@@ -5,6 +5,7 @@ import 'package:drift/drift.dart';
 
 import '../../../../core/database/app_database.dart';
 import '../../../../core/network/site_http_client.dart';
+import '../../../../core/network/network_exception.dart';
 import '../../domain/entities/gallery.dart';
 import '../../domain/entities/gallery_detail.dart';
 import '../../domain/entities/gallery_key.dart';
