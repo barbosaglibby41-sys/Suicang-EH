@@ -1,4 +1,3 @@
-
 import '../../../../core/network/network_exception.dart';
 import '../../../../core/network/site_http_client.dart';
 import '../../domain/entities/gallery.dart';
