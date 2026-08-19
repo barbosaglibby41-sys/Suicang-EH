@@ -93,12 +93,14 @@ class _PreviewTile extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(8),
                         child: CustomPaint(
                           size: const Size(104, 140),
-                          painter: _SpritePainter(image: image, preview: preview),
+                          painter:
+                              _SpritePainter(image: image, preview: preview),
                           child: Align(
                             alignment: Alignment.bottomRight,
                             child: Container(
                               margin: const EdgeInsets.all(5),
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
                               color: Colors.black.withValues(alpha: 0.7),
                               child: Text(
                                 '${preview.page}',

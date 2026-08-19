@@ -89,13 +89,15 @@ class CloudFavoritesNotifier extends Notifier<CloudFavoritesState> {
             value: value,
           );
       final updated = [...state.galleries];
-      if (value && category == state.category &&
+      if (value &&
+          category == state.category &&
           !updated.any((item) => item.key == gallery.key)) {
         updated.insert(0, gallery);
       } else if (!value) {
         updated.removeWhere((item) => item.key == gallery.key);
       }
-      state = state.copyWith(galleries: updated, isLoading: false, clearError: true);
+      state = state.copyWith(
+          galleries: updated, isLoading: false, clearError: true);
     } catch (_) {
       state = state.copyWith(
         isLoading: false,

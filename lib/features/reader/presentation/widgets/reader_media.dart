@@ -70,7 +70,8 @@ class _ReaderMediaState extends ConsumerState<ReaderMedia> {
           scale: widget.zoom,
           child: Image.memory(
             widget.bytes,
-            fit: widget.fit == ReaderFit.contain ? BoxFit.contain : BoxFit.cover,
+            fit:
+                widget.fit == ReaderFit.contain ? BoxFit.contain : BoxFit.cover,
             width: double.infinity,
             filterQuality: FilterQuality.high,
             gaplessPlayback: true,
@@ -79,7 +80,8 @@ class _ReaderMediaState extends ConsumerState<ReaderMedia> {
       );
     }
     final controller = _controller;
-    if (_error != null) return const Center(child: Icon(Icons.video_file_outlined));
+    if (_error != null)
+      return const Center(child: Icon(Icons.video_file_outlined));
     if (controller == null || !controller.value.isInitialized) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -92,9 +94,12 @@ class _ReaderMediaState extends ConsumerState<ReaderMedia> {
             VideoPlayer(controller),
             IconButton.filledTonal(
               onPressed: () => setState(() {
-                controller.value.isPlaying ? controller.pause() : controller.play();
+                controller.value.isPlaying
+                    ? controller.pause()
+                    : controller.play();
               }),
-              icon: Icon(controller.value.isPlaying ? Icons.pause : Icons.play_arrow),
+              icon: Icon(
+                  controller.value.isPlaying ? Icons.pause : Icons.play_arrow),
             ),
           ],
         ),
@@ -119,7 +124,8 @@ class _ReaderMediaState extends ConsumerState<ReaderMedia> {
   }
 
   Future<Map<String, String>> _headers() async {
-    final cookies = await ref.read(authRepositoryProvider).cookiesFor(widget.source);
+    final cookies =
+        await ref.read(authRepositoryProvider).cookiesFor(widget.source);
     if (cookies.isEmpty) return const {};
     return {
       Headers.cookieHeader:

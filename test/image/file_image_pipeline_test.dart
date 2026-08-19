@@ -55,5 +55,6 @@ class _PassthroughDecoder extends ImageDecoder {
   Future<DecodedImage> decode(
     Uint8List source, {
     required int targetPixels,
-  }) async => DecodedImage(bytes: source, width: 1, height: source.length);
+  }) async =>
+      DecodedImage(bytes: source, width: 1, height: source.length);
 }

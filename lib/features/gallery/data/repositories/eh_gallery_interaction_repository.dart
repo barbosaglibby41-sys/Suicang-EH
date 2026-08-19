@@ -48,7 +48,8 @@ class EhGalleryInteractionRepository implements GalleryInteractionRepository {
         'comment_vote': upvote ? '1' : '-1',
       },
     );
-    final refreshed = await _client.getText(detailUrl, source: gallery.key.source);
+    final refreshed =
+        await _client.getText(detailUrl, source: gallery.key.source);
     return _parser.comments(refreshed);
   }
 

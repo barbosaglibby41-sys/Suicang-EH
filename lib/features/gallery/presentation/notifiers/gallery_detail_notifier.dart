@@ -43,12 +43,14 @@ class GalleryDetailNotifier
     if (state.isLoading) return;
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      final comments = await ref.read(galleryInteractionRepositoryProvider).voteComment(
-            gallery: state.gallery,
-            commentId: commentId,
-            upvote: upvote,
-          );
-      state = state.copyWith(comments: comments, isLoading: false, clearError: true);
+      final comments =
+          await ref.read(galleryInteractionRepositoryProvider).voteComment(
+                gallery: state.gallery,
+                commentId: commentId,
+                upvote: upvote,
+              );
+      state = state.copyWith(
+          comments: comments, isLoading: false, clearError: true);
     } catch (_) {
       state = state.copyWith(
         isLoading: false,

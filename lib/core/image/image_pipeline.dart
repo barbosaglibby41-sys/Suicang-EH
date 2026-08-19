@@ -42,11 +42,12 @@ class ImagePipeline {
       return memory;
     }
     final existing = _inFlight[request.cacheKey];
-    final decoded = existing ?? _decodeRequest(
-      request,
-      source: source,
-      cancelHandle: cancelHandle,
-    );
+    final decoded = existing ??
+        _decodeRequest(
+          request,
+          source: source,
+          cancelHandle: cancelHandle,
+        );
     if (existing == null) {
       _inFlight[request.cacheKey] = decoded;
     }

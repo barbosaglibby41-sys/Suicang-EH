@@ -41,7 +41,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               message: 'Reader 需要从作品详情打开。',
             );
           }
-          final startPage = int.tryParse(state.uri.queryParameters['page'] ?? '');
+          final startPage =
+              int.tryParse(state.uri.queryParameters['page'] ?? '');
           return ReaderScreen(
             gallery: gallery,
             initialIndex: startPage == null ? 0 : startPage - 1,
