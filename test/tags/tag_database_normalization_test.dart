@@ -20,7 +20,9 @@ void main() {
       'data': [
         {
           'namespace': 'rows',
-          'data': {'female': {'name': '女性'}},
+          'data': {
+            'female': {'name': '女性'}
+          },
         },
         {
           'namespace': 'female',

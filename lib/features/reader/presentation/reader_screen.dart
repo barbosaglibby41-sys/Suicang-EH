@@ -63,7 +63,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     super.dispose();
   }
 
-
   @override
   Widget build(BuildContext context) {
     final engine = _engine;

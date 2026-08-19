@@ -348,7 +348,9 @@ class _DetailSectionState extends State<_DetailSection> {
                 ],
                 const Spacer(),
                 Icon(
-                  _expanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                  _expanded
+                      ? Icons.keyboard_arrow_up
+                      : Icons.keyboard_arrow_down,
                   size: 22,
                 ),
               ],
@@ -361,9 +363,8 @@ class _DetailSectionState extends State<_DetailSection> {
             child: widget.child,
           ),
           secondChild: const SizedBox.shrink(),
-          crossFadeState: _expanded
-              ? CrossFadeState.showFirst
-              : CrossFadeState.showSecond,
+          crossFadeState:
+              _expanded ? CrossFadeState.showFirst : CrossFadeState.showSecond,
           duration: const Duration(milliseconds: 160),
         ),
       ],

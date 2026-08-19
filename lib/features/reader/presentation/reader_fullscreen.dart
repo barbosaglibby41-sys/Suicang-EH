@@ -3,7 +3,8 @@ import 'package:flutter/services.dart';
 class ReaderFullscreenController {
   ReaderFullscreenController({
     Future<void> Function(SystemUiMode mode)? setMode,
-    Future<void> Function(List<DeviceOrientation> orientations)? setOrientations,
+    Future<void> Function(List<DeviceOrientation> orientations)?
+        setOrientations,
   })  : _setMode = setMode ?? SystemChrome.setEnabledSystemUIMode,
         _setOrientations =
             setOrientations ?? SystemChrome.setPreferredOrientations;

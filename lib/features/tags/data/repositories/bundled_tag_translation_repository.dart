@@ -152,7 +152,8 @@ class BundledTagTranslationRepository extends ChangeNotifier
     _byEnglish.clear();
     _byChinese.clear();
     for (final value in tags.whereType<Map<String, dynamic>>()) {
-      final namespace = (value['namespace'] as String? ?? 'other').trim().toLowerCase();
+      final namespace =
+          (value['namespace'] as String? ?? 'other').trim().toLowerCase();
       final key = (value['key'] as String? ?? '').trim();
       final name = (value['name'] as String? ?? key).trim();
       if (key.isEmpty) continue;

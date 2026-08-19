@@ -5,7 +5,8 @@ import 'package:suicang_eh/features/gallery/domain/entities/gallery_tag.dart';
 import 'package:suicang_eh/features/gallery/presentation/widgets/translated_tag_groups.dart';
 
 void main() {
-  testWidgets('shows translated name and raw fallback together', (tester) async {
+  testWidgets('shows translated name and raw fallback together',
+      (tester) async {
     await tester.pumpWidget(
       const ProviderScope(
         child: MaterialApp(

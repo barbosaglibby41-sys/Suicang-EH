@@ -220,7 +220,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   );
                                   _dismissKeyboard();
                                   setState(() {});
-                                  notifier.search(_searchController.text.trim());
+                                  notifier
+                                      .search(_searchController.text.trim());
                                 },
                               ),
                           ],
