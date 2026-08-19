@@ -2,12 +2,12 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/image/image_providers.dart';
 import '../../../core/image/image_request.dart';
 import '../../../core/image/media_kind.dart';
+import 'reader_fullscreen.dart';
 import '../../gallery/domain/entities/gallery.dart';
 import '../../gallery/domain/entities/gallery_key.dart';
 import '../domain/engine/manga_reader_engine.dart';
@@ -41,6 +41,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   StreamSubscription<int>? _preloads;
   ReaderState? _state;
   late final ReaderKeepScreenOnController _keepScreenOn;
+  late final ReaderFullscreenController _fullscreen;
   final _pages = <int, Future<_LoadedPage>>{};
   bool _ready = false;
 
@@ -48,7 +49,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   void initState() {
     super.initState();
     _keepScreenOn = ref.read(readerKeepScreenOnControllerProvider);
-    unawaited(_enterImmersiveReader());
+    _fullscreen = ReaderFullscreenController();
+    unawaited(_fullscreen.enter());
     unawaited(_initialize());
   }
 
@@ -57,17 +59,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     _states?.cancel();
     _preloads?.cancel();
     unawaited(_keepScreenOn.dispose());
-    unawaited(_exitImmersiveReader());
+    unawaited(_fullscreen.exit());
     super.dispose();
   }
 
-  Future<void> _enterImmersiveReader() {
-    return SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-  }
-
-  Future<void> _exitImmersiveReader() {
-    return SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -86,6 +81,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     }
 
     return Scaffold(
+      extendBody: true,
+      extendBodyBehindAppBar: true,
       backgroundColor: Colors.black,
       body: Stack(
         children: [
