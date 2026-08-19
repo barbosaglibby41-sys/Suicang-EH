@@ -6,20 +6,28 @@ void main() {
   testWidgets('uses compact, medium and expanded adaptive columns',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(390, 844));
-    await tester.pumpWidget(const Directionality(
-      textDirection: TextDirection.ltr,
-      child: SizedBox.expand(),
-    ));
+    Future<void> pumpSize(Size size) async {
+      await tester.pumpWidget(
+        MediaQuery(
+          data: MediaQueryData(size: size),
+          child: const Directionality(
+            textDirection: TextDirection.ltr,
+            child: SizedBox.expand(),
+          ),
+        ),
+      );
+      await tester.pump();
+    }
+
+    await pumpSize(const Size(390, 844));
     expect(
         AdaptiveLayout.gridColumns(tester.element(find.byType(SizedBox))), 2);
 
-    await tester.binding.setSurfaceSize(const Size(800, 1024));
-    await tester.pump();
+    await pumpSize(const Size(800, 1024));
     expect(
         AdaptiveLayout.gridColumns(tester.element(find.byType(SizedBox))), 4);
 
-    await tester.binding.setSurfaceSize(const Size(1200, 900));
-    await tester.pump();
+    await pumpSize(const Size(1200, 900));
     expect(
         AdaptiveLayout.gridColumns(tester.element(find.byType(SizedBox))), 5);
     addTearDown(() => tester.binding.setSurfaceSize(null));
