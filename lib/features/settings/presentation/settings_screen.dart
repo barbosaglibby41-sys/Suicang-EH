@@ -77,7 +77,8 @@ class SettingsScreen extends ConsumerWidget {
         const SizedBox(height: 24),
         Card(
           child: ListTile(
-            leading: Icon(Icons.translate_outlined, color: theme.colorScheme.primary),
+            leading: Icon(Icons.translate_outlined,
+                color: theme.colorScheme.primary),
             title: const Text('标签翻译数据库'),
             subtitle: const Text('查看状态并更新最新中文翻译库。'),
             onTap: () => Navigator.of(context).push(

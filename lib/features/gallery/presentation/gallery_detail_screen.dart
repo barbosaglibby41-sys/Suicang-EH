@@ -295,7 +295,9 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
                                     : Icons.sell_outlined,
                                 size: 16,
                               ),
-                              label: Text(translated?.name ?? tag.translatedName ?? tag.rawName),
+                              label: Text(translated?.name ??
+                                  tag.translatedName ??
+                                  tag.rawName),
                               onPressed: () => context.push(
                                 '/home?query=${Uri.encodeComponent(tag.rawName)}',
                               ),

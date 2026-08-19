@@ -13,7 +13,8 @@ class LibraryFilter {
     LibrarySort? sort,
     DateTime? date,
     bool clearDate = false,
-  }) => LibraryFilter(
+  }) =>
+      LibraryFilter(
         sort: sort ?? this.sort,
         date: clearDate ? null : date ?? this.date,
       );

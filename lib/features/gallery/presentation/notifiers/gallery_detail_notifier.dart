@@ -43,7 +43,8 @@ class GalleryDetailNotifier
         ? _artistValue(state.gallery)
         : state.gallery.uploader;
     if (value.isEmpty) return;
-    final id = '${state.gallery.key.source.storageValue}:${kind.name}:${value.toLowerCase()}';
+    final id =
+        '${state.gallery.key.source.storageValue}:${kind.name}:${value.toLowerCase()}';
     final repository = ref.read(followedCreatorRepositoryProvider);
     if (await repository.isFollowing(id)) {
       await repository.unfollow(id);

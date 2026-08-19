@@ -160,7 +160,8 @@ class BundledTagTranslationRepository implements TagTranslationRepository {
       _byChinese.putIfAbsent(tag.name.toLowerCase(), () => tag);
     }
     _version = decoded['version'] as int? ?? 0;
-    _updatedAt = DateTime.tryParse(decoded['updatedAt'] as String? ?? '')?.toUtc();
+    _updatedAt =
+        DateTime.tryParse(decoded['updatedAt'] as String? ?? '')?.toUtc();
     _isBundled = isBundled;
     _ready = true;
   }

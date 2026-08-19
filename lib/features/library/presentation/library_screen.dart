@@ -232,7 +232,8 @@ class _LibraryFilterSheetState extends State<_LibraryFilterSheet> {
           Row(
             children: [
               TextButton(
-                onPressed: () => setState(() => _filter = const LibraryFilter()),
+                onPressed: () =>
+                    setState(() => _filter = const LibraryFilter()),
                 child: const Text('重置'),
               ),
               const Spacer(),
@@ -260,6 +261,7 @@ class _LibraryFilterSheetState extends State<_LibraryFilterSheet> {
       firstDate: DateTime(2010),
       lastDate: now,
     );
-    if (picked != null && mounted) setState(() => _filter = _filter.copyWith(date: picked));
+    if (picked != null && mounted)
+      setState(() => _filter = _filter.copyWith(date: picked));
   }
 }

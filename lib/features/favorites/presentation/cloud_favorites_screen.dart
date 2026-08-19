@@ -20,7 +20,8 @@ class CloudFavoritesScreen extends ConsumerStatefulWidget {
   final DateTime? date;
 
   @override
-  ConsumerState<CloudFavoritesScreen> createState() => _CloudFavoritesScreenState();
+  ConsumerState<CloudFavoritesScreen> createState() =>
+      _CloudFavoritesScreenState();
 }
 
 class _CloudFavoritesScreenState extends ConsumerState<CloudFavoritesScreen> {
@@ -48,7 +49,8 @@ class _CloudFavoritesScreenState extends ConsumerState<CloudFavoritesScreen> {
             initialValue: state.category,
             items: [
               for (final category in categories)
-                DropdownMenuItem(value: category.id, child: Text(category.name)),
+                DropdownMenuItem(
+                    value: category.id, child: Text(category.name)),
             ],
             onChanged: state.isLoading
                 ? null
@@ -73,8 +75,10 @@ class _CloudFavoritesScreenState extends ConsumerState<CloudFavoritesScreen> {
                   ? const Center(child: Text('这个收藏夹没有符合日期条件的作品。'))
                   : GridView.builder(
                       padding: const EdgeInsets.all(20),
-                      itemCount: galleries.length + (state.nextUrl == null ? 0 : 1),
-                      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                      itemCount:
+                          galleries.length + (state.nextUrl == null ? 0 : 1),
+                      gridDelegate:
+                          const SliverGridDelegateWithMaxCrossAxisExtent(
                         maxCrossAxisExtent: 180,
                         mainAxisSpacing: 16,
                         crossAxisSpacing: 14,
@@ -84,7 +88,9 @@ class _CloudFavoritesScreenState extends ConsumerState<CloudFavoritesScreen> {
                         if (index == galleries.length) {
                           return Card(
                             child: InkWell(
-                              onTap: state.isLoading ? null : () => notifier.load(more: true),
+                              onTap: state.isLoading
+                                  ? null
+                                  : () => notifier.load(more: true),
                               child: Center(
                                 child: state.isLoading
                                     ? const CircularProgressIndicator()
@@ -106,7 +112,9 @@ class _CloudFavoritesScreenState extends ConsumerState<CloudFavoritesScreen> {
         actions: [
           IconButton(
             tooltip: '刷新',
-            onPressed: state.isLoading ? null : () => notifier.load(category: state.category),
+            onPressed: state.isLoading
+                ? null
+                : () => notifier.load(category: state.category),
             icon: const Icon(Icons.refresh),
           ),
         ],
@@ -118,7 +126,8 @@ class _CloudFavoritesScreenState extends ConsumerState<CloudFavoritesScreen> {
   List<Gallery> _filterGalleries(List<Gallery> source) {
     final filtered = [
       for (final gallery in source)
-        if (widget.date == null || _sameDay(gallery.postedAt, widget.date!)) gallery,
+        if (widget.date == null || _sameDay(gallery.postedAt, widget.date!))
+          gallery,
     ];
     filtered.sort((left, right) {
       if (widget.sort == LibrarySort.publishedTime) {
@@ -131,7 +140,10 @@ class _CloudFavoritesScreenState extends ConsumerState<CloudFavoritesScreen> {
   }
 
   bool _sameDay(DateTime? value, DateTime date) =>
-      value != null && value.year == date.year && value.month == date.month && value.day == date.day;
+      value != null &&
+      value.year == date.year &&
+      value.month == date.month &&
+      value.day == date.day;
 }
 
 class _CloudGalleryCard extends StatelessWidget {

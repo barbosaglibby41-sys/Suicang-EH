@@ -170,7 +170,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   final query = _searchController.text;
                                   final token = _currentToken(query);
                                   final start = query.length - token.length;
-                                  final siteTag = '${tag.namespace}:"${tag.key}\$"';
+                                  final siteTag =
+                                      '${tag.namespace}:"${tag.key}\$"';
                                   _searchController.text =
                                       '${query.substring(0, start)}$siteTag ';
                                   _searchController.selection =

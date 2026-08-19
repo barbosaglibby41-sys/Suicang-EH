@@ -14,6 +14,7 @@ final favoriteGalleriesProvider =
   return ref.watch(libraryRepositoryProvider).watchFavorites(filter: filter);
 });
 
-final historyGalleriesProvider = StreamProvider.family((ref, LibraryFilter filter) {
+final historyGalleriesProvider =
+    StreamProvider.family((ref, LibraryFilter filter) {
   return ref.watch(libraryRepositoryProvider).watchHistory(filter: filter);
 });

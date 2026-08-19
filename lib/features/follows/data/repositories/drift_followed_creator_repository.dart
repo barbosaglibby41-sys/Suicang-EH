@@ -65,10 +65,9 @@ class DriftFollowedCreatorRepository implements FollowedCreatorRepository {
     final page = await _galleryRepository.search(
       GallerySearchQuery(source: creator.source, keyword: query),
     );
-    final sorted = [...page.galleries]
-      ..sort((left, right) =>
-          (right.postedAt ?? DateTime.fromMillisecondsSinceEpoch(0))
-              .compareTo(left.postedAt ?? DateTime.fromMillisecondsSinceEpoch(0)));
+    final sorted = [...page.galleries]..sort((left, right) => (right.postedAt ??
+            DateTime.fromMillisecondsSinceEpoch(0))
+        .compareTo(left.postedAt ?? DateTime.fromMillisecondsSinceEpoch(0)));
     final newest = sorted.isEmpty ? null : sorted.first.postedAt;
     await (_database.update(_database.followedCreators)
           ..where((table) => table.id.equals(creator.id)))

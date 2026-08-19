@@ -16,7 +16,8 @@ final tagTranslationReadyProvider = FutureProvider<bool>((ref) async {
   return repository.isReady;
 });
 
-final tagDatabaseStatusProvider = FutureProvider<TagDatabaseStatus>((ref) async {
+final tagDatabaseStatusProvider =
+    FutureProvider<TagDatabaseStatus>((ref) async {
   return ref.watch(tagTranslationRepositoryProvider).status();
 });
 

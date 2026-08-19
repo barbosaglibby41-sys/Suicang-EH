@@ -623,6 +623,12 @@ class $LibraryEntriesTable extends LibraryEntries
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('CHECK ("is_favorite" IN (0, 1))'),
       defaultValue: const Constant(false));
+  static const VerificationMeta _favoritedAtMeta =
+      const VerificationMeta('favoritedAt');
+  @override
+  late final GeneratedColumn<DateTime> favoritedAt = GeneratedColumn<DateTime>(
+      'favorited_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
   static const VerificationMeta _lastOpenedAtMeta =
       const VerificationMeta('lastOpenedAt');
   @override
@@ -630,7 +636,8 @@ class $LibraryEntriesTable extends LibraryEntries
       'last_opened_at', aliasedName, true,
       type: DriftSqlType.dateTime, requiredDuringInsert: false);
   @override
-  List<GeneratedColumn> get $columns => [source, gid, isFavorite, lastOpenedAt];
+  List<GeneratedColumn> get $columns =>
+      [source, gid, isFavorite, favoritedAt, lastOpenedAt];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -659,6 +666,12 @@ class $LibraryEntriesTable extends LibraryEntries
           isFavorite.isAcceptableOrUnknown(
               data['is_favorite']!, _isFavoriteMeta));
     }
+    if (data.containsKey('favorited_at')) {
+      context.handle(
+          _favoritedAtMeta,
+          favoritedAt.isAcceptableOrUnknown(
+              data['favorited_at']!, _favoritedAtMeta));
+    }
     if (data.containsKey('last_opened_at')) {
       context.handle(
           _lastOpenedAtMeta,
@@ -680,6 +693,8 @@ class $LibraryEntriesTable extends LibraryEntries
           .read(DriftSqlType.int, data['${effectivePrefix}gid'])!,
       isFavorite: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_favorite'])!,
+      favoritedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}favorited_at']),
       lastOpenedAt: attachedDatabase.typeMapping.read(
           DriftSqlType.dateTime, data['${effectivePrefix}last_opened_at']),
     );
@@ -695,11 +710,13 @@ class LibraryEntry extends DataClass implements Insertable<LibraryEntry> {
   final String source;
   final int gid;
   final bool isFavorite;
+  final DateTime? favoritedAt;
   final DateTime? lastOpenedAt;
   const LibraryEntry(
       {required this.source,
       required this.gid,
       required this.isFavorite,
+      this.favoritedAt,
       this.lastOpenedAt});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -707,6 +724,9 @@ class LibraryEntry extends DataClass implements Insertable<LibraryEntry> {
     map['source'] = Variable<String>(source);
     map['gid'] = Variable<int>(gid);
     map['is_favorite'] = Variable<bool>(isFavorite);
+    if (!nullToAbsent || favoritedAt != null) {
+      map['favorited_at'] = Variable<DateTime>(favoritedAt);
+    }
     if (!nullToAbsent || lastOpenedAt != null) {
       map['last_opened_at'] = Variable<DateTime>(lastOpenedAt);
     }
@@ -718,6 +738,9 @@ class LibraryEntry extends DataClass implements Insertable<LibraryEntry> {
       source: Value(source),
       gid: Value(gid),
       isFavorite: Value(isFavorite),
+      favoritedAt: favoritedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(favoritedAt),
       lastOpenedAt: lastOpenedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(lastOpenedAt),
@@ -731,6 +754,7 @@ class LibraryEntry extends DataClass implements Insertable<LibraryEntry> {
       source: serializer.fromJson<String>(json['source']),
       gid: serializer.fromJson<int>(json['gid']),
       isFavorite: serializer.fromJson<bool>(json['isFavorite']),
+      favoritedAt: serializer.fromJson<DateTime?>(json['favoritedAt']),
       lastOpenedAt: serializer.fromJson<DateTime?>(json['lastOpenedAt']),
     );
   }
@@ -741,6 +765,7 @@ class LibraryEntry extends DataClass implements Insertable<LibraryEntry> {
       'source': serializer.toJson<String>(source),
       'gid': serializer.toJson<int>(gid),
       'isFavorite': serializer.toJson<bool>(isFavorite),
+      'favoritedAt': serializer.toJson<DateTime?>(favoritedAt),
       'lastOpenedAt': serializer.toJson<DateTime?>(lastOpenedAt),
     };
   }
@@ -749,11 +774,13 @@ class LibraryEntry extends DataClass implements Insertable<LibraryEntry> {
           {String? source,
           int? gid,
           bool? isFavorite,
+          Value<DateTime?> favoritedAt = const Value.absent(),
           Value<DateTime?> lastOpenedAt = const Value.absent()}) =>
       LibraryEntry(
         source: source ?? this.source,
         gid: gid ?? this.gid,
         isFavorite: isFavorite ?? this.isFavorite,
+        favoritedAt: favoritedAt.present ? favoritedAt.value : this.favoritedAt,
         lastOpenedAt:
             lastOpenedAt.present ? lastOpenedAt.value : this.lastOpenedAt,
       );
@@ -763,6 +790,8 @@ class LibraryEntry extends DataClass implements Insertable<LibraryEntry> {
       gid: data.gid.present ? data.gid.value : this.gid,
       isFavorite:
           data.isFavorite.present ? data.isFavorite.value : this.isFavorite,
+      favoritedAt:
+          data.favoritedAt.present ? data.favoritedAt.value : this.favoritedAt,
       lastOpenedAt: data.lastOpenedAt.present
           ? data.lastOpenedAt.value
           : this.lastOpenedAt,
@@ -775,13 +804,15 @@ class LibraryEntry extends DataClass implements Insertable<LibraryEntry> {
           ..write('source: $source, ')
           ..write('gid: $gid, ')
           ..write('isFavorite: $isFavorite, ')
+          ..write('favoritedAt: $favoritedAt, ')
           ..write('lastOpenedAt: $lastOpenedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(source, gid, isFavorite, lastOpenedAt);
+  int get hashCode =>
+      Object.hash(source, gid, isFavorite, favoritedAt, lastOpenedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -789,6 +820,7 @@ class LibraryEntry extends DataClass implements Insertable<LibraryEntry> {
           other.source == this.source &&
           other.gid == this.gid &&
           other.isFavorite == this.isFavorite &&
+          other.favoritedAt == this.favoritedAt &&
           other.lastOpenedAt == this.lastOpenedAt);
 }
 
@@ -796,12 +828,14 @@ class LibraryEntriesCompanion extends UpdateCompanion<LibraryEntry> {
   final Value<String> source;
   final Value<int> gid;
   final Value<bool> isFavorite;
+  final Value<DateTime?> favoritedAt;
   final Value<DateTime?> lastOpenedAt;
   final Value<int> rowid;
   const LibraryEntriesCompanion({
     this.source = const Value.absent(),
     this.gid = const Value.absent(),
     this.isFavorite = const Value.absent(),
+    this.favoritedAt = const Value.absent(),
     this.lastOpenedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -809,6 +843,7 @@ class LibraryEntriesCompanion extends UpdateCompanion<LibraryEntry> {
     required String source,
     required int gid,
     this.isFavorite = const Value.absent(),
+    this.favoritedAt = const Value.absent(),
     this.lastOpenedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : source = Value(source),
@@ -817,6 +852,7 @@ class LibraryEntriesCompanion extends UpdateCompanion<LibraryEntry> {
     Expression<String>? source,
     Expression<int>? gid,
     Expression<bool>? isFavorite,
+    Expression<DateTime>? favoritedAt,
     Expression<DateTime>? lastOpenedAt,
     Expression<int>? rowid,
   }) {
@@ -824,6 +860,7 @@ class LibraryEntriesCompanion extends UpdateCompanion<LibraryEntry> {
       if (source != null) 'source': source,
       if (gid != null) 'gid': gid,
       if (isFavorite != null) 'is_favorite': isFavorite,
+      if (favoritedAt != null) 'favorited_at': favoritedAt,
       if (lastOpenedAt != null) 'last_opened_at': lastOpenedAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -833,12 +870,14 @@ class LibraryEntriesCompanion extends UpdateCompanion<LibraryEntry> {
       {Value<String>? source,
       Value<int>? gid,
       Value<bool>? isFavorite,
+      Value<DateTime?>? favoritedAt,
       Value<DateTime?>? lastOpenedAt,
       Value<int>? rowid}) {
     return LibraryEntriesCompanion(
       source: source ?? this.source,
       gid: gid ?? this.gid,
       isFavorite: isFavorite ?? this.isFavorite,
+      favoritedAt: favoritedAt ?? this.favoritedAt,
       lastOpenedAt: lastOpenedAt ?? this.lastOpenedAt,
       rowid: rowid ?? this.rowid,
     );
@@ -856,6 +895,9 @@ class LibraryEntriesCompanion extends UpdateCompanion<LibraryEntry> {
     if (isFavorite.present) {
       map['is_favorite'] = Variable<bool>(isFavorite.value);
     }
+    if (favoritedAt.present) {
+      map['favorited_at'] = Variable<DateTime>(favoritedAt.value);
+    }
     if (lastOpenedAt.present) {
       map['last_opened_at'] = Variable<DateTime>(lastOpenedAt.value);
     }
@@ -871,6 +913,7 @@ class LibraryEntriesCompanion extends UpdateCompanion<LibraryEntry> {
           ..write('source: $source, ')
           ..write('gid: $gid, ')
           ..write('isFavorite: $isFavorite, ')
+          ..write('favoritedAt: $favoritedAt, ')
           ..write('lastOpenedAt: $lastOpenedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -2943,6 +2986,452 @@ class SubscribedTagsCompanion extends UpdateCompanion<SubscribedTag> {
   }
 }
 
+class $FollowedCreatorsTable extends FollowedCreators
+    with TableInfo<$FollowedCreatorsTable, FollowedCreator> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $FollowedCreatorsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+      'source', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+      'kind', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _valueMeta = const VerificationMeta('value');
+  @override
+  late final GeneratedColumn<String> value = GeneratedColumn<String>(
+      'value', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _displayNameMeta =
+      const VerificationMeta('displayName');
+  @override
+  late final GeneratedColumn<String> displayName = GeneratedColumn<String>(
+      'display_name', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _lastCheckedAtMeta =
+      const VerificationMeta('lastCheckedAt');
+  @override
+  late final GeneratedColumn<DateTime> lastCheckedAt =
+      GeneratedColumn<DateTime>('last_checked_at', aliasedName, true,
+          type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _lastSeenPublishedAtMeta =
+      const VerificationMeta('lastSeenPublishedAt');
+  @override
+  late final GeneratedColumn<DateTime> lastSeenPublishedAt =
+      GeneratedColumn<DateTime>('last_seen_published_at', aliasedName, true,
+          type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        source,
+        kind,
+        value,
+        displayName,
+        createdAt,
+        lastCheckedAt,
+        lastSeenPublishedAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'followed_creators';
+  @override
+  VerificationContext validateIntegrity(Insertable<FollowedCreator> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('source')) {
+      context.handle(_sourceMeta,
+          source.isAcceptableOrUnknown(data['source']!, _sourceMeta));
+    } else if (isInserting) {
+      context.missing(_sourceMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+          _kindMeta, kind.isAcceptableOrUnknown(data['kind']!, _kindMeta));
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('value')) {
+      context.handle(
+          _valueMeta, value.isAcceptableOrUnknown(data['value']!, _valueMeta));
+    } else if (isInserting) {
+      context.missing(_valueMeta);
+    }
+    if (data.containsKey('display_name')) {
+      context.handle(
+          _displayNameMeta,
+          displayName.isAcceptableOrUnknown(
+              data['display_name']!, _displayNameMeta));
+    } else if (isInserting) {
+      context.missing(_displayNameMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('last_checked_at')) {
+      context.handle(
+          _lastCheckedAtMeta,
+          lastCheckedAt.isAcceptableOrUnknown(
+              data['last_checked_at']!, _lastCheckedAtMeta));
+    }
+    if (data.containsKey('last_seen_published_at')) {
+      context.handle(
+          _lastSeenPublishedAtMeta,
+          lastSeenPublishedAt.isAcceptableOrUnknown(
+              data['last_seen_published_at']!, _lastSeenPublishedAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  FollowedCreator map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return FollowedCreator(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      source: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}source'])!,
+      kind: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}kind'])!,
+      value: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}value'])!,
+      displayName: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}display_name'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      lastCheckedAt: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime, data['${effectivePrefix}last_checked_at']),
+      lastSeenPublishedAt: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime,
+          data['${effectivePrefix}last_seen_published_at']),
+    );
+  }
+
+  @override
+  $FollowedCreatorsTable createAlias(String alias) {
+    return $FollowedCreatorsTable(attachedDatabase, alias);
+  }
+}
+
+class FollowedCreator extends DataClass implements Insertable<FollowedCreator> {
+  final String id;
+  final String source;
+  final String kind;
+  final String value;
+  final String displayName;
+  final DateTime createdAt;
+  final DateTime? lastCheckedAt;
+  final DateTime? lastSeenPublishedAt;
+  const FollowedCreator(
+      {required this.id,
+      required this.source,
+      required this.kind,
+      required this.value,
+      required this.displayName,
+      required this.createdAt,
+      this.lastCheckedAt,
+      this.lastSeenPublishedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['source'] = Variable<String>(source);
+    map['kind'] = Variable<String>(kind);
+    map['value'] = Variable<String>(value);
+    map['display_name'] = Variable<String>(displayName);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || lastCheckedAt != null) {
+      map['last_checked_at'] = Variable<DateTime>(lastCheckedAt);
+    }
+    if (!nullToAbsent || lastSeenPublishedAt != null) {
+      map['last_seen_published_at'] = Variable<DateTime>(lastSeenPublishedAt);
+    }
+    return map;
+  }
+
+  FollowedCreatorsCompanion toCompanion(bool nullToAbsent) {
+    return FollowedCreatorsCompanion(
+      id: Value(id),
+      source: Value(source),
+      kind: Value(kind),
+      value: Value(value),
+      displayName: Value(displayName),
+      createdAt: Value(createdAt),
+      lastCheckedAt: lastCheckedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastCheckedAt),
+      lastSeenPublishedAt: lastSeenPublishedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSeenPublishedAt),
+    );
+  }
+
+  factory FollowedCreator.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return FollowedCreator(
+      id: serializer.fromJson<String>(json['id']),
+      source: serializer.fromJson<String>(json['source']),
+      kind: serializer.fromJson<String>(json['kind']),
+      value: serializer.fromJson<String>(json['value']),
+      displayName: serializer.fromJson<String>(json['displayName']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      lastCheckedAt: serializer.fromJson<DateTime?>(json['lastCheckedAt']),
+      lastSeenPublishedAt:
+          serializer.fromJson<DateTime?>(json['lastSeenPublishedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'source': serializer.toJson<String>(source),
+      'kind': serializer.toJson<String>(kind),
+      'value': serializer.toJson<String>(value),
+      'displayName': serializer.toJson<String>(displayName),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'lastCheckedAt': serializer.toJson<DateTime?>(lastCheckedAt),
+      'lastSeenPublishedAt': serializer.toJson<DateTime?>(lastSeenPublishedAt),
+    };
+  }
+
+  FollowedCreator copyWith(
+          {String? id,
+          String? source,
+          String? kind,
+          String? value,
+          String? displayName,
+          DateTime? createdAt,
+          Value<DateTime?> lastCheckedAt = const Value.absent(),
+          Value<DateTime?> lastSeenPublishedAt = const Value.absent()}) =>
+      FollowedCreator(
+        id: id ?? this.id,
+        source: source ?? this.source,
+        kind: kind ?? this.kind,
+        value: value ?? this.value,
+        displayName: displayName ?? this.displayName,
+        createdAt: createdAt ?? this.createdAt,
+        lastCheckedAt:
+            lastCheckedAt.present ? lastCheckedAt.value : this.lastCheckedAt,
+        lastSeenPublishedAt: lastSeenPublishedAt.present
+            ? lastSeenPublishedAt.value
+            : this.lastSeenPublishedAt,
+      );
+  FollowedCreator copyWithCompanion(FollowedCreatorsCompanion data) {
+    return FollowedCreator(
+      id: data.id.present ? data.id.value : this.id,
+      source: data.source.present ? data.source.value : this.source,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      value: data.value.present ? data.value.value : this.value,
+      displayName:
+          data.displayName.present ? data.displayName.value : this.displayName,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      lastCheckedAt: data.lastCheckedAt.present
+          ? data.lastCheckedAt.value
+          : this.lastCheckedAt,
+      lastSeenPublishedAt: data.lastSeenPublishedAt.present
+          ? data.lastSeenPublishedAt.value
+          : this.lastSeenPublishedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FollowedCreator(')
+          ..write('id: $id, ')
+          ..write('source: $source, ')
+          ..write('kind: $kind, ')
+          ..write('value: $value, ')
+          ..write('displayName: $displayName, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('lastCheckedAt: $lastCheckedAt, ')
+          ..write('lastSeenPublishedAt: $lastSeenPublishedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, source, kind, value, displayName,
+      createdAt, lastCheckedAt, lastSeenPublishedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is FollowedCreator &&
+          other.id == this.id &&
+          other.source == this.source &&
+          other.kind == this.kind &&
+          other.value == this.value &&
+          other.displayName == this.displayName &&
+          other.createdAt == this.createdAt &&
+          other.lastCheckedAt == this.lastCheckedAt &&
+          other.lastSeenPublishedAt == this.lastSeenPublishedAt);
+}
+
+class FollowedCreatorsCompanion extends UpdateCompanion<FollowedCreator> {
+  final Value<String> id;
+  final Value<String> source;
+  final Value<String> kind;
+  final Value<String> value;
+  final Value<String> displayName;
+  final Value<DateTime> createdAt;
+  final Value<DateTime?> lastCheckedAt;
+  final Value<DateTime?> lastSeenPublishedAt;
+  final Value<int> rowid;
+  const FollowedCreatorsCompanion({
+    this.id = const Value.absent(),
+    this.source = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.value = const Value.absent(),
+    this.displayName = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.lastCheckedAt = const Value.absent(),
+    this.lastSeenPublishedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  FollowedCreatorsCompanion.insert({
+    required String id,
+    required String source,
+    required String kind,
+    required String value,
+    required String displayName,
+    required DateTime createdAt,
+    this.lastCheckedAt = const Value.absent(),
+    this.lastSeenPublishedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        source = Value(source),
+        kind = Value(kind),
+        value = Value(value),
+        displayName = Value(displayName),
+        createdAt = Value(createdAt);
+  static Insertable<FollowedCreator> custom({
+    Expression<String>? id,
+    Expression<String>? source,
+    Expression<String>? kind,
+    Expression<String>? value,
+    Expression<String>? displayName,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? lastCheckedAt,
+    Expression<DateTime>? lastSeenPublishedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (source != null) 'source': source,
+      if (kind != null) 'kind': kind,
+      if (value != null) 'value': value,
+      if (displayName != null) 'display_name': displayName,
+      if (createdAt != null) 'created_at': createdAt,
+      if (lastCheckedAt != null) 'last_checked_at': lastCheckedAt,
+      if (lastSeenPublishedAt != null)
+        'last_seen_published_at': lastSeenPublishedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  FollowedCreatorsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? source,
+      Value<String>? kind,
+      Value<String>? value,
+      Value<String>? displayName,
+      Value<DateTime>? createdAt,
+      Value<DateTime?>? lastCheckedAt,
+      Value<DateTime?>? lastSeenPublishedAt,
+      Value<int>? rowid}) {
+    return FollowedCreatorsCompanion(
+      id: id ?? this.id,
+      source: source ?? this.source,
+      kind: kind ?? this.kind,
+      value: value ?? this.value,
+      displayName: displayName ?? this.displayName,
+      createdAt: createdAt ?? this.createdAt,
+      lastCheckedAt: lastCheckedAt ?? this.lastCheckedAt,
+      lastSeenPublishedAt: lastSeenPublishedAt ?? this.lastSeenPublishedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (value.present) {
+      map['value'] = Variable<String>(value.value);
+    }
+    if (displayName.present) {
+      map['display_name'] = Variable<String>(displayName.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (lastCheckedAt.present) {
+      map['last_checked_at'] = Variable<DateTime>(lastCheckedAt.value);
+    }
+    if (lastSeenPublishedAt.present) {
+      map['last_seen_published_at'] =
+          Variable<DateTime>(lastSeenPublishedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FollowedCreatorsCompanion(')
+          ..write('id: $id, ')
+          ..write('source: $source, ')
+          ..write('kind: $kind, ')
+          ..write('value: $value, ')
+          ..write('displayName: $displayName, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('lastCheckedAt: $lastCheckedAt, ')
+          ..write('lastSeenPublishedAt: $lastSeenPublishedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $TagDatabaseMetadataTable extends TagDatabaseMetadata
     with TableInfo<$TagDatabaseMetadataTable, TagDatabaseMetadataData> {
   @override
@@ -3534,6 +4023,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $SearchHistoryEntriesTable searchHistoryEntries =
       $SearchHistoryEntriesTable(this);
   late final $SubscribedTagsTable subscribedTags = $SubscribedTagsTable(this);
+  late final $FollowedCreatorsTable followedCreators =
+      $FollowedCreatorsTable(this);
   late final $TagDatabaseMetadataTable tagDatabaseMetadata =
       $TagDatabaseMetadataTable(this);
   late final $MigrationJournalTable migrationJournal =
@@ -3551,6 +4042,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         imageUrlCacheEntries,
         searchHistoryEntries,
         subscribedTags,
+        followedCreators,
         tagDatabaseMetadata,
         migrationJournal
       ];
@@ -3832,6 +4324,7 @@ typedef $$LibraryEntriesTableCreateCompanionBuilder = LibraryEntriesCompanion
   required String source,
   required int gid,
   Value<bool> isFavorite,
+  Value<DateTime?> favoritedAt,
   Value<DateTime?> lastOpenedAt,
   Value<int> rowid,
 });
@@ -3840,6 +4333,7 @@ typedef $$LibraryEntriesTableUpdateCompanionBuilder = LibraryEntriesCompanion
   Value<String> source,
   Value<int> gid,
   Value<bool> isFavorite,
+  Value<DateTime?> favoritedAt,
   Value<DateTime?> lastOpenedAt,
   Value<int> rowid,
 });
@@ -3861,6 +4355,9 @@ class $$LibraryEntriesTableFilterComposer
 
   ColumnFilters<bool> get isFavorite => $composableBuilder(
       column: $table.isFavorite, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get favoritedAt => $composableBuilder(
+      column: $table.favoritedAt, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get lastOpenedAt => $composableBuilder(
       column: $table.lastOpenedAt, builder: (column) => ColumnFilters(column));
@@ -3884,6 +4381,9 @@ class $$LibraryEntriesTableOrderingComposer
   ColumnOrderings<bool> get isFavorite => $composableBuilder(
       column: $table.isFavorite, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<DateTime> get favoritedAt => $composableBuilder(
+      column: $table.favoritedAt, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get lastOpenedAt => $composableBuilder(
       column: $table.lastOpenedAt,
       builder: (column) => ColumnOrderings(column));
@@ -3906,6 +4406,9 @@ class $$LibraryEntriesTableAnnotationComposer
 
   GeneratedColumn<bool> get isFavorite => $composableBuilder(
       column: $table.isFavorite, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get favoritedAt => $composableBuilder(
+      column: $table.favoritedAt, builder: (column) => column);
 
   GeneratedColumn<DateTime> get lastOpenedAt => $composableBuilder(
       column: $table.lastOpenedAt, builder: (column) => column);
@@ -3941,6 +4444,7 @@ class $$LibraryEntriesTableTableManager extends RootTableManager<
             Value<String> source = const Value.absent(),
             Value<int> gid = const Value.absent(),
             Value<bool> isFavorite = const Value.absent(),
+            Value<DateTime?> favoritedAt = const Value.absent(),
             Value<DateTime?> lastOpenedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
@@ -3948,6 +4452,7 @@ class $$LibraryEntriesTableTableManager extends RootTableManager<
             source: source,
             gid: gid,
             isFavorite: isFavorite,
+            favoritedAt: favoritedAt,
             lastOpenedAt: lastOpenedAt,
             rowid: rowid,
           ),
@@ -3955,6 +4460,7 @@ class $$LibraryEntriesTableTableManager extends RootTableManager<
             required String source,
             required int gid,
             Value<bool> isFavorite = const Value.absent(),
+            Value<DateTime?> favoritedAt = const Value.absent(),
             Value<DateTime?> lastOpenedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
@@ -3962,6 +4468,7 @@ class $$LibraryEntriesTableTableManager extends RootTableManager<
             source: source,
             gid: gid,
             isFavorite: isFavorite,
+            favoritedAt: favoritedAt,
             lastOpenedAt: lastOpenedAt,
             rowid: rowid,
           ),
@@ -5120,6 +5627,228 @@ typedef $$SubscribedTagsTableProcessedTableManager = ProcessedTableManager<
     ),
     SubscribedTag,
     PrefetchHooks Function()>;
+typedef $$FollowedCreatorsTableCreateCompanionBuilder
+    = FollowedCreatorsCompanion Function({
+  required String id,
+  required String source,
+  required String kind,
+  required String value,
+  required String displayName,
+  required DateTime createdAt,
+  Value<DateTime?> lastCheckedAt,
+  Value<DateTime?> lastSeenPublishedAt,
+  Value<int> rowid,
+});
+typedef $$FollowedCreatorsTableUpdateCompanionBuilder
+    = FollowedCreatorsCompanion Function({
+  Value<String> id,
+  Value<String> source,
+  Value<String> kind,
+  Value<String> value,
+  Value<String> displayName,
+  Value<DateTime> createdAt,
+  Value<DateTime?> lastCheckedAt,
+  Value<DateTime?> lastSeenPublishedAt,
+  Value<int> rowid,
+});
+
+class $$FollowedCreatorsTableFilterComposer
+    extends Composer<_$AppDatabase, $FollowedCreatorsTable> {
+  $$FollowedCreatorsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get source => $composableBuilder(
+      column: $table.source, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get kind => $composableBuilder(
+      column: $table.kind, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get value => $composableBuilder(
+      column: $table.value, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get displayName => $composableBuilder(
+      column: $table.displayName, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get lastCheckedAt => $composableBuilder(
+      column: $table.lastCheckedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get lastSeenPublishedAt => $composableBuilder(
+      column: $table.lastSeenPublishedAt,
+      builder: (column) => ColumnFilters(column));
+}
+
+class $$FollowedCreatorsTableOrderingComposer
+    extends Composer<_$AppDatabase, $FollowedCreatorsTable> {
+  $$FollowedCreatorsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get source => $composableBuilder(
+      column: $table.source, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+      column: $table.kind, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get value => $composableBuilder(
+      column: $table.value, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get displayName => $composableBuilder(
+      column: $table.displayName, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get lastCheckedAt => $composableBuilder(
+      column: $table.lastCheckedAt,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get lastSeenPublishedAt => $composableBuilder(
+      column: $table.lastSeenPublishedAt,
+      builder: (column) => ColumnOrderings(column));
+}
+
+class $$FollowedCreatorsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $FollowedCreatorsTable> {
+  $$FollowedCreatorsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get value =>
+      $composableBuilder(column: $table.value, builder: (column) => column);
+
+  GeneratedColumn<String> get displayName => $composableBuilder(
+      column: $table.displayName, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastCheckedAt => $composableBuilder(
+      column: $table.lastCheckedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastSeenPublishedAt => $composableBuilder(
+      column: $table.lastSeenPublishedAt, builder: (column) => column);
+}
+
+class $$FollowedCreatorsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $FollowedCreatorsTable,
+    FollowedCreator,
+    $$FollowedCreatorsTableFilterComposer,
+    $$FollowedCreatorsTableOrderingComposer,
+    $$FollowedCreatorsTableAnnotationComposer,
+    $$FollowedCreatorsTableCreateCompanionBuilder,
+    $$FollowedCreatorsTableUpdateCompanionBuilder,
+    (
+      FollowedCreator,
+      BaseReferences<_$AppDatabase, $FollowedCreatorsTable, FollowedCreator>
+    ),
+    FollowedCreator,
+    PrefetchHooks Function()> {
+  $$FollowedCreatorsTableTableManager(
+      _$AppDatabase db, $FollowedCreatorsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$FollowedCreatorsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$FollowedCreatorsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$FollowedCreatorsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> source = const Value.absent(),
+            Value<String> kind = const Value.absent(),
+            Value<String> value = const Value.absent(),
+            Value<String> displayName = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime?> lastCheckedAt = const Value.absent(),
+            Value<DateTime?> lastSeenPublishedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              FollowedCreatorsCompanion(
+            id: id,
+            source: source,
+            kind: kind,
+            value: value,
+            displayName: displayName,
+            createdAt: createdAt,
+            lastCheckedAt: lastCheckedAt,
+            lastSeenPublishedAt: lastSeenPublishedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String source,
+            required String kind,
+            required String value,
+            required String displayName,
+            required DateTime createdAt,
+            Value<DateTime?> lastCheckedAt = const Value.absent(),
+            Value<DateTime?> lastSeenPublishedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              FollowedCreatorsCompanion.insert(
+            id: id,
+            source: source,
+            kind: kind,
+            value: value,
+            displayName: displayName,
+            createdAt: createdAt,
+            lastCheckedAt: lastCheckedAt,
+            lastSeenPublishedAt: lastSeenPublishedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$FollowedCreatorsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $FollowedCreatorsTable,
+    FollowedCreator,
+    $$FollowedCreatorsTableFilterComposer,
+    $$FollowedCreatorsTableOrderingComposer,
+    $$FollowedCreatorsTableAnnotationComposer,
+    $$FollowedCreatorsTableCreateCompanionBuilder,
+    $$FollowedCreatorsTableUpdateCompanionBuilder,
+    (
+      FollowedCreator,
+      BaseReferences<_$AppDatabase, $FollowedCreatorsTable, FollowedCreator>
+    ),
+    FollowedCreator,
+    PrefetchHooks Function()>;
 typedef $$TagDatabaseMetadataTableCreateCompanionBuilder
     = TagDatabaseMetadataCompanion Function({
   Value<int> id,
@@ -5475,6 +6204,8 @@ class $AppDatabaseManager {
       $$SearchHistoryEntriesTableTableManager(_db, _db.searchHistoryEntries);
   $$SubscribedTagsTableTableManager get subscribedTags =>
       $$SubscribedTagsTableTableManager(_db, _db.subscribedTags);
+  $$FollowedCreatorsTableTableManager get followedCreators =>
+      $$FollowedCreatorsTableTableManager(_db, _db.followedCreators);
   $$TagDatabaseMetadataTableTableManager get tagDatabaseMetadata =>
       $$TagDatabaseMetadataTableTableManager(_db, _db.tagDatabaseMetadata);
   $$MigrationJournalTableTableManager get migrationJournal =>

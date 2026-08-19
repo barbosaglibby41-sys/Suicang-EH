@@ -169,7 +169,8 @@ class AppDatabase extends _$AppDatabase {
         onCreate: (migrator) async => migrator.createAll(),
         onUpgrade: (migrator, from, to) async {
           if (from < 2) {
-            await migrator.addColumn(libraryEntries, libraryEntries.favoritedAt);
+            await migrator.addColumn(
+                libraryEntries, libraryEntries.favoritedAt);
             await customStatement(
               'UPDATE library_entries SET favorited_at = last_opened_at '
               'WHERE is_favorite = 1 AND favorited_at IS NULL',

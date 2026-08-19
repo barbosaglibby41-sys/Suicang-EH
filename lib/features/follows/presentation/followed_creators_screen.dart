@@ -11,10 +11,12 @@ class FollowedCreatorsScreen extends ConsumerStatefulWidget {
   const FollowedCreatorsScreen({super.key});
 
   @override
-  ConsumerState<FollowedCreatorsScreen> createState() => _FollowedCreatorsScreenState();
+  ConsumerState<FollowedCreatorsScreen> createState() =>
+      _FollowedCreatorsScreenState();
 }
 
-class _FollowedCreatorsScreenState extends ConsumerState<FollowedCreatorsScreen> {
+class _FollowedCreatorsScreenState
+    extends ConsumerState<FollowedCreatorsScreen> {
   final _results = <String, List<Gallery>>{};
   final _loading = <String>{};
   var _initialRefreshTriggered = false;
@@ -35,7 +37,7 @@ class _FollowedCreatorsScreenState extends ConsumerState<FollowedCreatorsScreen>
   Widget build(BuildContext context) {
     final followed = ref.watch(followedCreatorsProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('关注')), 
+      appBar: AppBar(title: const Text('关注')),
       body: followed.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, __) => const Center(child: Text('无法读取关注列表。')),
@@ -65,7 +67,8 @@ class _FollowedCreatorsScreenState extends ConsumerState<FollowedCreatorsScreen>
   Future<void> _refresh(FollowedCreator creator) async {
     setState(() => _loading.add(creator.id));
     try {
-      final results = await ref.read(followedCreatorRepositoryProvider).refresh(creator);
+      final results =
+          await ref.read(followedCreatorRepositoryProvider).refresh(creator);
       if (mounted) setState(() => _results[creator.id] = results);
     } finally {
       if (mounted) setState(() => _loading.remove(creator.id));
@@ -99,17 +102,28 @@ class _CreatorSection extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(creator.kind == FollowedCreatorKind.artist ? Icons.brush_outlined : Icons.person_outline),
+                Icon(creator.kind == FollowedCreatorKind.artist
+                    ? Icons.brush_outlined
+                    : Icons.person_outline),
                 const SizedBox(width: 8),
-                Expanded(child: Text(creator.displayName, style: Theme.of(context).textTheme.titleMedium)),
-                IconButton(tooltip: '取消关注', onPressed: onUnfollow, icon: const Icon(Icons.person_remove_outlined)),
+                Expanded(
+                    child: Text(creator.displayName,
+                        style: Theme.of(context).textTheme.titleMedium)),
+                IconButton(
+                    tooltip: '取消关注',
+                    onPressed: onUnfollow,
+                    icon: const Icon(Icons.person_remove_outlined)),
               ],
             ),
             Text(creator.kind == FollowedCreatorKind.artist ? '作者' : '发布者'),
             const SizedBox(height: 8),
             OutlinedButton.icon(
               onPressed: loading ? null : onRefresh,
-              icon: loading ? const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.refresh),
+              icon: loading
+                  ? const SizedBox.square(
+                      dimension: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.refresh),
               label: const Text('检查新作品'),
             ),
             if (galleries.isNotEmpty) ...[
@@ -125,13 +139,16 @@ class _CreatorSection extends StatelessWidget {
                     return SizedBox(
                       width: 104,
                       child: InkWell(
-                        onTap: () => context.push('/gallery/${gallery.key.source.storageValue}/${gallery.key.gid}', extra: gallery),
+                        onTap: () => context.push(
+                            '/gallery/${gallery.key.source.storageValue}/${gallery.key.gid}',
+                            extra: gallery),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Expanded(child: GalleryCover(gallery: gallery)),
                             const SizedBox(height: 5),
-                            Text(gallery.title, maxLines: 2, overflow: TextOverflow.ellipsis),
+                            Text(gallery.title,
+                                maxLines: 2, overflow: TextOverflow.ellipsis),
                           ],
                         ),
                       ),

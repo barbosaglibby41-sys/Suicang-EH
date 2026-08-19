@@ -11,7 +11,6 @@ final galleryRepositoryProvider = Provider<GalleryRepository>((ref) {
   return EhGalleryRepository(
     database: ref.watch(appDatabaseProvider),
     client: ref.watch(siteHttpClientProvider),
-    preferPublicDetailRedirect:
-        preferences?.preferPublicDetailRedirect ?? true,
+    preferPublicDetailRedirect: preferences?.preferPublicDetailRedirect ?? true,
   );
 });

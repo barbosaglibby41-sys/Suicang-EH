@@ -239,7 +239,8 @@ class EhGalleryRepository implements GalleryRepository {
   }
 
   Uri _preferredDetailUri(Gallery gallery, Uri sourceUri) {
-    if (!_preferPublicDetailRedirect || gallery.key.source != SiteSource.exHentai) {
+    if (!_preferPublicDetailRedirect ||
+        gallery.key.source != SiteSource.exHentai) {
       return sourceUri;
     }
     if (!sourceUri.host.toLowerCase().contains('exhentai')) return sourceUri;

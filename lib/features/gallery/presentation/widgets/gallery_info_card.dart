@@ -22,15 +22,24 @@ class GalleryInfoCard extends StatelessWidget {
       _InfoItem('页数', '${gallery.pageCount}', Icons.layers_outlined),
       _InfoItem(
         '发布',
-        gallery.postedAt == null ? '未知' : RelativeTime.format(gallery.postedAt!),
+        gallery.postedAt == null
+            ? '未知'
+            : RelativeTime.format(gallery.postedAt!),
         Icons.schedule_outlined,
         detail: gallery.postedAt == null
             ? null
-            : gallery.postedAt!.toLocal().toIso8601String().replaceFirst('T', ' ').split('.').first,
+            : gallery.postedAt!
+                .toLocal()
+                .toIso8601String()
+                .replaceFirst('T', ' ')
+                .split('.')
+                .first,
       ),
       _InfoItem('大小', metadata.fileSize ?? '未知', Icons.storage_outlined),
-      _InfoItem('收藏', metadata.favoriteCount?.toString() ?? '—', Icons.favorite_border),
-      _InfoItem('评分', gallery.rating?.toStringAsFixed(2) ?? '—', Icons.star_outline),
+      _InfoItem('收藏', metadata.favoriteCount?.toString() ?? '—',
+          Icons.favorite_border),
+      _InfoItem(
+          '评分', gallery.rating?.toStringAsFixed(2) ?? '—', Icons.star_outline),
     ];
 
     return Semantics(
@@ -62,9 +71,11 @@ class GalleryInfoCard extends StatelessWidget {
                           VerticalDivider(
                             width: 1,
                             thickness: 1,
-                            color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+                            color: colorScheme.outlineVariant
+                                .withValues(alpha: 0.5),
                           ),
-                        Expanded(child: _InfoCell(item: values[row * 3 + column])),
+                        Expanded(
+                            child: _InfoCell(item: values[row * 3 + column])),
                       ],
                     ],
                   ),
@@ -116,7 +127,8 @@ class _InfoCell extends StatelessWidget {
               item.value,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+              style:
+                  textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
             ),
           ],
         ),
