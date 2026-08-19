@@ -141,8 +141,8 @@ class AppScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     final destinations = AppRoute.values;
     final body = RepaintBoundary(
-      child: SafeArea(
-        top: false,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 82),
         child: navigationShell,
       ),
     );
@@ -191,10 +191,29 @@ class AppScaffold extends StatelessWidget {
           body: body,
           bottomNavigationBar: SafeArea(
             top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 6, 20, 14),
+            minimum: const EdgeInsets.fromLTRB(18, 4, 18, 10),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xE617181E)
+                    : Colors.white.withValues(alpha: 0.94),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .outlineVariant
+                      .withValues(alpha: 0.55),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.24),
+                    blurRadius: 22,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(999),
+                borderRadius: BorderRadius.circular(24),
                 child: NavigationBar(
                   selectedIndex: navigationShell.currentIndex,
                   onDestinationSelected: switchTab,

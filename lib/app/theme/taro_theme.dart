@@ -104,15 +104,17 @@ abstract final class TaroTheme {
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        height: 68,
-        backgroundColor: dark ? const Color(0xEE101117) : Colors.white,
+        height: 62,
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
         indicatorColor:
-            dark ? SuicangColors.elevated : scheme.secondaryContainer,
+            dark ? const Color(0xFF2A2B34) : scheme.secondaryContainer,
         labelTextStyle: WidgetStatePropertyAll(
           TextStyle(
-              color: scheme.onSurface,
-              fontSize: 11,
-              fontWeight: FontWeight.w600),
+            color: scheme.onSurface,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
       pageTransitionsTheme: const PageTransitionsTheme(
