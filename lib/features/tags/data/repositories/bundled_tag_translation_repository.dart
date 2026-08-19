@@ -31,14 +31,19 @@ class BundledTagTranslationRepository implements TagTranslationRepository {
   @override
   Future<void> loadBundled() async {
     if (_ready) return;
-    final local = await _localFile();
-    if (await local.exists()) {
-      try {
-        await _apply(await local.readAsString(), isBundled: false);
-        return;
-      } catch (_) {
-        await local.delete();
+    try {
+      final local = await _localFile();
+      if (await local.exists()) {
+        try {
+          await _apply(await local.readAsString(), isBundled: false);
+          return;
+        } catch (_) {
+          await local.delete();
+        }
       }
+    } catch (_) {
+      // path_provider may be unavailable in pure widget/unit tests.
+      // The bundled asset remains a safe read-only fallback.
     }
     await _apply(await rootBundle.loadString(_assetPath), isBundled: true);
   }

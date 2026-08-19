@@ -21,10 +21,13 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final _searchController = TextEditingController();
+  var _initialized = false;
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_initialized) return;
+    _initialized = true;
     final initialQuery = GoRouterState.of(context).uri.queryParameters['query'];
     if (initialQuery != null && initialQuery.isNotEmpty) {
       _searchController.text = initialQuery;
