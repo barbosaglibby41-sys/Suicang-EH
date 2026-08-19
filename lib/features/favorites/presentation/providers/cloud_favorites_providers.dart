@@ -7,6 +7,16 @@ import '../../domain/repositories/cloud_favorites_repository.dart';
 import '../../../gallery/domain/entities/gallery.dart';
 import '../../../gallery/domain/entities/gallery_key.dart';
 
+class CloudFavoriteStatus {
+  const CloudFavoriteStatus({
+    required this.category,
+    required this.isFavorite,
+  });
+
+  final int category;
+  final bool isFavorite;
+}
+
 final cloudFavoritesRepositoryProvider =
     Provider<CloudFavoritesRepository>((ref) {
   return EhCloudFavoritesRepository(client: ref.watch(siteHttpClientProvider));
@@ -61,6 +71,38 @@ class CloudFavoritesNotifier extends Notifier<CloudFavoritesState> {
   @override
   CloudFavoritesState build() =>
       const CloudFavoritesState(source: SiteSource.eHentai);
+
+  bool contains(Gallery gallery) =>
+      state.galleries.any((item) => item.key == gallery.key);
+
+  Future<void> setFavorite({
+    required Gallery gallery,
+    required int category,
+    required bool value,
+  }) async {
+    if (state.isLoading) return;
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      await ref.read(cloudFavoritesRepositoryProvider).setFavorite(
+            gallery: gallery,
+            category: category,
+            value: value,
+          );
+      final updated = [...state.galleries];
+      if (value && category == state.category &&
+          !updated.any((item) => item.key == gallery.key)) {
+        updated.insert(0, gallery);
+      } else if (!value) {
+        updated.removeWhere((item) => item.key == gallery.key);
+      }
+      state = state.copyWith(galleries: updated, isLoading: false, clearError: true);
+    } catch (_) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: '账户收藏更新失败。请确认登录状态后重试。',
+      );
+    }
+  }
 
   Future<void> load({int? category, bool more = false}) async {
     if (state.isLoading) return;

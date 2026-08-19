@@ -10,6 +10,7 @@ import '../domain/entities/gallery.dart';
 import 'notifiers/gallery_detail_notifier.dart';
 import 'widgets/gallery_comment_card.dart';
 import 'widgets/comment_editor_sheet.dart';
+import 'widgets/cloud_favorite_sheet.dart';
 import 'widgets/gallery_info_card.dart';
 import 'widgets/gallery_cover_placeholder.dart';
 import 'widgets/preview_strip.dart';
@@ -158,11 +159,15 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
                     ),
                     const SizedBox(width: 12),
                     IconButton(
-                      tooltip: '加入账户收藏夹 1',
+                      tooltip: '账户收藏',
                       onPressed: state.isLoading
                           ? null
-                          : () => notifier.setCloudFavorite(
-                              category: 0, value: true),
+                          : () => showModalBottomSheet<void>(
+                                context: context,
+                                isScrollControlled: true,
+                                builder: (_) =>
+                                    CloudFavoriteSheet(gallery: gallery),
+                              ),
                       icon: const Icon(Icons.cloud_upload_outlined),
                     ),
                     const SizedBox(width: 12),
