@@ -100,12 +100,14 @@ class EhHtmlParser {
         .toList()
       ..sort((left, right) => left.rawName.compareTo(right.rawName));
 
+    final posted = _detailValue(html, 'Posted');
     final gallery = fallback.copyWith(
       title: title == null ? null : _clean(title),
       category: category == null ? null : _clean(category),
       uploader: uploader == null ? null : _clean(uploader),
       thumbnailUrl: cover == null ? null : Uri.tryParse(_decode(cover)),
       pageCount: int.tryParse((pages ?? '').replaceAll(',', '')),
+      postedAt: posted == null ? null : _parsePostedAt(posted),
       tags: uniqueTags.isEmpty ? fallback.tags : uniqueTags,
     );
     return GalleryDetail(
@@ -320,10 +322,10 @@ class EhHtmlParser {
                   row) ??
               '',
         ),
-        postedAt: DateTime.tryParse(
+        postedAt: _parsePostedAt(
           _clean(
-              _first(r'''id=["']postedpop_\d+["'][^>]*>(.*?)</div>''', row) ??
-                  ''),
+            _first(r'''id=["']postedpop_\d+["'][^>]*>(.*?)</div>''', row) ?? '',
+          ),
         ),
         rating: double.tryParse(
             _first(r'''Average:\s*([0-9]+(?:\.[0-9]+)?)''', row) ?? ''),
@@ -331,6 +333,38 @@ class EhHtmlParser {
       );
     }
     return result;
+  }
+
+  DateTime? _parsePostedAt(String value) {
+    final iso = DateTime.tryParse(value);
+    if (iso != null) return iso.toUtc();
+    final match = RegExp(
+      r'^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4}),\s*(\d{1,2}):(\d{2})$',
+    ).firstMatch(value);
+    if (match == null) return null;
+    const months = {
+      'january': 1,
+      'february': 2,
+      'march': 3,
+      'april': 4,
+      'may': 5,
+      'june': 6,
+      'july': 7,
+      'august': 8,
+      'september': 9,
+      'october': 10,
+      'november': 11,
+      'december': 12,
+    };
+    final month = months[match.group(2)!.toLowerCase()];
+    if (month == null) return null;
+    return DateTime.utc(
+      int.parse(match.group(3)!),
+      month,
+      int.parse(match.group(1)!),
+      int.parse(match.group(4)!),
+      int.parse(match.group(5)!),
+    );
   }
 
   String? _first(String pattern, String text) {

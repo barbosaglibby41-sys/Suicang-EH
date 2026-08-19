@@ -54,6 +54,7 @@ void main() {
     expect(detail.gallery.pageCount, 1234);
     expect(detail.gallery.tags.map((tag) => tag.rawName),
         ['artist:sample', 'female:example']);
+    expect(detail.gallery.postedAt, DateTime.utc(2026, 8, 19, 10, 57));
     expect(detail.metadata.language, 'English');
     expect(detail.metadata.fileSize, '123 MB');
     expect(detail.metadata.favoriteCount, 456);
