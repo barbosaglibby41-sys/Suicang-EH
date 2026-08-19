@@ -1,7 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../gallery/domain/entities/gallery_key.dart';
+import '../../../core/network/network_exception.dart';
+import '../../../authentication/presentation/providers/auth_providers.dart';
+import '../../../authentication/domain/entities/session_validation.dart';
 import '../../../gallery/domain/entities/gallery_search_query.dart';
+import '../../../gallery/domain/entities/gallery_page_result.dart';
 import '../../../gallery/domain/repositories/gallery_repository.dart';
 import '../../../gallery/presentation/providers/gallery_providers.dart';
 import '../../../tags/presentation/providers/tag_translation_providers.dart';
@@ -35,7 +39,7 @@ class DiscoveryNotifier extends Notifier<DiscoveryState> {
     }
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      final result = await _repository.discover(source: state.source);
+      final result = await _discoverWithExRecovery();
       state = state.copyWith(
         galleries: result.galleries,
         nextCursor: result.nextCursor,
@@ -45,11 +49,35 @@ class DiscoveryNotifier extends Notifier<DiscoveryState> {
         isRandom: false,
         clearError: true,
       );
+    } on NetworkException catch (error) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: state.source == SiteSource.exHentai &&
+                error.kind == NetworkFailureKind.authenticationRequired
+            ? 'ExHentai 会话无效。请在账户与会话中重新验证或刷新 ExHentai。'
+            : '无法加载发现内容。请检查网络和站点会话后重试。',
+      );
     } catch (_) {
       state = state.copyWith(
         isLoading: false,
         errorMessage: '无法加载发现内容。请检查网络和站点会话后重试。',
       );
+    }
+  }
+
+  Future<GalleryPageResult> _discoverWithExRecovery() async {
+    try {
+      return await _repository.discover(source: state.source);
+    } on NetworkException catch (error) {
+      if (state.source != SiteSource.exHentai ||
+          error.kind != NetworkFailureKind.authenticationRequired) {
+        rethrow;
+      }
+      final refreshed = await ref
+          .read(sessionServiceProvider)
+          .refreshExHentaiSession();
+      if (refreshed.status != SessionValidationStatus.valid) rethrow;
+      return _repository.discover(source: state.source);
     }
   }
 
@@ -219,9 +247,10 @@ class DiscoveryNotifier extends Notifier<DiscoveryState> {
     if (state.source == source) {
       return;
     }
+    final current = await ref.read(sitePreferencesProvider.future);
     await ref
         .read(sitePreferencesProvider.notifier)
-        .setPreferences(SitePreferences(source: source));
+        .setPreferences(current.copyWith(source: source));
     state = DiscoveryState(source: source);
     await load(force: true);
   }

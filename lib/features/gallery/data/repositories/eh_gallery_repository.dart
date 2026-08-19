@@ -222,6 +222,7 @@ class EhGalleryRepository implements GalleryRepository {
   Future<GalleryPageResult> _loadPage(Uri uri) async {
     final source = _sourceFromHost(uri.host);
     final html = await _client.getText(uri, source: source);
+    _ensureAccessiblePage(html, source: source);
     final result = _parser.galleriesPage(
       html: html,
       source: source,
@@ -238,6 +239,22 @@ class EhGalleryRepository implements GalleryRepository {
         [for (final gallery in galleries) _galleryCompanion(gallery)],
       );
     });
+  }
+
+  void _ensureAccessiblePage(String html, {required SiteSource source}) {
+    if (source != SiteSource.exHentai) return;
+    final normalized = html.toLowerCase();
+    final denied = normalized.contains('sad panda') ||
+        normalized.contains('exhentai.org is closed') ||
+        normalized.contains('you are not allowed to access this') ||
+        normalized.contains('restricted access') ||
+        normalized.contains('login') && normalized.contains('igneous');
+    if (denied) {
+      throw const NetworkException(
+        kind: NetworkFailureKind.authenticationRequired,
+        message: 'ExHentai 会话已失效，请重新验证或刷新会话。',
+      );
+    }
   }
 
   Uri _preferredDetailUri(Gallery gallery, Uri sourceUri) {
