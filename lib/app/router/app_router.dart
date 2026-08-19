@@ -70,31 +70,45 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           );
         },
       ),
-      ShellRoute(
-        builder: (context, state, child) => AppScaffold(
-          currentPath: state.uri.path,
-          child: child,
-        ),
-        routes: [
-          GoRoute(
-            path: AppRoute.home.path,
-            builder: (context, state) => const HomeScreen(),
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) =>
+            AppScaffold(navigationShell: navigationShell),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoute.home.path,
+                builder: (context, state) => const HomeScreen(),
+              ),
+            ],
           ),
-          GoRoute(
-            path: AppRoute.library.path,
-            builder: (context, state) => const LibraryScreen(),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoute.library.path,
+                builder: (context, state) => const LibraryScreen(),
+              ),
+            ],
           ),
-          GoRoute(
-            path: AppRoute.downloads.path,
-            builder: (context, state) => const DownloadsScreen(),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoute.downloads.path,
+                builder: (context, state) => const DownloadsScreen(),
+              ),
+              GoRoute(
+                path: '/offline',
+                builder: (context, state) => const OfflineLibraryScreen(),
+              ),
+            ],
           ),
-          GoRoute(
-            path: '/offline',
-            builder: (context, state) => const OfflineLibraryScreen(),
-          ),
-          GoRoute(
-            path: AppRoute.settings.path,
-            builder: (context, state) => const SettingsScreen(),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoute.settings.path,
+                builder: (context, state) => const SettingsScreen(),
+              ),
+            ],
           ),
         ],
       ),
@@ -117,37 +131,41 @@ enum AppRoute {
 
 class AppScaffold extends StatelessWidget {
   const AppScaffold({
-    required this.currentPath,
-    required this.child,
+    required this.navigationShell,
     super.key,
   });
 
-  final String currentPath;
-  final Widget child;
+  final StatefulNavigationShell navigationShell;
 
   @override
   Widget build(BuildContext context) {
-    final selectedIndex = AppRoute.values.indexWhere(
-      (route) => route.path == currentPath,
+    final destinations = AppRoute.values;
+    final body = RepaintBoundary(
+      child: SafeArea(
+        top: false,
+        child: navigationShell,
+      ),
     );
-    final safeIndex = selectedIndex < 0 ? 0 : selectedIndex;
+
+    void switchTab(int index) {
+      navigationShell.goBranch(
+        index,
+        initialLocation: index == navigationShell.currentIndex,
+      );
+    }
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final isWide = constraints.maxWidth >= 840;
-        final destinations = AppRoute.values;
-        final body = SafeArea(top: false, child: child);
-
         if (isWide) {
           return Scaffold(
             body: Row(
               children: [
                 SafeArea(
                   child: NavigationRail(
-                    selectedIndex: safeIndex,
+                    selectedIndex: navigationShell.currentIndex,
                     labelType: NavigationRailLabelType.all,
-                    onDestinationSelected: (index) =>
-                        context.go(destinations[index].path),
+                    onDestinationSelected: switchTab,
                     leading: const Padding(
                       padding: EdgeInsets.symmetric(vertical: 20),
                       child: Icon(Icons.menu_book_rounded),
@@ -172,9 +190,8 @@ class AppScaffold extends StatelessWidget {
         return Scaffold(
           body: body,
           bottomNavigationBar: NavigationBar(
-            selectedIndex: safeIndex,
-            onDestinationSelected: (index) =>
-                context.go(destinations[index].path),
+            selectedIndex: navigationShell.currentIndex,
+            onDestinationSelected: switchTab,
             destinations: [
               for (final route in destinations)
                 NavigationDestination(
