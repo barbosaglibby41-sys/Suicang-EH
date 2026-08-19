@@ -1,8 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:dio/dio.dart';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
@@ -128,8 +126,9 @@ class _ReaderMediaState extends ConsumerState<ReaderMedia> {
         await ref.read(authRepositoryProvider).cookiesFor(widget.source);
     if (cookies.isEmpty) return const {};
     return {
-      Headers.cookieHeader:
-          cookies.map((cookie) => '${cookie.name}=${cookie.value}').join('; '),
+      'Cookie': cookies
+          .map((cookie) => '${cookie.name}=${cookie.value}')
+          .join('; '),
     };
   }
 

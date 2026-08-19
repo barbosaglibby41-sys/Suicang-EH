@@ -4,6 +4,7 @@ import 'package:suicang_eh/core/network/network_exception.dart';
 import 'package:suicang_eh/core/network/site_http_client.dart';
 import 'package:suicang_eh/features/authentication/data/datasources/secure_cookie_store.dart';
 import 'package:suicang_eh/features/authentication/data/repositories/secure_auth_repository.dart';
+import 'package:suicang_eh/features/authentication/domain/entities/session_cookie.dart';
 import 'package:suicang_eh/features/gallery/data/repositories/eh_gallery_interaction_repository.dart';
 import 'package:suicang_eh/features/gallery/domain/entities/gallery.dart';
 import 'package:suicang_eh/features/gallery/domain/entities/gallery_key.dart';

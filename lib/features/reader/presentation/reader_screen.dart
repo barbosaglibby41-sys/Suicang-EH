@@ -8,6 +8,7 @@ import '../../../core/image/image_providers.dart';
 import '../../../core/image/image_request.dart';
 import '../../../core/image/media_kind.dart';
 import '../../gallery/domain/entities/gallery.dart';
+import '../../gallery/domain/entities/gallery_key.dart';
 import '../domain/engine/manga_reader_engine.dart';
 import '../domain/entities/reader_models.dart';
 import '../domain/page_source/page_source.dart';
