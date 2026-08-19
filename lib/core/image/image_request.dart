@@ -13,6 +13,10 @@ class ImageRequest {
   final ImageVariant variant;
   final int targetPixels;
 
+  /// Network bytes remain cacheable, while decode callers use this target to
+  /// cap raster memory for covers and reader pages.
+  int get decodeTargetPixels => targetPixels.clamp(1, 4096);
+
   String get cacheKey => [
         url.toString(),
         referer?.toString() ?? '',

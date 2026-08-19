@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import '../../features/gallery/domain/entities/gallery_key.dart';
 import '../../core/network/site_http_client.dart';
 import 'disk_image_cache.dart';
+import 'image_decoder.dart';
 import 'image_request.dart';
 import 'memory_image_cache.dart';
 
@@ -14,14 +15,17 @@ class ImagePipeline {
     required SiteHttpClient client,
     DiskImageCache? diskCache,
     MemoryImageCache<Uint8List>? memoryCache,
+    ImageDecoder decoder = const ImageDecoder(),
   })  : _client = client,
         _diskCache = diskCache ?? DiskImageCache(),
-        _memoryCache = memoryCache ?? MemoryImageCache<Uint8List>();
+        _memoryCache = memoryCache ?? MemoryImageCache<Uint8List>(),
+        _decoder = decoder;
 
   final SiteHttpClient _client;
   final DiskImageCache _diskCache;
   final MemoryImageCache<Uint8List> _memoryCache;
-  final _inFlight = <String, Future<Uint8List>>{};
+  final ImageDecoder _decoder;
+  final _inFlight = <String, Future<DecodedImage>>{};
 
   Future<Uint8List> load(
     ImageRequest request, {
@@ -33,23 +37,26 @@ class ImagePipeline {
       return memory;
     }
     final existing = _inFlight[request.cacheKey];
-    if (existing != null) {
-      return existing;
+    final decoded = existing ?? _decodeRequest(
+      request,
+      source: source,
+      cancelHandle: cancelHandle,
+    );
+    if (existing == null) {
+      _inFlight[request.cacheKey] = decoded;
     }
-
-    final future =
-        _loadUncached(request, source: source, cancelHandle: cancelHandle);
-    _inFlight[request.cacheKey] = future;
     try {
-      final bytes = await future;
+      final image = await decoded;
       _memoryCache.put(
         request.cacheKey,
-        bytes,
-        costBytes: bytes.length,
+        image.bytes,
+        costBytes: image.estimatedCostBytes,
       );
-      return bytes;
+      return image.bytes;
     } finally {
-      _inFlight.remove(request.cacheKey);
+      if (identical(_inFlight[request.cacheKey], decoded)) {
+        _inFlight.remove(request.cacheKey);
+      }
     }
   }
 
@@ -70,7 +77,20 @@ class ImagePipeline {
   void clearMemory() => _memoryCache.clear();
   Future<void> clearDisk() => _diskCache.clear();
 
-  Future<Uint8List> _loadUncached(
+  Future<DecodedImage> _decodeRequest(
+    ImageRequest request, {
+    required SiteSource source,
+    CancelHandle? cancelHandle,
+  }) async {
+    final bytes = await _loadRawBytes(
+      request,
+      source: source,
+      cancelHandle: cancelHandle,
+    );
+    return _decoder.decode(bytes, targetPixels: request.decodeTargetPixels);
+  }
+
+  Future<Uint8List> _loadRawBytes(
     ImageRequest request, {
     required SiteSource source,
     CancelHandle? cancelHandle,

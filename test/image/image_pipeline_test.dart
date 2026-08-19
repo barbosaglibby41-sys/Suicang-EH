@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:taro_eh_flutter/core/image/disk_image_cache.dart';
+import 'package:taro_eh_flutter/core/image/image_decoder.dart';
 import 'package:taro_eh_flutter/core/image/image_pipeline.dart';
 import 'package:taro_eh_flutter/core/image/image_request.dart';
 import 'package:taro_eh_flutter/core/network/site_http_client.dart';
@@ -32,6 +33,7 @@ void main() {
     final pipeline = ImagePipeline(
       client: client,
       diskCache: _MemoryDiskCache(),
+      decoder: _PassthroughDecoder(),
     );
     final request = ImageRequest(
       url: Uri.parse('https://image.example/a.jpg'),
@@ -89,4 +91,14 @@ class _MemoryDiskCache extends DiskImageCache {
   Future<void> write(ImageRequest request, List<int> bytes) async {
     values[request.cacheKey] = Uint8List.fromList(bytes);
   }
+}
+
+class _PassthroughDecoder extends ImageDecoder {
+  _PassthroughDecoder();
+
+  @override
+  Future<DecodedImage> decode(
+    Uint8List source, {
+    required int targetPixels,
+  }) async => DecodedImage(bytes: source, width: 1, height: source.length);
 }
