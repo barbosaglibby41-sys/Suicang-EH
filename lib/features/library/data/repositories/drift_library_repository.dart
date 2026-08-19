@@ -68,7 +68,8 @@ class DriftLibraryRepository implements LibraryRepository {
             _database.libraryEntries.lastOpenedAt.isSmallerThanValue(end),
       );
     }
-    query.orderBy([OrderingTerm.desc(_database.libraryEntries.lastOpenedAt)])
+    query
+      ..orderBy([OrderingTerm.desc(_database.libraryEntries.lastOpenedAt)])
       ..limit(limit);
     return query.watch().map((rows) => rows.map(_galleryFromRow).toList());
   }

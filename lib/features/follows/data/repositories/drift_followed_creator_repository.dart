@@ -5,7 +5,7 @@ import '../../../gallery/domain/entities/gallery.dart';
 import '../../../gallery/domain/entities/gallery_key.dart';
 import '../../../gallery/domain/entities/gallery_search_query.dart';
 import '../../../gallery/domain/repositories/gallery_repository.dart';
-import '../../domain/entities/followed_creator.dart';
+import '../../domain/entities/followed_creator.dart' as domain;
 import '../../domain/repositories/followed_creator_repository.dart';
 
 class DriftFollowedCreatorRepository implements FollowedCreatorRepository {
@@ -19,7 +19,7 @@ class DriftFollowedCreatorRepository implements FollowedCreatorRepository {
   final GalleryRepository _galleryRepository;
 
   @override
-  Stream<List<FollowedCreator>> watchAll() {
+  Stream<List<domain.FollowedCreator>> watchAll() {
     return (_database.select(_database.followedCreators)
           ..orderBy([(table) => OrderingTerm.desc(table.createdAt)]))
         .watch()
@@ -27,7 +27,7 @@ class DriftFollowedCreatorRepository implements FollowedCreatorRepository {
   }
 
   @override
-  Future<void> follow(FollowedCreator creator) {
+  Future<void> follow(domain.FollowedCreator creator) {
     return _database.into(_database.followedCreators).insertOnConflictUpdate(
           FollowedCreatorsCompanion.insert(
             id: creator.id,
@@ -58,8 +58,8 @@ class DriftFollowedCreatorRepository implements FollowedCreatorRepository {
   }
 
   @override
-  Future<List<Gallery>> refresh(FollowedCreator creator) async {
-    final query = creator.kind == FollowedCreatorKind.artist
+  Future<List<Gallery>> refresh(domain.FollowedCreator creator) async {
+    final query = creator.kind == domain.FollowedCreatorKind.artist
         ? 'artist:"${creator.value}\$"'
         : creator.value;
     final page = await _galleryRepository.search(
@@ -80,10 +80,10 @@ class DriftFollowedCreatorRepository implements FollowedCreatorRepository {
     return sorted;
   }
 
-  FollowedCreator _fromRow(FollowedCreator row) => FollowedCreator(
+  domain.FollowedCreator _fromRow(FollowedCreator row) => domain.FollowedCreator(
         id: row.id,
         source: SiteSource.fromStorageValue(row.source),
-        kind: FollowedCreatorKind.values.byName(row.kind),
+        kind: domain.FollowedCreatorKind.values.byName(row.kind),
         value: row.value,
         displayName: row.displayName,
         createdAt: row.createdAt,

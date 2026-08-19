@@ -7,6 +7,7 @@ import '../../../follows/domain/entities/followed_creator.dart';
 import '../../../follows/presentation/providers/followed_creator_providers.dart';
 import '../providers/gallery_interaction_providers.dart';
 import '../../domain/entities/gallery.dart';
+import '../../domain/entities/gallery_tag.dart';
 import '../../domain/repositories/gallery_repository.dart';
 import '../providers/gallery_providers.dart';
 import '../state/gallery_detail_state.dart';
