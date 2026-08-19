@@ -5,8 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/image/image_request.dart';
 import '../../../core/image/pipeline_image.dart';
-import '../../tags/presentation/providers/subscribed_tags_providers.dart';
-import '../../tags/presentation/providers/tag_translation_providers.dart';
+import 'widgets/translated_tag_groups.dart';
 import '../../follows/domain/entities/followed_creator.dart';
 import '../../follows/presentation/followed_creators_screen.dart';
 import '../domain/entities/gallery.dart';
@@ -273,43 +272,11 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
                   const SizedBox(height: 30),
                   Text('标签', style: theme.textTheme.titleLarge),
                   const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final tag in gallery.tags)
-                        Consumer(
-                          builder: (context, ref, _) {
-                            final subscriptions =
-                                ref.watch(subscribedTagsProvider);
-                            final translations =
-                                ref.watch(tagTranslationRepositoryProvider);
-                            final translated = translations.find(tag.rawName);
-                            final isSubscribed = subscriptions.valueOrNull
-                                    ?.contains(tag.rawName) ??
-                                false;
-                            return GestureDetector(
-                              onLongPress: () => ref
-                                  .read(subscribedTagsRepositoryProvider)
-                                  .toggle(tag.rawName),
-                              child: ActionChip(
-                                avatar: Icon(
-                                  isSubscribed
-                                      ? Icons.notifications_active_outlined
-                                      : Icons.sell_outlined,
-                                  size: 16,
-                                ),
-                                label: Text(translated?.name ??
-                                    tag.translatedName ??
-                                    tag.rawName),
-                                onPressed: () => context.push(
-                                  '/home?query=${Uri.encodeComponent(tag.rawName)}',
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                    ],
+                  TranslatedTagGroups(
+                    tags: gallery.tags,
+                    onSearch: (tag) => context.go(
+                      '/home?query=${Uri.encodeComponent(tag.rawName)}',
+                    ),
                   ),
                 ],
               ]),

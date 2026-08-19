@@ -22,16 +22,15 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final _searchController = TextEditingController();
   var _initialized = false;
+  String? _appliedRouteQuery;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final routeQuery = GoRouterState.of(context).uri.queryParameters['query'];
+    _applyRouteQuery(routeQuery);
     if (_initialized) return;
     _initialized = true;
-    final initialQuery = GoRouterState.of(context).uri.queryParameters['query'];
-    if (initialQuery != null && initialQuery.isNotEmpty) {
-      _searchController.text = initialQuery;
-    }
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final preferences = await ref.read(sitePreferencesProvider.future);
       if (!mounted) return;
@@ -40,6 +39,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       if (_searchController.text.trim().isNotEmpty) {
         await notifier.search(_searchController.text);
       }
+    });
+  }
+
+  void _applyRouteQuery(String? value) {
+    final query = value?.trim();
+    if (query == null || query.isEmpty || query == _appliedRouteQuery) return;
+    _appliedRouteQuery = query;
+    _searchController.text = query;
+    _searchController.selection = TextSelection.collapsed(offset: query.length);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ref.read(discoveryNotifierProvider.notifier).search(query);
     });
   }
 
