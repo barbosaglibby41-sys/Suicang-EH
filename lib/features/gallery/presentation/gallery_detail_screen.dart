@@ -224,7 +224,14 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
                   ),
                   const SizedBox(height: 12),
                   for (final comment in state.comments) ...[
-                    GalleryCommentCard(comment: comment),
+                    GalleryCommentCard(
+                      comment: comment,
+                      isVoting: state.isLoading,
+                      onVote: (upvote) => notifier.voteComment(
+                        commentId: comment.id,
+                        upvote: upvote,
+                      ),
+                    ),
                     const SizedBox(height: 10),
                   ],
                 ],

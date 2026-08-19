@@ -6,4 +6,10 @@ abstract interface class GalleryInteractionRepository {
     required Gallery gallery,
     required String content,
   });
+
+  Future<List<GalleryComment>> voteComment({
+    required Gallery gallery,
+    required int commentId,
+    required bool upvote,
+  });
 }

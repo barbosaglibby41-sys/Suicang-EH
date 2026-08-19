@@ -18,6 +18,41 @@ class EhGalleryInteractionRepository implements GalleryInteractionRepository {
   final EhHtmlParser _parser;
 
   @override
+  Future<List<GalleryComment>> voteComment({
+    required Gallery gallery,
+    required int commentId,
+    required bool upvote,
+  }) async {
+    final detailUrl = gallery.sourceUrl;
+    if (detailUrl == null || commentId <= 0) {
+      throw const NetworkException(
+        kind: NetworkFailureKind.invalidResponse,
+        message: 'A valid gallery comment is required.',
+      );
+    }
+    final html = await _client.getText(detailUrl, source: gallery.key.source);
+    final token = _parser.commentVoteToken(html);
+    if (token == null) {
+      throw const NetworkException(
+        kind: NetworkFailureKind.authenticationRequired,
+        message: 'Comment voting token is unavailable.',
+      );
+    }
+    await _client.postForm(
+      detailUrl,
+      source: gallery.key.source,
+      referer: detailUrl,
+      data: {
+        'token': token,
+        'comment_id': '$commentId',
+        'comment_vote': upvote ? '1' : '-1',
+      },
+    );
+    final refreshed = await _client.getText(detailUrl, source: gallery.key.source);
+    return _parser.comments(refreshed);
+  }
+
+  @override
   Future<List<GalleryComment>> postComment({
     required Gallery gallery,
     required String content,

@@ -36,6 +36,27 @@ class GalleryDetailNotifier
     return ref.read(libraryRepositoryProvider).recordOpened(state.gallery);
   }
 
+  Future<void> voteComment({
+    required int commentId,
+    required bool upvote,
+  }) async {
+    if (state.isLoading) return;
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final comments = await ref.read(galleryInteractionRepositoryProvider).voteComment(
+            gallery: state.gallery,
+            commentId: commentId,
+            upvote: upvote,
+          );
+      state = state.copyWith(comments: comments, isLoading: false, clearError: true);
+    } catch (_) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: '评论投票失败。请确认登录状态后重试。',
+      );
+    }
+  }
+
   Future<void> postComment(String content) async {
     if (state.isLoading) return;
     state = state.copyWith(isLoading: true, clearError: true);

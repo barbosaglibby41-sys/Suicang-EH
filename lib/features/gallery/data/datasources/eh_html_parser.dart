@@ -123,6 +123,19 @@ class EhHtmlParser {
     );
   }
 
+  String? commentVoteToken(String html) {
+    final patterns = [
+      r'''name=["']token["'][^>]*value=["']([^"']+)''',
+      r'''[?&]token=([0-9a-zA-Z]+)''',
+      r'''[?&]t=([0-9a-zA-Z]+)''',
+    ];
+    for (final pattern in patterns) {
+      final token = _first(pattern, html);
+      if (token != null && token.isNotEmpty) return _decode(token);
+    }
+    return null;
+  }
+
   List<PagePreview> previews(String html, Uri baseUri, {int limit = 20}) {
     final start = html.indexOf('id="gdt"');
     if (start < 0) return const [];

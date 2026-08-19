@@ -63,6 +63,7 @@ void main() {
     expect(detail.comments.single.author, 'Uploader');
     expect(detail.comments.single.content, 'Hello\nworld');
     expect(detail.comments.single.isUploader, isTrue);
+    expect(parser.commentVoteToken(fixture('gallery_detail.html')), 'abc123');
     expect(detail.previews.single.page, 1);
     expect(detail.previews.single.spriteUrl,
         Uri.parse('https://thumb.example/sprite.jpg'));
