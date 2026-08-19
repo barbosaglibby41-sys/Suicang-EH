@@ -75,21 +75,23 @@ class DiscoveryNotifier extends Notifier<DiscoveryState> {
     }
   }
 
-  Future<void> loadRandom() async {
-    if (state.isLoading) return;
+  Future<void> loadRandom({bool fresh = true}) async {
+    if (state.isLoading || state.isLoadingMore) return;
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       final result = await _repository.random(
         source: state.source,
-        excluding: state.galleries.map((gallery) => gallery.key.gid).toSet(),
+        excluding: fresh ? const {} : state.galleries.map((gallery) => gallery.key.gid).toSet(),
       );
       state = state.copyWith(
-        galleries: result,
+        galleries: fresh ? result : [...state.galleries, ...result],
         clearNextCursor: true,
         isLoading: false,
         query: '',
         isSearch: false,
         isRandom: true,
+        randomRound: fresh ? 1 : state.randomRound + 1,
+        randomExhausted: result.isEmpty,
         clearError: true,
       );
     } catch (_) {
@@ -199,6 +201,8 @@ class DiscoveryNotifier extends Notifier<DiscoveryState> {
         galleries: appended,
         isLoadingMore: false,
         isRandom: true,
+        randomRound: state.randomRound + 1,
+        randomExhausted: fresh.isEmpty,
         clearError: true,
       );
     } catch (_) {

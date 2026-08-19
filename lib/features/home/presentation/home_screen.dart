@@ -80,7 +80,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return RefreshIndicator(
       onRefresh: () => state.isSearch
           ? notifier.search(state.query)
-          : notifier.load(force: true),
+          : state.isRandom
+              ? notifier.loadRandom(fresh: true)
+              : notifier.load(force: true),
       child: CustomScrollView(
         slivers: [
           SliverPadding(
@@ -137,9 +139,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         label: const Text('热门'),
                       ),
                       OutlinedButton.icon(
-                        onPressed: state.isLoading ? null : notifier.loadRandom,
+                        onPressed: state.isLoading ? null : () => notifier.loadRandom(fresh: true),
                         icon: const Icon(Icons.casino_outlined),
-                        label: const Text('随机'),
+                        label: Text(state.isRandom ? '换一批' : '随机'),
                       ),
                       OutlinedButton.icon(
                         onPressed: () => context.push('/rankings'),
@@ -252,10 +254,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             ),
                     ),
                   const SizedBox(height: 18),
-                  Text(
-                    state.isSearch ? '搜索结果' : '最新发现',
-                    style: theme.textTheme.titleLarge,
-                  ),
+                  Row(
+                    children: [
+                      Text(
+                        state.isSearch
+                            ? '搜索结果'
+                            : state.isRandom
+                                ? '随机探索'
+                                : '最新发现',
+                        style: theme.textTheme.titleLarge,
+                      ),
+                      if (state.isRandom) ...[
+                        const SizedBox(width: 8),
+                        Text(
+                          '第 ${state.randomRound} 轮 · ${state.galleries.length} 部',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ],
+                 ),
                   if (state.isSearch) ...[
                     const SizedBox(height: 4),
                     Text(

@@ -12,6 +12,8 @@ class DiscoveryState {
     this.query = '',
     this.isSearch = false,
     this.isRandom = false,
+    this.randomRound = 0,
+    this.randomExhausted = false,
   });
 
   final SiteSource source;
@@ -23,8 +25,10 @@ class DiscoveryState {
   final String query;
   final bool isSearch;
   final bool isRandom;
+  final int randomRound;
+  final bool randomExhausted;
 
-  bool get hasMore => isRandom || nextCursor != null;
+  bool get hasMore => isRandom ? !randomExhausted : nextCursor != null;
 
   bool get isEmpty => galleries.isEmpty && !isLoading;
 
@@ -40,6 +44,8 @@ class DiscoveryState {
     String? query,
     bool? isSearch,
     bool? isRandom,
+    int? randomRound,
+    bool? randomExhausted,
   }) {
     return DiscoveryState(
       source: source ?? this.source,
@@ -51,6 +57,8 @@ class DiscoveryState {
       query: query ?? this.query,
       isSearch: isSearch ?? this.isSearch,
       isRandom: isRandom ?? this.isRandom,
+      randomRound: randomRound ?? this.randomRound,
+      randomExhausted: randomExhausted ?? this.randomExhausted,
     );
   }
 }
