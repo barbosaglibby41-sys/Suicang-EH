@@ -14,6 +14,7 @@ import 'widgets/comment_editor_sheet.dart';
 import 'widgets/cloud_favorite_sheet.dart';
 import 'widgets/gallery_stats_strip.dart';
 import 'widgets/gallery_action_bar.dart';
+import 'widgets/gallery_creator_meta.dart';
 import 'widgets/gallery_cover_placeholder.dart';
 import 'widgets/preview_strip.dart';
 
@@ -121,15 +122,27 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
                   style: theme.textTheme.headlineSmall?.copyWith(height: 1.15),
                 ),
                 const SizedBox(height: 7),
-                Text(
-                  [
-                    if (gallery.uploader.isNotEmpty) gallery.uploader,
-                    if (gallery.category.isNotEmpty) gallery.category,
-                    if (gallery.pageCount > 0) '${gallery.pageCount} 页',
-                  ].join(' · '),
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                GalleryCreatorMeta(
+                  gallery: gallery,
+                  onSearch: (query) => context.push(
+                    '/home?query=${Uri.encodeComponent(query)}',
+                  ),
+                  onFollow: (value) => showModalBottomSheet<void>(
+                    context: context,
+                    builder: (sheetContext) => SafeArea(
+                      child: ListTile(
+                        leading: const Icon(Icons.person_add_alt_1_outlined),
+                        title: Text('关注 $value'),
+                        onTap: () {
+                          Navigator.pop(sheetContext);
+                          notifier.followArtistOrUploader(
+                            value == gallery.uploader
+                                ? FollowedCreatorKind.uploader
+                                : FollowedCreatorKind.artist,
+                          );
+                        },
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 18),
