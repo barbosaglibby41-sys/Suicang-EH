@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/layout/adaptive_layout.dart';
 import '../../favorites/presentation/cloud_favorites_screen.dart';
+import '../../follows/presentation/followed_creators_screen.dart';
 import '../../gallery/domain/entities/gallery.dart';
 import '../../gallery/presentation/widgets/gallery_cover.dart';
 import '../../gallery/presentation/widgets/gallery_card_meta.dart';
@@ -25,7 +26,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     final favorites = ref.watch(favoriteGalleriesProvider(_filter));
     final history = ref.watch(historyGalleriesProvider(_filter));
     return DefaultTabController(
-      length: 3,
+      length: 4,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('书架'),
@@ -41,6 +42,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
               Tab(text: '本地收藏'),
               Tab(text: '历史'),
               Tab(text: '账户收藏'),
+              Tab(text: '关注'),
             ],
           ),
         ),
@@ -57,6 +59,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
               filter: _filter,
             ),
             _CloudFavoritesCollection(filter: _filter),
+            const _FollowedCreatorsCollection(),
           ],
         ),
       ),
@@ -85,6 +88,13 @@ class _CloudFavoritesCollection extends StatelessWidget {
       date: filter.date,
     );
   }
+}
+
+class _FollowedCreatorsCollection extends StatelessWidget {
+  const _FollowedCreatorsCollection();
+
+  @override
+  Widget build(BuildContext context) => const FollowedCreatorsScreen(embedded: true);
 }
 
 class _GalleryCollection extends StatelessWidget {

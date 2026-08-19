@@ -42,6 +42,7 @@ class DiscoveryNotifier extends Notifier<DiscoveryState> {
         isLoading: false,
         query: '',
         isSearch: false,
+        isRandom: false,
         clearError: true,
       );
     } catch (_) {
@@ -63,6 +64,7 @@ class DiscoveryNotifier extends Notifier<DiscoveryState> {
         isLoading: false,
         query: '',
         isSearch: false,
+        isRandom: false,
         clearError: true,
       );
     } catch (_) {
@@ -87,6 +89,7 @@ class DiscoveryNotifier extends Notifier<DiscoveryState> {
         isLoading: false,
         query: '',
         isSearch: false,
+        isRandom: true,
         clearError: true,
       );
     } catch (_) {
@@ -141,6 +144,10 @@ class DiscoveryNotifier extends Notifier<DiscoveryState> {
     if (state.isLoading || state.isLoadingMore || !state.hasMore) {
       return;
     }
+    if (state.isRandom) {
+      await _loadMoreRandom();
+      return;
+    }
     final cursor = state.nextCursor;
     if (cursor == null) {
       return;
@@ -172,6 +179,32 @@ class DiscoveryNotifier extends Notifier<DiscoveryState> {
       state = state.copyWith(
         isLoadingMore: false,
         errorMessage: '无法加载更多内容。',
+      );
+    }
+  }
+
+  Future<void> _loadMoreRandom() async {
+    state = state.copyWith(isLoadingMore: true, clearError: true);
+    try {
+      final fresh = await _repository.random(
+        source: state.source,
+        excluding: state.galleries.map((gallery) => gallery.key.gid).toSet(),
+      );
+      final known = state.galleries.map((gallery) => gallery.key).toSet();
+      final appended = [
+        ...state.galleries,
+        ...fresh.where((gallery) => known.add(gallery.key)),
+      ];
+      state = state.copyWith(
+        galleries: appended,
+        isLoadingMore: false,
+        isRandom: true,
+        clearError: true,
+      );
+    } catch (_) {
+      state = state.copyWith(
+        isLoadingMore: false,
+        errorMessage: '无法加载更多随机作品。',
       );
     }
   }

@@ -28,12 +28,7 @@ class GalleryInfoCard extends StatelessWidget {
         Icons.schedule_outlined,
         detail: gallery.postedAt == null
             ? null
-            : gallery.postedAt!
-                .toLocal()
-                .toIso8601String()
-                .replaceFirst('T', ' ')
-                .split('.')
-                .first,
+            : '${RelativeTime.chinaDateTime(gallery.postedAt!)} 中国时间',
       ),
       _InfoItem('大小', metadata.fileSize ?? '未知', Icons.storage_outlined),
       _InfoItem('收藏', metadata.favoriteCount?.toString() ?? '—',

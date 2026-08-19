@@ -8,7 +8,12 @@ import '../domain/entities/followed_creator.dart';
 import 'providers/followed_creator_providers.dart';
 
 class FollowedCreatorsScreen extends ConsumerStatefulWidget {
-  const FollowedCreatorsScreen({super.key});
+  const FollowedCreatorsScreen({
+    this.embedded = false,
+    super.key,
+  });
+
+  final bool embedded;
 
   @override
   ConsumerState<FollowedCreatorsScreen> createState() =>
@@ -36,9 +41,7 @@ class _FollowedCreatorsScreenState
   @override
   Widget build(BuildContext context) {
     final followed = ref.watch(followedCreatorsProvider);
-    return Scaffold(
-      appBar: AppBar(title: const Text('关注')),
-      body: followed.when(
+    final content = followed.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, __) => const Center(child: Text('无法读取关注列表。')),
         data: (creators) => creators.isEmpty
@@ -56,7 +59,11 @@ class _FollowedCreatorsScreenState
                       .unfollow(creators[index].id),
                 ),
               ),
-      ),
+      );
+    if (widget.embedded) return content;
+    return Scaffold(
+      appBar: AppBar(title: const Text('关注')),
+      body: content,
     );
   }
 

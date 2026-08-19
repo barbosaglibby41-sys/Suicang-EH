@@ -11,6 +11,7 @@ class DiscoveryState {
     this.errorMessage,
     this.query = '',
     this.isSearch = false,
+    this.isRandom = false,
   });
 
   final SiteSource source;
@@ -21,8 +22,10 @@ class DiscoveryState {
   final String? errorMessage;
   final String query;
   final bool isSearch;
+  final bool isRandom;
 
-  bool get hasMore => nextCursor != null;
+  bool get hasMore => isRandom || nextCursor != null;
+
   bool get isEmpty => galleries.isEmpty && !isLoading;
 
   DiscoveryState copyWith({
@@ -36,6 +39,7 @@ class DiscoveryState {
     bool clearError = false,
     String? query,
     bool? isSearch,
+    bool? isRandom,
   }) {
     return DiscoveryState(
       source: source ?? this.source,
@@ -46,6 +50,7 @@ class DiscoveryState {
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
       query: query ?? this.query,
       isSearch: isSearch ?? this.isSearch,
+      isRandom: isRandom ?? this.isRandom,
     );
   }
 }
