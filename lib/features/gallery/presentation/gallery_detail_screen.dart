@@ -13,7 +13,8 @@ import 'notifiers/gallery_detail_notifier.dart';
 import 'widgets/gallery_comment_card.dart';
 import 'widgets/comment_editor_sheet.dart';
 import 'widgets/cloud_favorite_sheet.dart';
-import 'widgets/gallery_info_card.dart';
+import 'widgets/gallery_stats_strip.dart';
+import 'widgets/gallery_action_bar.dart';
 import 'widgets/gallery_cover_placeholder.dart';
 import 'widgets/preview_strip.dart';
 
@@ -133,93 +134,56 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
                   ),
                 ),
                 const SizedBox(height: 18),
-                GalleryInfoCard(gallery: gallery, metadata: state.metadata),
-                const SizedBox(height: 24),
-                SizedBox(
-                  height: 48,
-                  child: FilledButton.icon(
-                    onPressed: gallery.sourceUrl == null
-                        ? null
-                        : () => context.push(
-                              '/reader/${gallery.key.source.storageValue}/${gallery.key.gid}',
-                              extra: gallery,
-                            ),
-                    icon: const Icon(Icons.menu_book_outlined),
-                    label: const Text('开始阅读'),
+                GalleryStatsStrip(gallery: gallery, metadata: state.metadata),
+                const SizedBox(height: 18),
+                FutureBuilder<bool>(
+                  future: _favorite,
+                  builder: (context, favoriteSnapshot) => GalleryActionBar(
+                  isLoading: state.isLoading,
+                  isFavorite: favoriteSnapshot.data == true,
+                  onRead: gallery.sourceUrl == null
+                      ? () {}
+                      : () => context.push(
+                            '/reader/${gallery.key.source.storageValue}/${gallery.key.gid}',
+                            extra: gallery,
+                          ),
+                  onFavorite: () async {
+                    await notifier.toggleFavorite();
+                    if (mounted) setState(() => _favorite = notifier.isFavorite());
+                  },
+                  onDownload: notifier.enqueueDownload,
+                  onCloudFavorite: () => showModalBottomSheet<void>(
+                    context: context,
+                    isScrollControlled: true,
+                    builder: (_) => CloudFavoriteSheet(gallery: gallery),
+                  ),
+                  onFollow: () => showModalBottomSheet<void>(
+                    context: context,
+                    builder: (sheetContext) => SafeArea(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ListTile(
+                            leading: const Icon(Icons.brush_outlined),
+                            title: const Text('关注作者'),
+                            onTap: () {
+                              Navigator.pop(sheetContext);
+                              notifier.followArtistOrUploader(FollowedCreatorKind.artist);
+                            },
+                          ),
+                          ListTile(
+                            leading: const Icon(Icons.person_outline),
+                            title: const Text('关注发布者'),
+                            onTap: () {
+                              Navigator.pop(sheetContext);
+                              notifier.followArtistOrUploader(FollowedCreatorKind.uploader);
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: FutureBuilder<bool>(
-                        future: _favorite,
-                        builder: (context, snapshot) => OutlinedButton.icon(
-                          onPressed: () async {
-                            await notifier.toggleFavorite();
-                            if (!mounted) return;
-                            setState(() => _favorite = notifier.isFavorite());
-                          },
-                          icon: Icon(
-                            snapshot.data == true
-                                ? Icons.star
-                                : Icons.star_outline,
-                          ),
-                          label: Text(snapshot.data == true ? '已收藏' : '收藏'),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    PopupMenuButton<FollowedCreatorKind>(
-                      tooltip: '关注作者或发布者',
-                      icon: const Icon(Icons.person_add_alt_1_outlined),
-                      onSelected: notifier.followArtistOrUploader,
-                      itemBuilder: (context) => const [
-                        PopupMenuItem(
-                          value: FollowedCreatorKind.artist,
-                          child: Text('关注作者'),
-                        ),
-                        PopupMenuItem(
-                          value: FollowedCreatorKind.uploader,
-                          child: Text('关注发布者'),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(width: 12),
-                    IconButton(
-                      tooltip: '打开种子链接',
-                      onPressed: () async {
-                        final url = await notifier.loadTorrentUrl();
-                        if (url != null && await canLaunchUrl(url)) {
-                          await launchUrl(url,
-                              mode: LaunchMode.externalApplication);
-                        }
-                      },
-                      icon: const Icon(Icons.download_for_offline_outlined),
-                    ),
-                    const SizedBox(width: 12),
-                    IconButton(
-                      tooltip: '账户收藏',
-                      onPressed: state.isLoading
-                          ? null
-                          : () => showModalBottomSheet<void>(
-                                context: context,
-                                isScrollControlled: true,
-                                builder: (_) =>
-                                    CloudFavoriteSheet(gallery: gallery),
-                              ),
-                      icon: const Icon(Icons.cloud_upload_outlined),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed:
-                            state.isLoading ? null : notifier.enqueueDownload,
-                        icon: const Icon(Icons.download_outlined),
-                        label: const Text('下载'),
-                      ),
-                    ),
-                  ],
                 ),
                 if (state.isLoading) ...[
                   const SizedBox(height: 24),
