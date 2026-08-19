@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import '../../../gallery/domain/entities/gallery.dart';
 import '../../../gallery/domain/entities/gallery_key.dart';
 import '../../domain/entities/cloud_favorite_category.dart';
@@ -68,6 +70,8 @@ class CloudFavoritesParser {
       final gid = int.tryParse(match.group(2) ?? '');
       if (gid == null || !seen.add(gid)) continue;
       final body = match.group(3) ?? '';
+      final contextStart = math.max(0, match.start - 1800);
+      final context = html.substring(contextStart, match.end);
       final titleMatch = RegExp(
         r'''class=["'][^"']*(?:glink|glname)[^"']*["'][^>]*>(.*?)</(?:div|a)>''',
         caseSensitive: false,
@@ -75,10 +79,14 @@ class CloudFavoritesParser {
       ).firstMatch(body);
       final title = _clean(titleMatch?.group(1) ?? body);
       if (title.isEmpty) continue;
-      final thumbnail =
-          RegExp(r'''(?:data-src|src)=["']([^"']+)["']''', caseSensitive: false)
-              .firstMatch(body)
-              ?.group(1);
+      final thumbnail = RegExp(
+        r'''(?:data-src|data-lazy-src|src)=["']([^"']+)["']''',
+        caseSensitive: false,
+      ).firstMatch(body)?.group(1) ??
+          RegExp(
+            r'''(?:data-src|data-lazy-src|src)=["']([^"']+)["']''',
+            caseSensitive: false,
+          ).firstMatch(context)?.group(1);
       output.add(Gallery(
         key: GalleryKey(source: source, gid: gid),
         title: title,
