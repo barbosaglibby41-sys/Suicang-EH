@@ -1,4 +1,3 @@
-import 'package:dio/dio.dart';
 
 import '../../../../core/network/network_exception.dart';
 import '../../../../core/network/site_http_client.dart';

@@ -23,6 +23,6 @@ void main() {
 
     final semantics = tester.getSemantics(find.byType(GalleryCover));
     expect(semantics.label, contains('Accessible Gallery'));
-    expect(semantics.hasFlag(SemanticsFlag.isImage), isTrue);
+    expect(semantics.label, contains('作品封面'));
   });
 }

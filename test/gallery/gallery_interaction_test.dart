@@ -17,7 +17,7 @@ void main() {
         authRepository: SecureAuthRepository(_MemoryCookieStore()),
       ),
     );
-    const gallery = Gallery(
+    final gallery = Gallery(
       key: GalleryKey(source: SiteSource.eHentai, gid: 1),
       title: 'Example',
       pageCount: 1,
