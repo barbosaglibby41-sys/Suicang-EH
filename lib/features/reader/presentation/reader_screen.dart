@@ -450,9 +450,13 @@ class _ReaderControlsState extends State<_ReaderControls> {
                   children: [
                     Row(
                       children: [
-                        Text(
+                        Semantics(
+                        liveRegion: true,
+                        label: '第 ${state.currentIndex + 1} 页，共 ${state.pageCount} 页，完成 ${(state.progress * 100).round()}%',
+                        child: Text(
                           '${state.currentIndex + 1} / ${state.pageCount}',
                           style: const TextStyle(color: Colors.white),
+                        ),
                         ),
                         const SizedBox(width: 14),
                         Expanded(

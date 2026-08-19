@@ -25,13 +25,17 @@ class GalleryCover extends StatelessWidget {
     if (thumbnail == null) {
       return GalleryCoverPlaceholder(gallery: gallery);
     }
-    return PipelineImage(
-      url: thumbnail,
-      source: gallery.key.source,
-      variant: variant,
-      targetPixels: targetPixels,
-      fit: BoxFit.cover,
-      borderRadius: borderRadius,
+    return Semantics(
+      image: true,
+      label: '作品封面：${gallery.title}',
+      child: PipelineImage(
+        url: thumbnail,
+        source: gallery.key.source,
+        variant: variant,
+        targetPixels: targetPixels,
+        fit: BoxFit.cover,
+        borderRadius: borderRadius,
+      ),
     );
   }
 }
