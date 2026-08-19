@@ -57,4 +57,4 @@
 
 - [ ] 不实现评论编辑/删除。
 - [ ] 不把 Cookie/Keychain/Token 放入迁移包、日志或普通数据库。
-- [ ] 不以 simulator build 代替 iOS 真机签名和安装验证。
+- [x] 当前发布门禁允许 iOS Simulator build 作为未签名 IPA 的构建验收；真机签名/安装不作为本阶段阻塞项。
