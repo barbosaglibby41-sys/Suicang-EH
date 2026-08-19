@@ -20,11 +20,13 @@ import 'providers/reading_progress_providers.dart';
 class ReaderScreen extends ConsumerStatefulWidget {
   const ReaderScreen({
     required this.gallery,
+    this.initialIndex = 0,
     this.pageSource,
     super.key,
   });
 
   final Gallery gallery;
+  final int initialIndex;
   final PageSource? pageSource;
 
   @override
@@ -130,7 +132,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     if (!mounted) return;
     final config = ReaderSessionConfig(
       gallery: widget.gallery,
-      initialIndex: saved?.pageIndex ?? 0,
+      initialIndex: widget.initialIndex > 0
+          ? widget.initialIndex
+          : (saved?.pageIndex ?? 0),
       preferences: preferences,
       pageSource: widget.pageSource,
     );

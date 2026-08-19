@@ -13,11 +13,13 @@ class PreviewStrip extends ConsumerWidget {
   const PreviewStrip({
     required this.previews,
     required this.source,
+    this.onSelectPage,
     super.key,
   });
 
   final List<PagePreview> previews;
   final SiteSource source;
+  final ValueChanged<PagePreview>? onSelectPage;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -32,6 +34,9 @@ class PreviewStrip extends ConsumerWidget {
         itemBuilder: (context, index) => _PreviewTile(
           preview: previews[index],
           source: source,
+          onTap: onSelectPage == null
+              ? null
+              : () => onSelectPage!(previews[index]),
         ),
       ),
     );
@@ -39,10 +44,15 @@ class PreviewStrip extends ConsumerWidget {
 }
 
 class _PreviewTile extends ConsumerWidget {
-  const _PreviewTile({required this.preview, required this.source});
+  const _PreviewTile({
+    required this.preview,
+    required this.source,
+    this.onTap,
+  });
 
   final PagePreview preview;
   final SiteSource source;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -73,20 +83,29 @@ class _PreviewTile extends ConsumerWidget {
                   if (!frameSnapshot.hasData)
                     return const Center(child: CircularProgressIndicator());
                   final image = frameSnapshot.data!.image;
-                  return ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: CustomPaint(
-                      size: const Size(104, 140),
-                      painter: _SpritePainter(image: image, preview: preview),
-                      child: Align(
-                        alignment: Alignment.bottomRight,
-                        child: Container(
-                          margin: const EdgeInsets.all(5),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          color: Colors.black.withValues(alpha: 0.7),
-                          child: Text('${preview.page}',
-                              style: const TextStyle(color: Colors.white)),
+                  return Semantics(
+                    button: onTap != null,
+                    label: '预览第 ${preview.page} 页',
+                    hint: onTap == null ? null : '从此页开始阅读',
+                    child: GestureDetector(
+                      onTap: onTap,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: CustomPaint(
+                          size: const Size(104, 140),
+                          painter: _SpritePainter(image: image, preview: preview),
+                          child: Align(
+                            alignment: Alignment.bottomRight,
+                            child: Container(
+                              margin: const EdgeInsets.all(5),
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              color: Colors.black.withValues(alpha: 0.7),
+                              child: Text(
+                                '${preview.page}',
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ),

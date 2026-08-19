@@ -197,7 +197,13 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
                   Text('内容预览', style: theme.textTheme.titleLarge),
                   const SizedBox(height: 12),
                   PreviewStrip(
-                      previews: state.previews, source: gallery.key.source),
+                    previews: state.previews,
+                    source: gallery.key.source,
+                    onSelectPage: (preview) => context.push(
+                      '/reader/${gallery.key.source.storageValue}/${gallery.key.gid}?page=${preview.page}',
+                      extra: gallery,
+                    ),
+                  ),
                 ],
                 if (state.comments.isNotEmpty || gallery.sourceUrl != null) ...[
                   const SizedBox(height: 30),
