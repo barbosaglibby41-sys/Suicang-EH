@@ -36,6 +36,7 @@ jobs:
         run: |
           sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 36/' android/app/build.gradle.kts
           sed -i 's/android:label="suicang_eh"/android:label="Suicang EH"/' android/app/src/main/AndroidManifest.xml
+          sed -i 's/ios: true/ios: false/' pubspec.yaml
           dart run flutter_launcher_icons
       - name: Build ARM64 release APK
         run: flutter build apk --release --split-per-abi --target-platform android-arm64
