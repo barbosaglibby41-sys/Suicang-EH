@@ -126,9 +126,8 @@ class _ReaderMediaState extends ConsumerState<ReaderMedia> {
         await ref.read(authRepositoryProvider).cookiesFor(widget.source);
     if (cookies.isEmpty) return const {};
     return {
-      'Cookie': cookies
-          .map((cookie) => '${cookie.name}=${cookie.value}')
-          .join('; '),
+      'Cookie':
+          cookies.map((cookie) => '${cookie.name}=${cookie.value}').join('; '),
     };
   }
 
