@@ -59,24 +59,30 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
         slivers: [
           SliverAppBar(
             pinned: true,
-            expandedHeight: 320,
+            expandedHeight: 330,
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.88),
             flexibleSpace: FlexibleSpaceBar(
               background: Hero(
                 tag: 'gallery-cover-${gallery.key.stableId}',
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(48, 88, 48, 24),
-                  child: AspectRatio(
-                    aspectRatio: 0.72,
-                    child: gallery.thumbnailUrl == null
-                        ? GalleryCoverPlaceholder(gallery: gallery)
-                        : PipelineImage(
-                            url: gallery.thumbnailUrl!,
-                            source: gallery.key.source,
-                            variant: ImageVariant.cover,
-                            targetPixels: 720,
-                            fit: BoxFit.cover,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(0, 86, 0, 22),
+                    child: SizedBox(
+                      width: 160,
+                      child: AspectRatio(
+                        aspectRatio: 0.70,
+                        child: gallery.thumbnailUrl == null
+                            ? GalleryCoverPlaceholder(gallery: gallery)
+                            : PipelineImage(
+                                url: gallery.thumbnailUrl!,
+                                source: gallery.key.source,
+                                variant: ImageVariant.cover,
+                                targetPixels: 720,
+                                fit: BoxFit.cover,
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -104,22 +110,27 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
             ],
           ),
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(24, 20, 24, 40),
+            padding: const EdgeInsets.fromLTRB(18, 12, 18, 40),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                Text(gallery.title, style: theme.textTheme.headlineSmall),
-                const SizedBox(height: 8),
+                Text(
+                  gallery.title,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.headlineSmall?.copyWith(height: 1.15),
+                ),
+                const SizedBox(height: 7),
                 Text(
                   [
                     if (gallery.uploader.isNotEmpty) gallery.uploader,
                     if (gallery.category.isNotEmpty) gallery.category,
                     if (gallery.pageCount > 0) '${gallery.pageCount} 页',
                   ].join(' · '),
-                  style: theme.textTheme.bodyMedium?.copyWith(
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 18),
                 GalleryInfoCard(gallery: gallery, metadata: state.metadata),
                 const SizedBox(height: 24),
                 SizedBox(

@@ -16,7 +16,7 @@ class SuicangEhApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: TaroTheme.light(),
       darkTheme: TaroTheme.dark(),
-      themeMode: ThemeMode.system,
+      themeMode: ThemeMode.dark,
       routerConfig: router,
     );
   }

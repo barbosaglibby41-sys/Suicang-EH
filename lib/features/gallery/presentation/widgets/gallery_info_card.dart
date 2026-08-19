@@ -46,45 +46,43 @@ class GalleryInfoCard extends StatelessWidget {
       label: '作品信息',
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: colorScheme.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(0),
+          border: Border.symmetric(
+            horizontal: BorderSide(
+              color: colorScheme.outlineVariant.withValues(alpha: 0.75),
+            ),
           ),
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(14),
-          child: Column(
-            children: [
-              for (var row = 0; row < 2; row++) ...[
-                if (row > 0)
-                  Divider(
-                    height: 1,
-                    thickness: 1,
-                    color: colorScheme.outlineVariant.withValues(alpha: 0.5),
-                  ),
-                IntrinsicHeight(
-                  child: Row(
-                    children: [
-                      for (var column = 0; column < 3; column++) ...[
-                        if (column > 0)
-                          VerticalDivider(
-                            width: 1,
-                            thickness: 1,
-                            color: colorScheme.outlineVariant
-                                .withValues(alpha: 0.5),
-                          ),
-                        Expanded(
-                            child: _InfoCell(item: values[row * 3 + column])),
-                      ],
-                    ],
-                  ),
+        child: Column(
+          children: [
+            for (var row = 0; row < 2; row++) ...[
+              if (row > 0)
+                Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.5),
                 ),
-              ],
+              IntrinsicHeight(
+                child: Row(
+                  children: [
+                    for (var column = 0; column < 3; column++) ...[
+                      if (column > 0)
+                        VerticalDivider(
+                          width: 1,
+                          thickness: 1,
+                          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+                        ),
+                      Expanded(child: _InfoCell(item: values[row * 3 + column])),
+                    ],
+                  ],
+                ),
+              ),
             ],
-          ),
+          ],
         ),
       ),
+    );
     );
   }
 }

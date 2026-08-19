@@ -1,14 +1,14 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-abstract final class TaroColors {
-  static const accent = Color(0xFF7157C8);
-  static const lightCanvas = Color(0xFFF8F7FB);
-  static const lightSurface = Color(0xFFFFFFFF);
-  static const lightInk = Color(0xFF1C1A22);
-  static const darkCanvas = Color(0xFF111015);
-  static const darkSurface = Color(0xFF1B1921);
-  static const darkInk = Color(0xFFF2EFF7);
+abstract final class SuicangColors {
+  static const canvas = Color(0xFF090A0D);
+  static const surface = Color(0xFF121319);
+  static const elevated = Color(0xFF1A1B22);
+  static const ink = Color(0xFFF5F5F7);
+  static const secondary = Color(0xFFA1A1A6);
+  static const muted = Color(0xFF686970);
+  static const border = Color(0x1FFFFFFF);
 }
 
 abstract final class TaroMotion {
@@ -17,61 +17,99 @@ abstract final class TaroMotion {
 }
 
 abstract final class TaroTheme {
-  static ThemeData light() => _theme(Brightness.light);
+  static ThemeData light() => _light();
+  static ThemeData dark() => _dark();
 
-  static ThemeData dark() => _theme(Brightness.dark);
-
-  static ThemeData _theme(Brightness brightness) {
-    final isDark = brightness == Brightness.dark;
-    final colorScheme = ColorScheme.fromSeed(
-      seedColor: TaroColors.accent,
-      brightness: brightness,
-      surface: isDark ? TaroColors.darkSurface : TaroColors.lightSurface,
+  static ThemeData _dark() {
+    const scheme = ColorScheme.dark(
+      primary: SuicangColors.ink,
+      onPrimary: Colors.black,
+      secondary: SuicangColors.secondary,
+      surface: SuicangColors.surface,
+      onSurface: SuicangColors.ink,
+      outlineVariant: SuicangColors.border,
     );
-    final textTheme = Typography.material2021().black.apply(
-          bodyColor: isDark ? TaroColors.darkInk : TaroColors.lightInk,
-          displayColor: isDark ? TaroColors.darkInk : TaroColors.lightInk,
-        );
+    return _base(scheme, canvas: SuicangColors.canvas, dark: true);
+  }
 
+  static ThemeData _light() {
+    final scheme = ColorScheme.fromSeed(
+      seedColor: const Color(0xFF6C5B9D),
+      brightness: Brightness.light,
+    );
+    return _base(scheme, canvas: const Color(0xFFF8F7FB), dark: false);
+  }
+
+  static ThemeData _base(
+    ColorScheme scheme, {
+    required Color canvas,
+    required bool dark,
+  }) {
+    final text = Typography.material2021().black.apply(
+          bodyColor: scheme.onSurface,
+          displayColor: scheme.onSurface,
+        );
     return ThemeData(
       useMaterial3: true,
-      brightness: brightness,
-      colorScheme: colorScheme,
-      scaffoldBackgroundColor:
-          isDark ? TaroColors.darkCanvas : TaroColors.lightCanvas,
-      textTheme: textTheme.copyWith(
-        headlineSmall: textTheme.headlineSmall?.copyWith(
+      brightness: dark ? Brightness.dark : Brightness.light,
+      colorScheme: scheme,
+      scaffoldBackgroundColor: canvas,
+      textTheme: text.copyWith(
+        headlineSmall: text.headlineSmall?.copyWith(
           fontWeight: FontWeight.w700,
-          letterSpacing: -0.6,
+          letterSpacing: -0.7,
         ),
-        titleLarge: textTheme.titleLarge?.copyWith(
+        titleLarge: text.titleLarge?.copyWith(
           fontWeight: FontWeight.w700,
-          letterSpacing: -0.35,
+          letterSpacing: -0.45,
         ),
       ),
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
-        foregroundColor: isDark ? TaroColors.darkInk : TaroColors.lightInk,
+        foregroundColor: scheme.onSurface,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         centerTitle: false,
       ),
       cardTheme: CardThemeData(
-        color: isDark ? TaroColors.darkSurface : TaroColors.lightSurface,
+        color: dark ? SuicangColors.surface : Colors.white,
         elevation: 0,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(
-            color: colorScheme.outlineVariant.withValues(alpha: 0.45),
-          ),
+          borderRadius: BorderRadius.circular(18),
+          side: BorderSide(color: scheme.outlineVariant),
+        ),
+      ),
+      chipTheme: ChipThemeData(
+        backgroundColor: dark ? SuicangColors.surface : Colors.white,
+        side: BorderSide(color: scheme.outlineVariant),
+        shape: const StadiumBorder(),
+        labelStyle: TextStyle(color: scheme.onSurface, fontSize: 12),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: dark ? SuicangColors.ink : scheme.primary,
+          foregroundColor: dark ? Colors.black : scheme.onPrimary,
+          minimumSize: const Size(48, 48),
+          shape: const StadiumBorder(),
+          textStyle: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: scheme.onSurface,
+          minimumSize: const Size(48, 48),
+          side: BorderSide(color: scheme.outlineVariant),
+          shape: const StadiumBorder(),
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
         height: 68,
-        backgroundColor:
-            isDark ? TaroColors.darkSurface : TaroColors.lightSurface,
-        indicatorColor: colorScheme.secondaryContainer,
+        backgroundColor: dark ? const Color(0xEE101117) : Colors.white,
+        indicatorColor: dark ? SuicangColors.elevated : scheme.secondaryContainer,
+        labelTextStyle: WidgetStatePropertyAll(
+          TextStyle(color: scheme.onSurface, fontSize: 11, fontWeight: FontWeight.w600),
+        ),
       ),
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {

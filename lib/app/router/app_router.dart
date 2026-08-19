@@ -189,17 +189,26 @@ class AppScaffold extends StatelessWidget {
 
         return Scaffold(
           body: body,
-          bottomNavigationBar: NavigationBar(
-            selectedIndex: navigationShell.currentIndex,
-            onDestinationSelected: switchTab,
-            destinations: [
-              for (final route in destinations)
-                NavigationDestination(
-                  icon: Icon(route.icon),
-                  selectedIcon: Icon(route.icon),
-                  label: route.label,
+          bottomNavigationBar: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 6, 20, 14),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: NavigationBar(
+                  selectedIndex: navigationShell.currentIndex,
+                  onDestinationSelected: switchTab,
+                  destinations: [
+                    for (final route in destinations)
+                      NavigationDestination(
+                        icon: Icon(route.icon),
+                        selectedIcon: Icon(route.icon),
+                        label: route.label,
+                      ),
+                  ],
                 ),
-            ],
+              ),
+            ),
           ),
         );
       },
