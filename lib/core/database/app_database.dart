@@ -106,6 +106,20 @@ class SubscribedTags extends Table {
   Set<Column<Object>> get primaryKey => {rawName};
 }
 
+class FollowedCreators extends Table {
+  TextColumn get id => text()();
+  TextColumn get source => text()();
+  TextColumn get kind => text()();
+  TextColumn get value => text()();
+  TextColumn get displayName => text()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get lastCheckedAt => dateTime().nullable()();
+  DateTimeColumn get lastSeenPublishedAt => dateTime().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 class TagDatabaseMetadata extends Table {
   IntColumn get id => integer()();
   IntColumn get version => integer()();
@@ -137,6 +151,7 @@ class MigrationJournal extends Table {
     ImageUrlCacheEntries,
     SearchHistoryEntries,
     SubscribedTags,
+    FollowedCreators,
     TagDatabaseMetadata,
     MigrationJournal,
   ],
@@ -147,7 +162,7 @@ class AppDatabase extends _$AppDatabase {
   factory AppDatabase.open() => AppDatabase(_openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -159,6 +174,9 @@ class AppDatabase extends _$AppDatabase {
               'UPDATE library_entries SET favorited_at = last_opened_at '
               'WHERE is_favorite = 1 AND favorited_at IS NULL',
             );
+          }
+          if (from < 3) {
+            await migrator.createTable(followedCreators);
           }
         },
         beforeOpen: (details) async {

@@ -7,6 +7,8 @@ import '../../../core/image/image_request.dart';
 import '../../../core/image/pipeline_image.dart';
 import '../../tags/presentation/providers/subscribed_tags_providers.dart';
 import '../../tags/presentation/providers/tag_translation_providers.dart';
+import '../../follows/domain/entities/followed_creator.dart';
+import '../../follows/presentation/followed_creators_screen.dart';
 import '../domain/entities/gallery.dart';
 import 'notifiers/gallery_detail_notifier.dart';
 import 'widgets/gallery_comment_card.dart';
@@ -82,6 +84,15 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
             ),
             actions: [
               IconButton(
+                tooltip: '关注',
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const FollowedCreatorsScreen(),
+                  ),
+                ),
+                icon: const Icon(Icons.notifications_outlined),
+              ),
+              IconButton(
                 tooltip: '账户收藏',
                 onPressed: () => context.push('/cloud-favorites'),
                 icon: const Icon(Icons.cloud_outlined),
@@ -145,6 +156,22 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
                           label: Text(snapshot.data == true ? '已收藏' : '收藏'),
                         ),
                       ),
+                    ),
+                    const SizedBox(width: 12),
+                    PopupMenuButton<FollowedCreatorKind>(
+                      tooltip: '关注作者或发布者',
+                      icon: const Icon(Icons.person_add_alt_1_outlined),
+                      onSelected: notifier.followArtistOrUploader,
+                      itemBuilder: (context) => const [
+                        PopupMenuItem(
+                          value: FollowedCreatorKind.artist,
+                          child: Text('关注作者'),
+                        ),
+                        PopupMenuItem(
+                          value: FollowedCreatorKind.uploader,
+                          child: Text('关注发布者'),
+                        ),
+                      ],
                     ),
                     const SizedBox(width: 12),
                     IconButton(

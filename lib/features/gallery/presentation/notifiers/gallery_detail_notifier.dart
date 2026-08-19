@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../downloads/domain/entities/download_request.dart';
 import '../../../downloads/presentation/providers/download_providers.dart';
 import '../../../library/presentation/providers/library_providers.dart';
+import '../../../follows/domain/entities/followed_creator.dart';
+import '../../../follows/presentation/providers/followed_creator_providers.dart';
 import '../providers/gallery_interaction_providers.dart';
 import '../../domain/entities/gallery.dart';
 import '../../domain/repositories/gallery_repository.dart';
@@ -34,6 +36,37 @@ class GalleryDetailNotifier
 
   Future<void> recordOpened() {
     return ref.read(libraryRepositoryProvider).recordOpened(state.gallery);
+  }
+
+  Future<void> followArtistOrUploader(FollowedCreatorKind kind) async {
+    final value = kind == FollowedCreatorKind.artist
+        ? _artistValue(state.gallery)
+        : state.gallery.uploader;
+    if (value.isEmpty) return;
+    final id = '${state.gallery.key.source.storageValue}:${kind.name}:${value.toLowerCase()}';
+    final repository = ref.read(followedCreatorRepositoryProvider);
+    if (await repository.isFollowing(id)) {
+      await repository.unfollow(id);
+      return;
+    }
+    await repository.follow(
+      FollowedCreator(
+        id: id,
+        source: state.gallery.key.source,
+        kind: kind,
+        value: value,
+        displayName: value,
+        createdAt: DateTime.now().toUtc(),
+      ),
+    );
+  }
+
+  String _artistValue(Gallery gallery) {
+    final tag = gallery.tags.firstWhere(
+      (tag) => tag.namespace == 'artist',
+      orElse: () => const GalleryTag(namespace: '', key: ''),
+    );
+    return tag.key;
   }
 
   Future<void> voteComment({
