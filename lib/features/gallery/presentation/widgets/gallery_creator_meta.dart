@@ -18,7 +18,11 @@ class GalleryCreatorMeta extends StatelessWidget {
   Widget build(BuildContext context) {
     final items = <({String label, String query, bool follow})>[];
     if (gallery.uploader.isNotEmpty) {
-      items.add((label: gallery.uploader, query: 'uploader:"${gallery.uploader}\$"', follow: true));
+      items.add((
+        label: gallery.uploader,
+        query: 'uploader:"${gallery.uploader}\$"',
+        follow: true
+      ));
     }
     final artist = gallery.tags
         .where((tag) => tag.namespace == 'artist')
@@ -60,7 +64,8 @@ class GalleryCreatorMeta extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                     onTap: () => onSearch(item.query),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 3, vertical: 2),
                       child: Text(
                         item.label,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -72,8 +77,7 @@ class GalleryCreatorMeta extends StatelessWidget {
                     ),
                   ),
                 ),
-        if (items.length > 1)
-          const SizedBox.shrink(),
+        if (items.length > 1) const SizedBox.shrink(),
       ],
     );
   }

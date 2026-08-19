@@ -73,9 +73,8 @@ class DiscoveryNotifier extends Notifier<DiscoveryState> {
           error.kind != NetworkFailureKind.authenticationRequired) {
         rethrow;
       }
-      final refreshed = await ref
-          .read(sessionServiceProvider)
-          .refreshExHentaiSession();
+      final refreshed =
+          await ref.read(sessionServiceProvider).refreshExHentaiSession();
       if (refreshed.status != SessionValidationStatus.valid) rethrow;
       return _repository.discover(source: state.source);
     }

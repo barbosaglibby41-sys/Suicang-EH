@@ -80,9 +80,9 @@ class CloudFavoritesParser {
       final title = _clean(titleMatch?.group(1) ?? body);
       if (title.isEmpty) continue;
       final thumbnail = RegExp(
-        r'''(?:data-src|data-lazy-src|src)=["']([^"']+)["']''',
-        caseSensitive: false,
-      ).firstMatch(body)?.group(1) ??
+            r'''(?:data-src|data-lazy-src|src)=["']([^"']+)["']''',
+            caseSensitive: false,
+          ).firstMatch(body)?.group(1) ??
           RegExp(
             r'''(?:data-src|data-lazy-src|src)=["']([^"']+)["']''',
             caseSensitive: false,

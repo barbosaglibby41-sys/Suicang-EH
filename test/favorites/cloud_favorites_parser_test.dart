@@ -17,7 +17,8 @@ void main() {
     expect(page.categories.map((item) => item.name), ['Default', 'Artists']);
     expect(page.galleries.single.title, 'Saved & Gallery');
     expect(page.galleries.single.key.stableId, 'e-hentai:101');
-    expect(page.galleries.single.thumbnailUrl.toString(), 'https://thumb.example/101.jpg');
+    expect(page.galleries.single.thumbnailUrl.toString(),
+        'https://thumb.example/101.jpg');
     expect(page.nextUrl?.queryParameters['next'], '321');
   });
 }
