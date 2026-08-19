@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:taro_eh_flutter/features/gallery/domain/entities/gallery_key.dart';
-import 'package:taro_eh_flutter/features/reader/domain/engine/manga_reader_engine.dart';
-import 'package:taro_eh_flutter/features/reader/domain/entities/reader_models.dart';
-import 'package:taro_eh_flutter/features/reader/domain/page_source/page_source.dart';
+import 'package:suicang_eh/features/gallery/domain/entities/gallery_key.dart';
+import 'package:suicang_eh/features/reader/domain/engine/manga_reader_engine.dart';
+import 'package:suicang_eh/features/reader/domain/entities/reader_models.dart';
+import 'package:suicang_eh/features/reader/domain/page_source/page_source.dart';
 
 void main() {
   test('clamps navigation and schedules adjacent pages', () async {

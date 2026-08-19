@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:taro_eh_flutter/core/errors/app_exception.dart';
-import 'package:taro_eh_flutter/features/authentication/data/datasources/cookie_header_parser.dart';
+import 'package:suicang_eh/core/errors/app_exception.dart';
+import 'package:suicang_eh/features/authentication/data/datasources/cookie_header_parser.dart';
 
 void main() {
   test('imports valid cookies to both supported site domains', () {

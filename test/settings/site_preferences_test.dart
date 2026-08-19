@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:taro_eh_flutter/features/gallery/domain/entities/gallery_key.dart';
-import 'package:taro_eh_flutter/features/settings/domain/entities/site_preferences.dart';
+import 'package:suicang_eh/features/gallery/domain/entities/gallery_key.dart';
+import 'package:suicang_eh/features/settings/domain/entities/site_preferences.dart';
 
 void main() {
   test('updates only selected site source', () {

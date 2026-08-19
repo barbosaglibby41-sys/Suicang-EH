@@ -9,11 +9,11 @@ on:
       tag:
         description: Existing GitHub Release tag
         required: true
-        default: v0.1.0-flutter-stable
+        default: v0.1.1-suicang-stable
       version:
         description: Display version
         required: true
-        default: 0.1.0
+        default: 0.1.1
 
 jobs:
   build-unsigned-ipa:
@@ -31,13 +31,14 @@ jobs:
       - name: Generate Drift sources
         run: dart run build_runner build --delete-conflicting-outputs
       - name: Generate iOS host when absent
-        run: test -d ios || flutter create --platforms=ios --project-name=taro_eh_flutter .
+        run: test -d ios || flutter create --platforms=ios --project-name=suicang_eh .
       - name: Configure official iOS bundle identity
         run: |
-          /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier com.taro.eh" ios/Runner/Info.plist || true
-          /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName 芋头E站" ios/Runner/Info.plist || true
-          /usr/libexec/PlistBuddy -c "Set :CFBundleName TaroEH" ios/Runner/Info.plist || true
-          sed -i.bak 's/PRODUCT_BUNDLE_IDENTIFIER = com.example.taroEhFlutter/PRODUCT_BUNDLE_IDENTIFIER = com.taro.eh/g' ios/Runner.xcodeproj/project.pbxproj || true
+          /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier com.suicang.eh" ios/Runner/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName Suicang EH" ios/Runner/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Set :CFBundleName SuicangEH" ios/Runner/Info.plist || true
+          sed -i.bak 's/PRODUCT_BUNDLE_IDENTIFIER = com.example.suicangEh/PRODUCT_BUNDLE_IDENTIFIER = com.suicang.eh/g' ios/Runner.xcodeproj/project.pbxproj || true
+          dart run flutter_launcher_icons
       - name: Install CocoaPods dependencies
         run: cd ios && pod install --repo-update
       - name: Build unsigned iOS archive
@@ -45,7 +46,7 @@ jobs:
           flutter build ipa --release --no-codesign \
             --build-name=${{ inputs.version }} \
             --build-number=1 \
-            --dart-define=TARO_IOS_BUNDLE_ID=com.taro.eh
+            --dart-define=SUICANG_IOS_BUNDLE_ID=com.suicang.eh
 
       - name: Package unsigned IPA container
         run: |
@@ -56,20 +57,20 @@ jobs:
             file "$file" | grep -q 'Mach-O' && chmod 755 "$file" || true
           done
           chmod 755 release/Payload/TaroEH.app/TaroEH || chmod 755 release/Payload/TaroEH.app/Runner
-          ditto -c -k --sequesterRsrc --keepParent release/Payload release/taro-eh-flutter-${{ inputs.version }}-unsigned.ipa
-          unzip -t release/taro-eh-flutter-${{ inputs.version }}-unsigned.ipa
-          shasum -a 256 release/taro-eh-flutter-${{ inputs.version }}-unsigned.ipa | tee release/SHA256SUMS.txt
+          ditto -c -k --sequesterRsrc --keepParent release/Payload release/suicang-eh-${{ inputs.version }}-unsigned.ipa
+          unzip -t release/suicang-eh-${{ inputs.version }}-unsigned.ipa
+          shasum -a 256 release/suicang-eh-${{ inputs.version }}-unsigned.ipa | tee release/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: taro-eh-flutter-ios-${{ inputs.version }}-unsigned
+          name: suicang-eh-ios-${{ inputs.version }}-unsigned
           path: |
-            release/taro-eh-flutter-${{ inputs.version }}-unsigned.ipa
+            release/suicang-eh-${{ inputs.version }}-unsigned.ipa
             release/SHA256SUMS.txt
       - name: Upload IPA to existing release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag }}
           files: |
-            release/taro-eh-flutter-${{ inputs.version }}-unsigned.ipa
+            release/suicang-eh-${{ inputs.version }}-unsigned.ipa
             release/SHA256SUMS.txt
           overwrite_files: true

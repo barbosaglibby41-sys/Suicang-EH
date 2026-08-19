@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:taro_eh_flutter/core/network/network_exception.dart';
-import 'package:taro_eh_flutter/core/network/network_retry_policy.dart';
-import 'package:taro_eh_flutter/core/network/request_coalescer.dart';
+import 'package:suicang_eh/core/network/network_exception.dart';
+import 'package:suicang_eh/core/network/network_retry_policy.dart';
+import 'package:suicang_eh/core/network/request_coalescer.dart';
 
 void main() {
   test('shares one in-flight operation for equivalent keys', () async {

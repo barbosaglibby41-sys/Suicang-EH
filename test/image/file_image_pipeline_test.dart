@@ -3,14 +3,14 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:taro_eh_flutter/features/authentication/domain/entities/session_cookie.dart';
-import 'package:taro_eh_flutter/core/image/image_decoder.dart';
-import 'package:taro_eh_flutter/core/image/image_pipeline.dart';
-import 'package:taro_eh_flutter/core/image/image_request.dart';
-import 'package:taro_eh_flutter/core/network/site_http_client.dart';
-import 'package:taro_eh_flutter/features/authentication/data/datasources/secure_cookie_store.dart';
-import 'package:taro_eh_flutter/features/authentication/data/repositories/secure_auth_repository.dart';
-import 'package:taro_eh_flutter/features/gallery/domain/entities/gallery_key.dart';
+import 'package:suicang_eh/features/authentication/domain/entities/session_cookie.dart';
+import 'package:suicang_eh/core/image/image_decoder.dart';
+import 'package:suicang_eh/core/image/image_pipeline.dart';
+import 'package:suicang_eh/core/image/image_request.dart';
+import 'package:suicang_eh/core/network/site_http_client.dart';
+import 'package:suicang_eh/features/authentication/data/datasources/secure_cookie_store.dart';
+import 'package:suicang_eh/features/authentication/data/repositories/secure_auth_repository.dart';
+import 'package:suicang_eh/features/gallery/domain/entities/gallery_key.dart';
 
 void main() {
   test('reads offline file requests without starting a network request',

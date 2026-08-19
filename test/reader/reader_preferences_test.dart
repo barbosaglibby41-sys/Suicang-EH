@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:taro_eh_flutter/features/reader/domain/entities/reader_models.dart';
-import 'package:taro_eh_flutter/features/reader/domain/entities/reader_preferences.dart';
+import 'package:suicang_eh/features/reader/domain/entities/reader_models.dart';
+import 'package:suicang_eh/features/reader/domain/entities/reader_preferences.dart';
 
 void main() {
   test('copies only changed reader preference fields', () {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:taro_eh_flutter/app/layout/adaptive_layout.dart';
+import 'package:suicang_eh/app/layout/adaptive_layout.dart';
 
 void main() {
   testWidgets('uses compact, medium and expanded adaptive columns', (tester) async {

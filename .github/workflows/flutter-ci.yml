@@ -73,9 +73,12 @@ jobs:
       - name: Generate Drift sources
         run: dart run build_runner build --delete-conflicting-outputs
       - name: Generate Android host when absent
-        run: test -d android || flutter create --platforms=android --project-name=taro_eh_flutter .
-      - name: Set Android host compile SDK
-        run: sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 36/' android/app/build.gradle.kts
+        run: test -d android || flutter create --platforms=android --project-name=suicang_eh .
+      - name: Configure Suicang EH Android host
+        run: |
+          sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 36/' android/app/build.gradle.kts
+          sed -i 's/android:label="suicang_eh"/android:label="Suicang EH"/' android/app/src/main/AndroidManifest.xml
+          dart run flutter_launcher_icons
       - name: Build Android ARM64 split APK
         run: flutter build apk --release --split-per-abi --target-platform android-arm64
       - name: Verify ARM64 APK only
@@ -85,7 +88,7 @@ jobs:
           test ! -e build/app/outputs/flutter-apk/app-x86_64-release.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: taro-eh-flutter-arm64-release
+          name: suicang-eh-arm64-release
           path: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
 
   ios-simulator:
@@ -102,7 +105,7 @@ jobs:
       - name: Generate Drift sources
         run: dart run build_runner build --delete-conflicting-outputs
       - name: Generate iOS host when absent
-        run: test -d ios || flutter create --platforms=ios --project-name=taro_eh_flutter .
+        run: test -d ios || flutter create --platforms=ios --project-name=suicang_eh .
       - name: Install CocoaPods dependencies
         run: cd ios && pod install --repo-update
       - name: Build iOS simulator app
@@ -111,7 +114,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: taro-eh-flutter-ios-build-diagnostics
+          name: suicang-eh-ios-build-diagnostics
           path: |
             ios/Podfile.lock
             ios/Pods

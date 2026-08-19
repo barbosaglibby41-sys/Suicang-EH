@@ -9,11 +9,11 @@ on:
       tag:
         description: Existing GitHub Release tag
         required: true
-        default: v0.1.0-flutter-stable
+        default: v0.1.1-suicang-stable
       version:
         description: Display version
         required: true
-        default: 0.1.0
+        default: 0.1.1
 
 jobs:
   build-arm64-apk:
@@ -31,9 +31,12 @@ jobs:
       - name: Generate Drift sources
         run: dart run build_runner build --delete-conflicting-outputs
       - name: Generate Android host when absent
-        run: test -d android || flutter create --platforms=android --project-name=taro_eh_flutter .
-      - name: Set Android host compile SDK
-        run: sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 36/' android/app/build.gradle.kts
+        run: test -d android || flutter create --platforms=android --project-name=suicang_eh .
+      - name: Configure Suicang EH Android host
+        run: |
+          sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 36/' android/app/build.gradle.kts
+          sed -i 's/android:label="suicang_eh"/android:label="Suicang EH"/' android/app/src/main/AndroidManifest.xml
+          dart run flutter_launcher_icons
       - name: Build ARM64 release APK
         run: flutter build apk --release --split-per-abi --target-platform android-arm64
       - name: Verify ARM64 output
@@ -44,7 +47,7 @@ jobs:
           sha256sum build/app/outputs/flutter-apk/app-arm64-v8a-release.apk | tee SHA256SUMS-android-arm64.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: taro-eh-flutter-android-arm64-${{ inputs.version }}
+          name: suicang-eh-android-arm64-${{ inputs.version }}
           path: |
             build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
             SHA256SUMS-android-arm64.txt

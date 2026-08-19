@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:taro_eh_flutter/core/image/memory_image_cache.dart';
+import 'package:suicang_eh/core/image/memory_image_cache.dart';
 
 void main() {
   test('evicts least recently used entries by decoded cost', () {

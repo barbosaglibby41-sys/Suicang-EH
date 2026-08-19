@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:taro_eh_flutter/features/downloads/domain/entities/download_task.dart';
-import 'package:taro_eh_flutter/features/gallery/domain/entities/gallery_key.dart';
+import 'package:suicang_eh/features/downloads/domain/entities/download_task.dart';
+import 'package:suicang_eh/features/gallery/domain/entities/gallery_key.dart';
 
 void main() {
   test('calculates task progress without dividing by zero', () {

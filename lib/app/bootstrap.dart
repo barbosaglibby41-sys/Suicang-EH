@@ -22,9 +22,9 @@ Future<void> bootstrap(Widget Function() builder) async {
   );
 }
 
-class TaroEhBootstrap extends StatelessWidget {
-  const TaroEhBootstrap({super.key});
+class SuicangEhBootstrap extends StatelessWidget {
+  const SuicangEhBootstrap({super.key});
 
   @override
-  Widget build(BuildContext context) => const TaroEhApp();
+  Widget build(BuildContext context) => const SuicangEhApp();
 }

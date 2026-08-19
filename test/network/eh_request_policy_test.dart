@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:taro_eh_flutter/core/network/eh_request_policy.dart';
-import 'package:taro_eh_flutter/features/authentication/domain/entities/session_cookie.dart';
-import 'package:taro_eh_flutter/features/gallery/domain/entities/gallery_key.dart';
+import 'package:suicang_eh/core/network/eh_request_policy.dart';
+import 'package:suicang_eh/features/authentication/domain/entities/session_cookie.dart';
+import 'package:suicang_eh/features/gallery/domain/entities/gallery_key.dart';
 
 void main() {
   const policy = EhRequestPolicy();

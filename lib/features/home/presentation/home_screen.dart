@@ -76,7 +76,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'TAROEH',
+                              'SUICANG EH',
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: theme.colorScheme.primary,
                                 fontWeight: FontWeight.w800,

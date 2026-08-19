@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:taro_eh_flutter/features/favorites/data/datasources/cloud_favorites_parser.dart';
-import 'package:taro_eh_flutter/features/gallery/domain/entities/gallery_key.dart';
+import 'package:suicang_eh/features/favorites/data/datasources/cloud_favorites_parser.dart';
+import 'package:suicang_eh/features/gallery/domain/entities/gallery_key.dart';
 
 void main() {
   test('parses categories, galleries and next page without account data', () {

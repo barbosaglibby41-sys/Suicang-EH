@@ -1,7 +1,7 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:taro_eh_flutter/core/database/app_database.dart';
-import 'package:taro_eh_flutter/features/search/data/repositories/drift_search_history_repository.dart';
+import 'package:suicang_eh/core/database/app_database.dart';
+import 'package:suicang_eh/features/search/data/repositories/drift_search_history_repository.dart';
 
 void main() {
   late AppDatabase database;

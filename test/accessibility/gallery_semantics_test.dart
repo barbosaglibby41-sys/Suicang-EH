@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:taro_eh_flutter/features/gallery/domain/entities/gallery.dart';
-import 'package:taro_eh_flutter/features/gallery/domain/entities/gallery_key.dart';
-import 'package:taro_eh_flutter/features/gallery/presentation/widgets/gallery_cover.dart';
+import 'package:suicang_eh/features/gallery/domain/entities/gallery.dart';
+import 'package:suicang_eh/features/gallery/domain/entities/gallery_key.dart';
+import 'package:suicang_eh/features/gallery/presentation/widgets/gallery_cover.dart';
 
 void main() {
   testWidgets('gallery cover exposes semantic image label', (tester) async {

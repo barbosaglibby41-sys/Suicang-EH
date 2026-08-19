@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:taro_eh_flutter/core/image/media_kind.dart';
+import 'package:suicang_eh/core/image/media_kind.dart';
 
 void main() {
   test('classifies animated images and videos without network assumptions', () {

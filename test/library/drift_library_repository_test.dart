@@ -1,9 +1,9 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:taro_eh_flutter/core/database/app_database.dart';
-import 'package:taro_eh_flutter/features/gallery/domain/entities/gallery.dart';
-import 'package:taro_eh_flutter/features/gallery/domain/entities/gallery_key.dart';
-import 'package:taro_eh_flutter/features/library/data/repositories/drift_library_repository.dart';
+import 'package:suicang_eh/core/database/app_database.dart';
+import 'package:suicang_eh/features/gallery/domain/entities/gallery.dart';
+import 'package:suicang_eh/features/gallery/domain/entities/gallery_key.dart';
+import 'package:suicang_eh/features/library/data/repositories/drift_library_repository.dart';
 
 void main() {
   late AppDatabase database;

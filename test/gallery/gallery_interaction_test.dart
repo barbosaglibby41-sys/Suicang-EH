@@ -1,12 +1,12 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:taro_eh_flutter/core/network/network_exception.dart';
-import 'package:taro_eh_flutter/core/network/site_http_client.dart';
-import 'package:taro_eh_flutter/features/authentication/data/datasources/secure_cookie_store.dart';
-import 'package:taro_eh_flutter/features/authentication/data/repositories/secure_auth_repository.dart';
-import 'package:taro_eh_flutter/features/gallery/data/repositories/eh_gallery_interaction_repository.dart';
-import 'package:taro_eh_flutter/features/gallery/domain/entities/gallery.dart';
-import 'package:taro_eh_flutter/features/gallery/domain/entities/gallery_key.dart';
+import 'package:suicang_eh/core/network/network_exception.dart';
+import 'package:suicang_eh/core/network/site_http_client.dart';
+import 'package:suicang_eh/features/authentication/data/datasources/secure_cookie_store.dart';
+import 'package:suicang_eh/features/authentication/data/repositories/secure_auth_repository.dart';
+import 'package:suicang_eh/features/gallery/data/repositories/eh_gallery_interaction_repository.dart';
+import 'package:suicang_eh/features/gallery/domain/entities/gallery.dart';
+import 'package:suicang_eh/features/gallery/domain/entities/gallery_key.dart';
 
 void main() {
   test('rejects comments shorter than three characters', () async {

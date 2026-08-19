@@ -4,15 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'router/app_router.dart';
 import 'theme/taro_theme.dart';
 
-class TaroEhApp extends ConsumerWidget {
-  const TaroEhApp({super.key});
+class SuicangEhApp extends ConsumerWidget {
+  const SuicangEhApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
 
     return MaterialApp.router(
-      title: '芋头E站',
+      title: 'Suicang EH',
       debugShowCheckedModeBanner: false,
       theme: TaroTheme.light(),
       darkTheme: TaroTheme.dark(),

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:taro_eh_flutter/features/gallery/domain/entities/gallery_key.dart';
-import 'package:taro_eh_flutter/features/gallery/domain/entities/gallery_tag.dart';
+import 'package:suicang_eh/features/gallery/domain/entities/gallery_key.dart';
+import 'package:suicang_eh/features/gallery/domain/entities/gallery_tag.dart';
 
 void main() {
   group('GalleryKey', () {

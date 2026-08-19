@@ -1,7 +1,7 @@
-name: taro_eh_flutter
-description: TaroEH cross-platform manga reader migration.
+name: suicang_eh
+description: Suicang EH cross-platform manga reader.
 publish_to: none
-version: 0.1.0+1
+version: 0.1.1+2
 
 environment:
   sdk: ">=3.4.0 <4.0.0"
@@ -32,6 +32,13 @@ dev_dependencies:
   flutter_lints: ^4.0.0
   drift_dev: ^2.20.1
   build_runner: ^2.4.12
+  flutter_launcher_icons: ^0.14.4
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/branding/suicang_eh_icon_1024.png
+  remove_alpha_ios: true
 
 flutter:
   uses-material-design: true

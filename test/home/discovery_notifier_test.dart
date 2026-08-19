@@ -1,15 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:taro_eh_flutter/features/gallery/domain/entities/gallery.dart';
-import 'package:taro_eh_flutter/features/gallery/domain/entities/gallery_detail.dart';
-import 'package:taro_eh_flutter/features/gallery/domain/entities/gallery_key.dart';
-import 'package:taro_eh_flutter/features/gallery/domain/entities/gallery_page_result.dart';
-import 'package:taro_eh_flutter/features/gallery/domain/entities/gallery_search_query.dart';
-import 'package:taro_eh_flutter/features/gallery/domain/repositories/gallery_repository.dart';
-import 'package:taro_eh_flutter/features/gallery/presentation/providers/gallery_providers.dart';
-import 'package:taro_eh_flutter/features/rankings/domain/entities/ranking_period.dart';
-import 'package:taro_eh_flutter/features/rankings/domain/entities/ranking_page.dart';
-import 'package:taro_eh_flutter/features/home/presentation/notifiers/discovery_notifier.dart';
+import 'package:suicang_eh/features/gallery/domain/entities/gallery.dart';
+import 'package:suicang_eh/features/gallery/domain/entities/gallery_detail.dart';
+import 'package:suicang_eh/features/gallery/domain/entities/gallery_key.dart';
+import 'package:suicang_eh/features/gallery/domain/entities/gallery_page_result.dart';
+import 'package:suicang_eh/features/gallery/domain/entities/gallery_search_query.dart';
+import 'package:suicang_eh/features/gallery/domain/repositories/gallery_repository.dart';
+import 'package:suicang_eh/features/gallery/presentation/providers/gallery_providers.dart';
+import 'package:suicang_eh/features/rankings/domain/entities/ranking_period.dart';
+import 'package:suicang_eh/features/rankings/domain/entities/ranking_page.dart';
+import 'package:suicang_eh/features/home/presentation/notifiers/discovery_notifier.dart';
 
 void main() {
   test('deduplicates galleries when loading subsequent pages', () async {

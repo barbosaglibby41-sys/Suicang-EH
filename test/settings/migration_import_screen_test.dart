@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:taro_eh_flutter/features/settings/presentation/migration_import_screen.dart';
+import 'package:suicang_eh/features/settings/presentation/migration_import_screen.dart';
 
 void main() {
   testWidgets('communicates non-sensitive migration boundaries',

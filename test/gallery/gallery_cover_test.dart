@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:taro_eh_flutter/features/gallery/domain/entities/gallery.dart';
-import 'package:taro_eh_flutter/features/gallery/domain/entities/gallery_key.dart';
-import 'package:taro_eh_flutter/features/gallery/presentation/widgets/gallery_cover.dart';
-import 'package:taro_eh_flutter/features/gallery/presentation/widgets/gallery_cover_placeholder.dart';
+import 'package:suicang_eh/features/gallery/domain/entities/gallery.dart';
+import 'package:suicang_eh/features/gallery/domain/entities/gallery_key.dart';
+import 'package:suicang_eh/features/gallery/presentation/widgets/gallery_cover.dart';
+import 'package:suicang_eh/features/gallery/presentation/widgets/gallery_cover_placeholder.dart';
 
 void main() {
   testWidgets('uses stable placeholder for galleries without thumbnails',

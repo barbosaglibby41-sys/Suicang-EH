@@ -2,8 +2,8 @@ import 'dart:convert';
 
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:taro_eh_flutter/core/database/app_database.dart';
-import 'package:taro_eh_flutter/core/migration/migration_importer.dart';
+import 'package:suicang_eh/core/database/app_database.dart';
+import 'package:suicang_eh/core/migration/migration_importer.dart';
 
 void main() {
   late AppDatabase database;

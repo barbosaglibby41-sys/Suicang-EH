@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:taro_eh_flutter/features/tags/data/repositories/bundled_tag_translation_repository.dart';
+import 'package:suicang_eh/features/tags/data/repositories/bundled_tag_translation_repository.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
