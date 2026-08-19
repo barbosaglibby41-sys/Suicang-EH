@@ -80,17 +80,19 @@ class EhGalleryRepository implements GalleryRepository {
   @override
   Future<List<Gallery>> random({
     required SiteSource source,
-    int count = 12,
+    int count = 18,
     Set<int> excluding = const {},
   }) async {
     final first = await discover(source: source);
     final maxId = first.galleries.fold<int>(
-        1, (max, gallery) => gallery.key.gid > max ? gallery.key.gid : max);
+      1,
+      (max, gallery) => gallery.key.gid > max ? gallery.key.gid : max,
+    );
     final result = <Gallery>[];
     final known = {...excluding};
     final cursors = <int>{};
     var attempts = 0;
-    while (result.length < count && attempts < 8) {
+    while (result.length < count && attempts < 16) {
       attempts += 1;
       final cursor = _randomCursor(maxId, cursors);
       cursors.add(cursor);

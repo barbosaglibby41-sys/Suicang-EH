@@ -320,7 +320,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         final gallery = state.galleries[index];
                         return _GalleryTile(gallery: gallery);
                       },
-                      childCount: state.galleries.length + 1,
+                      childCount: state.galleries.length + (state.hasMore ? 1 : 0),
                     ),
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: columns,
