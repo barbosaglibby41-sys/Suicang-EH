@@ -57,6 +57,23 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
         ),
+        const SizedBox(height: 12),
+        sitePreferences.when(
+          loading: () => const SizedBox.shrink(),
+          error: (_, __) => const SizedBox.shrink(),
+          data: (preferences) => Card(
+            child: SwitchListTile(
+              value: preferences.preferPublicDetailRedirect,
+              title: const Text('优先重定向至表站'),
+              subtitle: const Text('里站作品详情优先从 E-Hentai 加载，失败时自动回退。'),
+              onChanged: (enabled) => ref
+                  .read(sitePreferencesProvider.notifier)
+                  .setPreferences(
+                    preferences.copyWith(preferPublicDetailRedirect: enabled),
+                  ),
+            ),
+          ),
+        ),
         const SizedBox(height: 24),
         Card(
           child: ListTile(

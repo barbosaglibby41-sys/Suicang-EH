@@ -7,6 +7,8 @@ import '../../domain/repositories/site_preferences_repository.dart';
 class SharedPreferencesSitePreferencesRepository
     implements SitePreferencesRepository {
   static const _sourceKey = 'taro.eh.site.source';
+  static const _preferPublicDetailRedirectKey =
+      'taro.eh.site.prefer_public_detail_redirect';
 
   @override
   Future<SitePreferences> load() async {
@@ -15,12 +17,20 @@ class SharedPreferencesSitePreferencesRepository
       source: SiteSource.fromStorageValue(
         preferences.getString(_sourceKey) ?? SiteSource.eHentai.storageValue,
       ),
+      preferPublicDetailRedirect:
+          preferences.getBool(_preferPublicDetailRedirectKey) ?? true,
     );
   }
 
   @override
   Future<void> save(SitePreferences preferences) async {
     final storage = await SharedPreferences.getInstance();
-    await storage.setString(_sourceKey, preferences.source.storageValue);
+    await Future.wait([
+      storage.setString(_sourceKey, preferences.source.storageValue),
+      storage.setBool(
+        _preferPublicDetailRedirectKey,
+        preferences.preferPublicDetailRedirect,
+      ),
+    ]);
   }
 }

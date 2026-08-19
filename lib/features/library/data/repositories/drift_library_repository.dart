@@ -44,7 +44,10 @@ class DriftLibraryRepository implements LibraryRepository {
   }
 
   @override
-  Stream<List<Gallery>> watchHistory({int limit = 100}) {
+  Stream<List<Gallery>> watchHistory({
+    int limit = 100,
+    LibraryFilter filter = const LibraryFilter(),
+  }) {
     final query = _database.select(_database.galleries).join([
       innerJoin(
         _database.libraryEntries,

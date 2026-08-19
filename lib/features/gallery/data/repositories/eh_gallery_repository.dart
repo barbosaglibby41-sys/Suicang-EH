@@ -21,13 +21,16 @@ class EhGalleryRepository implements GalleryRepository {
     required AppDatabase database,
     required SiteHttpClient client,
     EhHtmlParser parser = const EhHtmlParser(),
+    bool preferPublicDetailRedirect = true,
   })  : _database = database,
         _client = client,
-        _parser = parser;
+        _parser = parser,
+        _preferPublicDetailRedirect = preferPublicDetailRedirect;
 
   final AppDatabase _database;
   final SiteHttpClient _client;
   final EhHtmlParser _parser;
+  final bool _preferPublicDetailRedirect;
 
   @override
   Future<GalleryPageResult> discover({
@@ -110,13 +113,32 @@ class EhGalleryRepository implements GalleryRepository {
       throw ArgumentError.value(
           gallery, 'gallery', 'A source URL is required.');
     }
-    final html = await _client.getText(sourceUri, source: gallery.key.source);
-    final detail = _parser.detail(
-      html: html,
-      fallback: gallery,
-      sourceUri: sourceUri,
-      includePageLinks: includePageLinks,
-    );
+    final preferredUri = _preferredDetailUri(gallery, sourceUri);
+    GalleryDetail parse(Uri uri, String html) => _parser.detail(
+          html: html,
+          fallback: gallery,
+          sourceUri: uri,
+          includePageLinks: includePageLinks,
+        );
+    GalleryDetail detail;
+    if (preferredUri != sourceUri) {
+      try {
+        detail = parse(
+          preferredUri,
+          await _client.getText(preferredUri, source: SiteSource.eHentai),
+        );
+      } catch (_) {
+        detail = parse(
+          sourceUri,
+          await _client.getText(sourceUri, source: gallery.key.source),
+        );
+      }
+    } else {
+      detail = parse(
+        sourceUri,
+        await _client.getText(sourceUri, source: gallery.key.source),
+      );
+    }
     await upsert(detail.gallery);
     return detail;
   }
@@ -214,6 +236,14 @@ class EhGalleryRepository implements GalleryRepository {
         [for (final gallery in galleries) _galleryCompanion(gallery)],
       );
     });
+  }
+
+  Uri _preferredDetailUri(Gallery gallery, Uri sourceUri) {
+    if (!_preferPublicDetailRedirect || gallery.key.source != SiteSource.exHentai) {
+      return sourceUri;
+    }
+    if (!sourceUri.host.toLowerCase().contains('exhentai')) return sourceUri;
+    return sourceUri.replace(host: 'e-hentai.org');
   }
 
   Uri _buildSiteUri({
