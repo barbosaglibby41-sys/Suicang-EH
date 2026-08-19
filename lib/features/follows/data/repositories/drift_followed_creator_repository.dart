@@ -60,7 +60,7 @@ class DriftFollowedCreatorRepository implements FollowedCreatorRepository {
   @override
   Future<List<Gallery>> refresh(FollowedCreator creator) async {
     final query = creator.kind == FollowedCreatorKind.artist
-        ? 'artist:"${creator.value}$"'
+        ? 'artist:"${creator.value}\$"'
         : creator.value;
     final page = await _galleryRepository.search(
       GallerySearchQuery(source: creator.source, keyword: query),
