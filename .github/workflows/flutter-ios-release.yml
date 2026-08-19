@@ -38,6 +38,7 @@ jobs:
           /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName Suicang EH" ios/Runner/Info.plist || true
           /usr/libexec/PlistBuddy -c "Set :CFBundleName SuicangEH" ios/Runner/Info.plist || true
           sed -i.bak 's/PRODUCT_BUNDLE_IDENTIFIER = com.example.suicangEh/PRODUCT_BUNDLE_IDENTIFIER = com.suicang.eh/g' ios/Runner.xcodeproj/project.pbxproj || true
+          sed -i 's/android: true/android: false/' pubspec.yaml
           dart run flutter_launcher_icons
       - name: Install CocoaPods dependencies
         run: cd ios && pod install --repo-update
