@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/image/image_request.dart';
+import '../../../app/layout/adaptive_layout.dart';
 import '../../gallery/domain/entities/gallery.dart';
 import '../../gallery/domain/entities/gallery_key.dart';
 import '../../gallery/presentation/widgets/gallery_cover.dart';
@@ -263,13 +264,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
               sliver: SliverLayoutBuilder(
-                builder: (context, constraints) {
-                  final width = constraints.crossAxisExtent;
-                  final columns = width >= 1000
-                      ? 5
-                      : width >= 680
-                          ? 4
-                          : 2;
+                builder: (context, _) {
+                  final columns = AdaptiveLayout.gridColumns(context);
                   return SliverGrid(
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {

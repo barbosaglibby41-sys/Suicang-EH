@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../gallery/domain/entities/gallery.dart';
 import '../../gallery/presentation/widgets/gallery_cover.dart';
+import '../../../app/layout/adaptive_layout.dart';
 import 'providers/library_providers.dart';
 
 class LibraryScreen extends ConsumerWidget {
@@ -47,12 +48,8 @@ class _GalleryCollection extends StatelessWidget {
       data: (items) => items.isEmpty
           ? Center(child: Text(emptyText))
           : LayoutBuilder(
-              builder: (context, constraints) {
-                final columns = constraints.maxWidth >= 900
-                    ? 5
-                    : constraints.maxWidth >= 600
-                        ? 4
-                        : 2;
+              builder: (context, _) {
+                final columns = AdaptiveLayout.gridColumns(context);
                 return GridView.builder(
                   padding: const EdgeInsets.all(20),
                   itemCount: items.length,
