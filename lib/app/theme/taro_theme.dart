@@ -104,7 +104,7 @@ abstract final class TaroTheme {
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        height: 62,
+        height: 56,
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         indicatorColor:

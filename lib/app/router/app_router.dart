@@ -141,10 +141,7 @@ class AppScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     final destinations = AppRoute.values;
     final body = RepaintBoundary(
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 82),
-        child: navigationShell,
-      ),
+      child: navigationShell,
     );
 
     void switchTab(int index) {
@@ -191,7 +188,7 @@ class AppScaffold extends StatelessWidget {
           body: body,
           bottomNavigationBar: SafeArea(
             top: false,
-            minimum: const EdgeInsets.fromLTRB(18, 4, 18, 10),
+            minimum: const EdgeInsets.fromLTRB(18, 2, 18, 4),
             child: DecoratedBox(
               decoration: BoxDecoration(
                 color: Theme.of(context).brightness == Brightness.dark
