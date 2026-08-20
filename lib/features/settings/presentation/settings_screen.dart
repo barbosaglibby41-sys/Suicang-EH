@@ -7,6 +7,8 @@ import '../../reader/presentation/reader_settings_screen.dart';
 import '../../tags/presentation/tag_translation_settings_screen.dart';
 import 'migration_import_screen.dart';
 import 'providers/site_preferences_providers.dart';
+import 'providers/theme_preferences_providers.dart';
+import '../domain/entities/theme_preference.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -15,10 +17,40 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final sitePreferences = ref.watch(sitePreferencesProvider);
+    final themePreference = ref.watch(themePreferenceProvider);
     return ListView(
       padding: const EdgeInsets.all(24),
       children: [
         Text('设置', style: theme.textTheme.headlineSmall),
+        const SizedBox(height: 24),
+        Text('外观', style: theme.textTheme.titleMedium),
+        const SizedBox(height: 8),
+        themePreference.when(
+          loading: () => const LinearProgressIndicator(),
+          error: (_, __) => const Text('无法读取主题设置。'),
+          data: (current) => Card(
+            child: Column(
+              children: [
+                for (final value in ThemePreference.values)
+                  RadioListTile<ThemePreference>(
+                    value: value,
+                    groupValue: current,
+                    title: Text(value.displayName),
+                    subtitle: Text(switch (value) {
+                      ThemePreference.system => '根据设备系统外观自动切换。',
+                      ThemePreference.light => '使用白色背景和浅色卡片。',
+                      ThemePreference.dark => '使用 Suicang 黑曜石深色主题。',
+                    }),
+                    onChanged: (next) {
+                      if (next != null) {
+                        ref.read(themePreferenceProvider.notifier).setTheme(next);
+                      }
+                    },
+                  ),
+              ],
+            ),
+          ),
+        ),
         const SizedBox(height: 24),
         Text('站点来源', style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
