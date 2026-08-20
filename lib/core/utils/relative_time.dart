@@ -17,7 +17,7 @@ abstract final class RelativeTime {
 
   static String chinaDateTime(DateTime value) {
     final china = value.toUtc().add(chinaOffset);
-    return '${china.year.toString().padLeft(4, '0')}-${china.month.toString().padLeft(2, '0')}-${china.day.toString().padLeft(2, '0')} ${china.hour.toString().padLeft(2, '0')}:${china.minute.toString().padLeft(2, '0')}';
+    return '${china.year.toString().padLeft(4, '0')}-${china.month.toString().padLeft(2, '0')}-${china.day.toString().padLeft(2, '0')} ${china.hour.toString().padLeft(2, '0')}:${china.minute.toString().padLeft(2, '0')}:${china.second.toString().padLeft(2, '0')}';
   }
 
   static String chinaCardDate(DateTime value, {DateTime? now}) {

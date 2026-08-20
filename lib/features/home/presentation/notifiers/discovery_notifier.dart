@@ -10,7 +10,6 @@ import '../../../gallery/domain/repositories/gallery_repository.dart';
 import '../../../gallery/presentation/providers/gallery_providers.dart';
 import '../../../tags/presentation/providers/tag_translation_providers.dart';
 import '../../../search/presentation/providers/search_history_providers.dart';
-import '../../../settings/domain/entities/site_preferences.dart';
 import '../../../settings/presentation/providers/site_preferences_providers.dart';
 import '../state/discovery_state.dart';
 
