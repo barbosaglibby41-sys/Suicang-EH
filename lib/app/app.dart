@@ -12,8 +12,8 @@ class SuicangEhApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
-    final preference = ref.watch(themePreferenceProvider).valueOrNull ??
-        ThemePreference.dark;
+    final preference =
+        ref.watch(themePreferenceProvider).valueOrNull ?? ThemePreference.dark;
 
     return MaterialApp.router(
       title: 'Suicang EH',

@@ -43,7 +43,9 @@ class SettingsScreen extends ConsumerWidget {
                     }),
                     onChanged: (next) {
                       if (next != null) {
-                        ref.read(themePreferenceProvider.notifier).setTheme(next);
+                        ref
+                            .read(themePreferenceProvider.notifier)
+                            .setTheme(next);
                       }
                     },
                   ),

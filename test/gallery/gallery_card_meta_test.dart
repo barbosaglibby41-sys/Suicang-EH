@@ -5,7 +5,8 @@ import 'package:suicang_eh/features/gallery/domain/entities/gallery_key.dart';
 import 'package:suicang_eh/features/gallery/presentation/widgets/gallery_card_meta.dart';
 
 void main() {
-  testWidgets('shows full China absolute published time on card', (tester) async {
+  testWidgets('shows full China absolute published time on card',
+      (tester) async {
     final gallery = Gallery(
       key: const GalleryKey(source: SiteSource.eHentai, gid: 1),
       title: 'Example',

@@ -5,7 +5,8 @@ import '../../data/repositories/shared_preferences_theme_repository.dart';
 import '../../domain/entities/theme_preference.dart';
 import '../../domain/repositories/theme_preferences_repository.dart';
 
-final themePreferencesRepositoryProvider = Provider<ThemePreferencesRepository>((ref) {
+final themePreferencesRepositoryProvider =
+    Provider<ThemePreferencesRepository>((ref) {
   return SharedPreferencesThemeRepository();
 });
 
@@ -15,7 +16,8 @@ final themePreferenceProvider =
 );
 
 class ThemePreferenceNotifier extends AsyncNotifier<ThemePreference> {
-  ThemePreferencesRepository get _repository => ref.read(themePreferencesRepositoryProvider);
+  ThemePreferencesRepository get _repository =>
+      ref.read(themePreferencesRepositoryProvider);
 
   @override
   Future<ThemePreference> build() => _repository.load();
