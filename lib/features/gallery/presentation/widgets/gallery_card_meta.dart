@@ -10,20 +10,39 @@ class GalleryCardMeta extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final values = <String>[
+    final primary = <String>[
       if (gallery.category.isNotEmpty) gallery.category,
       if (gallery.pageCount > 0) '${gallery.pageCount} 页',
-      if (gallery.postedAt != null)
-        RelativeTime.chinaCardDate(gallery.postedAt!),
     ];
-    if (values.isEmpty) return const SizedBox.shrink();
-    return Text(
-      values.join(' · '),
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+    final published = gallery.postedAt == null
+        ? null
+        : RelativeTime.chinaDateTime(gallery.postedAt!);
+    if (primary.isEmpty && published == null) return const SizedBox.shrink();
+    final style = Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (primary.isNotEmpty)
+          Text(
+            primary.join(' · '),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: style,
           ),
+        if (published != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Text(
+              published,
+              maxLines: 1,
+              overflow: TextOverflow.clip,
+              softWrap: false,
+              style: style,
+            ),
+          ),
+      ],
     );
   }
 }
