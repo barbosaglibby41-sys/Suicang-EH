@@ -36,8 +36,16 @@ jobs:
         run: |
           sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 36/' android/app/build.gradle.kts
           sed -i 's/android:label="suicang_eh"/android:label="Suicang EH"/' android/app/src/main/AndroidManifest.xml
+          # Flutter puts INTERNET in debug/profile manifests only. The
+          # release APK needs it explicitly because this host is generated
+          # during CI rather than committed to the repository.
+          if ! grep -q 'android.permission.INTERNET' android/app/src/main/AndroidManifest.xml; then
+            sed -i '/<manifest /a\    <uses-permission android:name="android.permission.INTERNET" />' android/app/src/main/AndroidManifest.xml
+          fi
           sed -i 's/ios: true/ios: false/' pubspec.yaml
           dart run flutter_launcher_icons
+      - name: Verify Android network permission
+        run: grep -q 'android.permission.INTERNET' android/app/src/main/AndroidManifest.xml
       - name: Build ARM64 release APK
         run: flutter build apk --release --split-per-abi --target-platform android-arm64
       - name: Verify ARM64 output
