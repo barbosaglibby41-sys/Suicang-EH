@@ -47,9 +47,9 @@ class GalleryCreatorMeta extends StatelessWidget {
       final posted = gallery.postedAt!.toLocal();
       addItem(
         '${posted.year.toString().padLeft(4, '0')}-'
-        '${posted.month.toString().padLeft(2, '0')}-'
-        '${posted.day.toString().padLeft(2, '0')} '
-        '${posted.hour.toString().padLeft(2, '0')}:${posted.minute.toString().padLeft(2, '0')}:${posted.second.toString().padLeft(2, '0')}',
+            '${posted.month.toString().padLeft(2, '0')}-'
+            '${posted.day.toString().padLeft(2, '0')} '
+            '${posted.hour.toString().padLeft(2, '0')}:${posted.minute.toString().padLeft(2, '0')}:${posted.second.toString().padLeft(2, '0')}',
         '',
         false,
       );

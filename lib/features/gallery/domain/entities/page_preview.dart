@@ -17,6 +17,7 @@ class PagePreview {
   final int width;
   final int height;
   final Uri pageUrl;
+
   /// The gallery detail URL. Sprite hosts validate the document referrer.
   final Uri referer;
 }
