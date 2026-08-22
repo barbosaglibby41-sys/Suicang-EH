@@ -8,6 +8,7 @@ import 'widgets/translated_tag_groups.dart';
 import '../../follows/domain/entities/followed_creator.dart';
 import '../../follows/presentation/followed_creators_screen.dart';
 import '../domain/entities/gallery.dart';
+import '../domain/entities/gallery_metadata.dart';
 import 'notifiers/gallery_detail_notifier.dart';
 import 'widgets/gallery_comment_card.dart';
 import 'widgets/comment_editor_sheet.dart';
@@ -60,35 +61,11 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
         slivers: [
           SliverAppBar(
             pinned: true,
-            expandedHeight: 330,
-            backgroundColor: Theme.of(context)
-                .scaffoldBackgroundColor
-                .withValues(alpha: 0.88),
-            flexibleSpace: FlexibleSpaceBar(
-              background: Hero(
-                tag: 'gallery-cover-${gallery.key.stableId}',
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(0, 86, 0, 22),
-                    child: SizedBox(
-                      width: 160,
-                      child: AspectRatio(
-                        aspectRatio: 0.70,
-                        child: gallery.thumbnailUrl == null
-                            ? GalleryCoverPlaceholder(gallery: gallery)
-                            : PipelineImage(
-                                url: gallery.thumbnailUrl!,
-                                source: gallery.key.source,
-                                variant: ImageVariant.cover,
-                                targetPixels: 720,
-                                fit: BoxFit.cover,
-                                borderRadius: BorderRadius.circular(18),
-                              ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+            expandedHeight: 96,
+            title: Text(
+              gallery.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
             actions: [
               IconButton(
@@ -116,14 +93,9 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
             padding: const EdgeInsets.fromLTRB(18, 12, 18, 40),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                Text(
-                  gallery.title,
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.headlineSmall?.copyWith(height: 1.15),
-                ),
-                const SizedBox(height: 7),
-                GalleryCreatorMeta(
+                _DetailOverview(
                   gallery: gallery,
+                  metadata: state.metadata,
                   onSearch: (query) => context.push(
                     '/home?query=${Uri.encodeComponent(query)}',
                   ),
@@ -145,9 +117,7 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 18),
-                GalleryStatsStrip(gallery: gallery, metadata: state.metadata),
-                const SizedBox(height: 18),
+                const SizedBox(height: 14),
                 FutureBuilder<bool>(
                   future: _favorite,
                   builder: (context, favoriteSnapshot) => GalleryActionBar(
@@ -301,6 +271,107 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _DetailOverview extends StatelessWidget {
+  const _DetailOverview({
+    required this.gallery,
+    required this.metadata,
+    required this.onSearch,
+    required this.onFollow,
+  });
+
+  final Gallery gallery;
+  final GalleryMetadata metadata;
+  final ValueChanged<String> onSearch;
+  final ValueChanged<String> onFollow;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Card(
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 122,
+                  height: 168,
+                  child: Hero(
+                    tag: 'gallery-cover-${gallery.key.stableId}',
+                    child: gallery.thumbnailUrl == null
+                        ? GalleryCoverPlaceholder(gallery: gallery)
+                        : PipelineImage(
+                            url: gallery.thumbnailUrl!,
+                            source: gallery.key.source,
+                            variant: ImageVariant.cover,
+                            targetPixels: 640,
+                            fit: BoxFit.cover,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        gallery.title,
+                        maxLines: 5,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          height: 1.14,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      GalleryCreatorMeta(
+                        gallery: gallery,
+                        onSearch: onSearch,
+                        onFollow: onFollow,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            GalleryStatsStrip(
+              gallery: gallery,
+              metadata: metadata,
+            ),
+            if (gallery.category.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: scheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    child: Text(gallery.category),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
