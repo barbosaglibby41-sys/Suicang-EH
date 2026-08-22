@@ -26,7 +26,8 @@ abstract interface class GalleryRepository {
   });
   Future<GalleryDetail> loadDetail(Gallery gallery,
       {bool includePageLinks = false});
-  Future<List<PagePreview>> loadAllPreviews(Gallery gallery);
+  Future<List<PagePreview>> loadAllPreviews(Gallery gallery) =>
+      Future.value(const <PagePreview>[]);
   Future<Uri> resolveImageUrl(Uri pageUrl,
       {Uri? referer, bool forceRefresh = false});
   Future<Uri?> torrentUrl(Gallery gallery);

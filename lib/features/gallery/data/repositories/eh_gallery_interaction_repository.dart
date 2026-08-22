@@ -2,6 +2,7 @@ import '../../../../core/network/network_exception.dart';
 import '../../../../core/network/site_http_client.dart';
 import '../../../authentication/domain/repositories/auth_repository.dart';
 import '../../domain/entities/gallery.dart';
+import '../../domain/entities/gallery_key.dart';
 import '../../domain/entities/gallery_comment.dart';
 import '../../domain/entities/gallery_metadata.dart';
 import '../../domain/repositories/gallery_interaction_repository.dart';
@@ -10,14 +11,14 @@ import '../datasources/eh_html_parser.dart';
 class EhGalleryInteractionRepository implements GalleryInteractionRepository {
   EhGalleryInteractionRepository({
     required SiteHttpClient client,
-    required AuthRepository authRepository,
+    AuthRepository? authRepository,
     EhHtmlParser parser = const EhHtmlParser(),
   })  : _client = client,
         _authRepository = authRepository,
         _parser = parser;
 
   final SiteHttpClient _client;
-  final AuthRepository _authRepository;
+  final AuthRepository? _authRepository;
   final EhHtmlParser _parser;
 
   @override
@@ -40,7 +41,14 @@ class EhGalleryInteractionRepository implements GalleryInteractionRepository {
         message: 'Rating requires a valid logged-in session.',
       );
     }
-    final cookies = await _authRepository.cookiesFor(gallery.key.source);
+    final authRepository = _authRepository;
+    if (authRepository == null) {
+      throw const NetworkException(
+        kind: NetworkFailureKind.authenticationRequired,
+        message: 'Rating requires an authenticated account.',
+      );
+    }
+    final cookies = await authRepository.cookiesFor(gallery.key.source);
     final memberIds = cookies
         .where((cookie) => cookie.name == 'ipb_member_id')
         .map((cookie) => int.tryParse(cookie.value))
