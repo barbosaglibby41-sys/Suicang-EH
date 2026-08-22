@@ -138,7 +138,7 @@ class EhHtmlParser {
     return null;
   }
 
-  List<PagePreview> previews(String html, Uri baseUri, {int limit = 20}) {
+  List<PagePreview> previews(String html, Uri baseUri, {int limit = 2000}) {
     final start = html.indexOf('id="gdt"');
     if (start < 0) return const [];
     final end = html.indexOf('id="gdo"', start);
@@ -161,8 +161,7 @@ class EhHtmlParser {
           x == null ||
           y == null ||
           !seen.add(page)) continue;
-      final sprite = Uri.tryParse(_decode(match.group(5) ?? ''));
-      if (sprite == null) continue;
+      final sprite = baseUri.resolve(_decode(match.group(5) ?? ''));
       result.add(PagePreview(
         page: page,
         spriteUrl: sprite,
@@ -171,6 +170,7 @@ class EhHtmlParser {
         width: width,
         height: height,
         pageUrl: baseUri.resolve(_decode(match.group(1) ?? '')),
+        referer: baseUri,
       ));
       if (result.length == limit) break;
     }

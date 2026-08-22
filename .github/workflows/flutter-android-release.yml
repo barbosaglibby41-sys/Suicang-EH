@@ -14,6 +14,10 @@ on:
         description: Display version
         required: true
         default: 0.1.8
+      source_ref:
+        description: Source branch or commit to build
+        required: true
+        default: main
 
 jobs:
   build-arm64-apk:
@@ -21,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.tag }}
+          ref: ${{ inputs.source_ref }}
       - uses: subosito/flutter-action@v2
         with:
           channel: stable

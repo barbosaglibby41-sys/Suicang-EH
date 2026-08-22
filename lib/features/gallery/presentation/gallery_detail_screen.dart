@@ -211,12 +211,46 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
                     onRetry: notifier.load,
                   ),
                 ],
+                if (gallery.tags.isNotEmpty) ...[
+                  const SizedBox(height: 22),
+                  _DetailSection(
+                    title: '标签',
+                    count: gallery.tags.length,
+                    initiallyExpanded: true,
+                    child: TranslatedTagGroups(
+                      tags: gallery.tags,
+                      onSearch: (tag) => context.push(
+                        '/home?query=${Uri.encodeComponent(tag.rawName)}',
+                      ),
+                    ),
+                  ),
+                ],
                 if (state.previews.isNotEmpty) ...[
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 22),
                   _DetailSection(
                     title: '内容预览',
                     count: state.previews.length,
                     initiallyExpanded: true,
+                    trailing: TextButton.icon(
+                      onPressed: () => showModalBottomSheet<void>(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: theme.scaffoldBackgroundColor,
+                        builder: (_) => PreviewGallerySheet(
+                          previews: state.previews,
+                          source: gallery.key.source,
+                          onSelectPage: (preview) {
+                            Navigator.pop(context);
+                            context.push(
+                              '/reader/${gallery.key.source.storageValue}/${gallery.key.gid}?page=${preview.page}',
+                              extra: gallery,
+                            );
+                          },
+                        ),
+                      ),
+                      icon: const Icon(Icons.grid_view_rounded, size: 18),
+                      label: const Text('查看全部'),
+                    ),
                     child: PreviewStrip(
                       previews: state.previews,
                       source: gallery.key.source,
@@ -263,19 +297,6 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
                     const SizedBox(height: 10),
                   ],
                 ],
-                if (gallery.tags.isNotEmpty) ...[
-                  const SizedBox(height: 24),
-                  _DetailSection(
-                    title: '标签',
-                    count: gallery.tags.length,
-                    child: TranslatedTagGroups(
-                      tags: gallery.tags,
-                      onSearch: (tag) => context.push(
-                        '/home?query=${Uri.encodeComponent(tag.rawName)}',
-                      ),
-                    ),
-                  ),
-                ],
               ]),
             ),
           ),
@@ -320,12 +341,14 @@ class _DetailSection extends StatefulWidget {
     required this.title,
     required this.child,
     this.count,
+    this.trailing,
     this.initiallyExpanded = false,
   });
 
   final String title;
   final Widget child;
   final int? count;
+  final Widget? trailing;
   final bool initiallyExpanded;
 
   @override
@@ -359,6 +382,7 @@ class _DetailSectionState extends State<_DetailSection> {
                   ),
                 ],
                 const Spacer(),
+                if (widget.trailing != null) widget.trailing!,
                 Icon(
                   _expanded
                       ? Icons.keyboard_arrow_up

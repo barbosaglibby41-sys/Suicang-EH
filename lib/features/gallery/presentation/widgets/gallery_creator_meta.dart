@@ -17,39 +17,43 @@ class GalleryCreatorMeta extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = <({String label, String query, bool follow})>[];
+    final seenLabels = <String>{};
+    void addItem(String label, String query, bool follow) {
+      if (label.isNotEmpty && seenLabels.add(label)) {
+        items.add((label: label, query: query, follow: follow));
+      }
+    }
+
     if (gallery.uploader.isNotEmpty) {
-      items.add((
-        label: gallery.uploader,
-        query: 'uploader:"${gallery.uploader}\$"',
-        follow: true
-      ));
+      addItem(
+        gallery.uploader,
+        'uploader:"${gallery.uploader}\$"',
+        true,
+      );
     }
     final artist = gallery.tags
         .where((tag) => tag.namespace == 'artist')
         .map((tag) => tag.key)
         .firstWhere((value) => value.isNotEmpty, orElse: () => '');
     if (artist.isNotEmpty) {
-      items.add((label: artist, query: 'artist:"$artist\$"', follow: true));
+      addItem(artist, 'artist:"$artist\$"', true);
     }
     if (gallery.category.isNotEmpty) {
-      items.add((label: gallery.category, query: '', follow: false));
+      addItem(gallery.category, '', false);
     }
-    if (gallery.pageCount > 0) {
-      items.add((label: '${gallery.pageCount} 页', query: '', follow: false));
-    }
+    // Publish time is kept in the compact header metadata, not repeated in
+    // the statistics grid below.
     if (gallery.postedAt != null) {
-      items.add((
-        label: '${gallery.postedAt!.toLocal().year.toString().padLeft(4, '0')}-'
-            '${gallery.postedAt!.toLocal().month.toString().padLeft(2, '0')}-'
-            '${gallery.postedAt!.toLocal().day.toString().padLeft(2, '0')} '
-            '${gallery.postedAt!.toLocal().hour.toString().padLeft(2, '0')}:'
-            '${gallery.postedAt!.toLocal().minute.toString().padLeft(2, '0')}:'
-            '${gallery.postedAt!.toLocal().second.toString().padLeft(2, '0')}',
-        query: '',
-        follow: false,
-      ));
+      final posted = gallery.postedAt!.toLocal();
+      addItem(
+        '${posted.year.toString().padLeft(4, '0')}-'
+        '${posted.month.toString().padLeft(2, '0')}-'
+        '${posted.day.toString().padLeft(2, '0')} '
+        '${posted.hour.toString().padLeft(2, '0')}:${posted.minute.toString().padLeft(2, '0')}:${posted.second.toString().padLeft(2, '0')}',
+        '',
+        false,
+      );
     }
-
     return Wrap(
       alignment: WrapAlignment.center,
       spacing: 6,

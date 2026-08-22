@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/utils/relative_time.dart';
 import '../../domain/entities/gallery.dart';
 import '../../domain/entities/gallery_metadata.dart';
 
@@ -19,16 +18,6 @@ class GalleryStatsStrip extends StatelessWidget {
     final items = [
       _Stat('语言', metadata.language ?? '未知', Icons.language_outlined),
       _Stat('页数', '${gallery.pageCount}P', Icons.layers_outlined),
-      _Stat(
-        '发布',
-        gallery.postedAt == null
-            ? '未知'
-            : RelativeTime.chinaCardDate(gallery.postedAt!),
-        Icons.schedule_outlined,
-        detail: gallery.postedAt == null
-            ? null
-            : '${RelativeTime.chinaDateTime(gallery.postedAt!)} 中国时间',
-      ),
       _Stat('大小', metadata.fileSize ?? '—', Icons.storage_outlined),
       _Stat('收藏', metadata.favoriteCount?.toString() ?? '—',
           Icons.favorite_border),
@@ -37,16 +26,19 @@ class GalleryStatsStrip extends StatelessWidget {
     ];
 
     return Semantics(
-      label: '作品统计信息，可横向滑动查看更多',
-      child: SizedBox(
-        height: 74,
-        child: ListView.separated(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 2),
-          itemCount: items.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 8),
-          itemBuilder: (context, index) => _StatPill(item: items[index]),
+      label: '作品统计信息',
+      child: GridView.builder(
+        itemCount: items.length,
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        padding: EdgeInsets.zero,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          crossAxisSpacing: 7,
+          mainAxisSpacing: 7,
+          mainAxisExtent: 68,
         ),
+        itemBuilder: (context, index) => _StatPill(item: items[index]),
       ),
     );
   }
@@ -63,8 +55,7 @@ class _StatPill extends StatelessWidget {
     return Tooltip(
       message: item.detail ?? item.value,
       child: Container(
-        width: 108,
-        padding: const EdgeInsets.fromLTRB(11, 9, 9, 8),
+        padding: const EdgeInsets.fromLTRB(8, 7, 7, 6),
         decoration: BoxDecoration(
           color: scheme.surfaceContainerHighest.withValues(alpha: 0.52),
           borderRadius: BorderRadius.circular(13),
@@ -83,13 +74,21 @@ class _StatPill extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 5),
-            Text(
-              item.value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    item.value,
+                    maxLines: 1,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
                   ),
+                ),
+              ),
             ),
           ],
         ),

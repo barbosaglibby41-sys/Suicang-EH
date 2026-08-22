@@ -7,6 +7,7 @@ class PagePreview {
     required this.width,
     required this.height,
     required this.pageUrl,
+    required this.referer,
   });
 
   final int page;
@@ -16,4 +17,6 @@ class PagePreview {
   final int width;
   final int height;
   final Uri pageUrl;
+  /// The gallery detail URL. Sprite hosts validate the document referrer.
+  final Uri referer;
 }

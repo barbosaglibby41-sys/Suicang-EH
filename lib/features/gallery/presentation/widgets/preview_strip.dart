@@ -43,6 +43,67 @@ class PreviewStrip extends ConsumerWidget {
   }
 }
 
+class PreviewGallerySheet extends StatelessWidget {
+  const PreviewGallerySheet({
+    required this.previews,
+    required this.source,
+    required this.onSelectPage,
+    super.key,
+  });
+
+  final List<PagePreview> previews;
+  final SiteSource source;
+  final ValueChanged<PagePreview> onSelectPage;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return SafeArea(
+      child: SizedBox(
+        height: MediaQuery.sizeOf(context).height * 0.88,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 14, 12, 10),
+              child: Row(
+                children: [
+                  Text('全部预览', style: Theme.of(context).textTheme.titleLarge),
+                  const SizedBox(width: 8),
+                  Text('${previews.length}',
+                      style: TextStyle(color: scheme.onSurfaceVariant)),
+                  const Spacer(),
+                  IconButton(
+                    tooltip: '关闭',
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: GridView.builder(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 0.70,
+                ),
+                itemCount: previews.length,
+                itemBuilder: (context, index) => _PreviewTile(
+                  preview: previews[index],
+                  source: source,
+                  onTap: () => onSelectPage(previews[index]),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _PreviewTile extends ConsumerWidget {
   const _PreviewTile({
     required this.preview,
@@ -59,8 +120,9 @@ class _PreviewTile extends ConsumerWidget {
     final future = ref.read(imagePipelineProvider).load(
           ImageRequest(
             url: preview.spriteUrl,
+            referer: preview.referer,
             variant: ImageVariant.thumbnail,
-            targetPixels: 1200,
+            targetPixels: 1600,
           ),
           source: source,
         );
