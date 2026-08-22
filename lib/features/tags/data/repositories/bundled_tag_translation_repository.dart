@@ -81,7 +81,8 @@ class BundledTagTranslationRepository extends ChangeNotifier
       _remoteUrl,
       options: Options(
         responseType: ResponseType.plain,
-        validateStatus: (status) => status != null && status >= 200 && status < 300,
+        validateStatus: (status) =>
+            status != null && status >= 200 && status < 300,
       ),
     );
     final raw = response.data;
@@ -194,7 +195,8 @@ class BundledTagTranslationRepository extends ChangeNotifier
       final key = (value['key'] as String? ?? '').trim();
       final name = (value['name'] as String? ?? key).trim();
       final introValue = value['intro'];
-      if (key.isEmpty || name.isEmpty ||
+      if (key.isEmpty ||
+          name.isEmpty ||
           (introValue != null && introValue is! String)) {
         throw const FormatException('标签数据库包含无效字段。');
       }
@@ -202,9 +204,7 @@ class BundledTagTranslationRepository extends ChangeNotifier
         namespace: namespace,
         key: key,
         name: _stripMarkup(name),
-        intro: introValue == null
-            ? null
-            : _stripMarkup(introValue as String),
+        intro: introValue == null ? null : _stripMarkup(introValue as String),
       );
       nextTags.add(tag);
       nextById[tag.id.toLowerCase()] = tag;

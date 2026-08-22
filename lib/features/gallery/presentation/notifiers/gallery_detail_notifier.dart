@@ -155,10 +155,12 @@ class GalleryDetailNotifier
       return switch (error.kind) {
         NetworkFailureKind.timeout => '详情请求超时，请稍后重试。',
         NetworkFailureKind.noConnection => '详情网络连接失败，请检查网络后重试。',
-        NetworkFailureKind.accessDenied => '详情请求被站点拒绝（HTTP ${error.statusCode ?? 403}）。请重新导入 Cookie 或稍后重试。',
+        NetworkFailureKind.accessDenied =>
+          '详情请求被站点拒绝（HTTP ${error.statusCode ?? 403}）。请重新导入 Cookie 或稍后重试。',
         NetworkFailureKind.authenticationRequired => '详情需要有效站点会话，请重新导入 Cookie。',
         NetworkFailureKind.parseFailure => '详情页面格式异常，未找到有效作品信息。',
-        _ => '详情请求失败${error.statusCode == null ? '' : '（HTTP ${error.statusCode}）'}，请稍后重试。',
+        _ =>
+          '详情请求失败${error.statusCode == null ? '' : '（HTTP ${error.statusCode}）'}，请稍后重试。',
       };
     }
     if (error is ArgumentError) return '作品地址无效，无法加载详情。';
