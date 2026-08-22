@@ -77,13 +77,12 @@ class GalleryDetailNotifier
     if (rating < 0.5 || rating > 5 || state.isLoading) return;
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      final metadata = await ref
-          .read(galleryInteractionRepositoryProvider)
-          .rateGallery(
-            gallery: state.gallery,
-            rating: rating,
-            metadata: state.metadata,
-          );
+      final metadata =
+          await ref.read(galleryInteractionRepositoryProvider).rateGallery(
+                gallery: state.gallery,
+                rating: rating,
+                metadata: state.metadata,
+              );
       state = state.copyWith(
         metadata: metadata,
         isLoading: false,

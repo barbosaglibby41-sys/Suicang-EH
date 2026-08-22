@@ -30,7 +30,8 @@ class GalleryCommentCarousel extends StatelessWidget {
             Text('评论', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(width: 8),
             Text('${comments.length}',
-                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant)),
             const Spacer(),
             TextButton(onPressed: onViewAll, child: const Text('查看全部评论')),
             IconButton(

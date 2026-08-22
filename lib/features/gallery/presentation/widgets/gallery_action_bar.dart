@@ -42,30 +42,30 @@ class GalleryActionBar extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _Action(
-              icon: isFavorite ? Icons.star : Icons.star_outline,
-              label: isFavorite ? '已收藏' : '收藏',
-              onPressed: onFavorite,
-            ),
-            _Action(
-              icon: Icons.download_outlined,
-              label: '下载',
-              onPressed: onDownload,
-            ),
-            _Action(
-              icon: Icons.cloud_upload_outlined,
-              label: '云收藏',
-              onPressed: onCloudFavorite,
-            ),
-            _Action(
-              icon: Icons.person_add_alt_1_outlined,
-              label: '关注',
-              onPressed: onFollow,
-            ),
-            _Action(
-              icon: Icons.star_rate_outlined,
-              label: '评分',
-              onPressed: onRate,
-            ),
+                icon: isFavorite ? Icons.star : Icons.star_outline,
+                label: isFavorite ? '已收藏' : '收藏',
+                onPressed: onFavorite,
+              ),
+              _Action(
+                icon: Icons.download_outlined,
+                label: '下载',
+                onPressed: onDownload,
+              ),
+              _Action(
+                icon: Icons.cloud_upload_outlined,
+                label: '云收藏',
+                onPressed: onCloudFavorite,
+              ),
+              _Action(
+                icon: Icons.person_add_alt_1_outlined,
+                label: '关注',
+                onPressed: onFollow,
+              ),
+              _Action(
+                icon: Icons.star_rate_outlined,
+                label: '评分',
+                onPressed: onRate,
+              ),
             ],
           ),
         ),

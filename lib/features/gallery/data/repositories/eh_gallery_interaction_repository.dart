@@ -67,9 +67,12 @@ class EhGalleryInteractionRepository implements GalleryInteractionRepository {
       },
     );
     final body = response.data ?? const <String, dynamic>{};
-    final updatedUser = double.tryParse('${body['rating_usr'] ?? rating}') ?? rating;
-    final average = double.tryParse('${body['rating_avg'] ?? metadata.ratingAverage ?? rating}');
-    final count = int.tryParse('${body['rating_cnt'] ?? metadata.ratingCount ?? 0}');
+    final updatedUser =
+        double.tryParse('${body['rating_usr'] ?? rating}') ?? rating;
+    final average = double.tryParse(
+        '${body['rating_avg'] ?? metadata.ratingAverage ?? rating}');
+    final count =
+        int.tryParse('${body['rating_cnt'] ?? metadata.ratingCount ?? 0}');
     return GalleryMetadata(
       language: metadata.language,
       fileSize: metadata.fileSize,

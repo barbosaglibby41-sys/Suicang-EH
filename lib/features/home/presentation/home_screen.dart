@@ -46,8 +46,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         final savedMode = store.getInt(_galleryModeKey) ?? 0;
         setState(() {
           _galleryMode = _GalleryMode.values[
-            savedMode.clamp(0, _GalleryMode.values.length - 1).toInt()
-          ];
+              savedMode.clamp(0, _GalleryMode.values.length - 1).toInt()];
         });
       }
       final preferences = await ref.read(sitePreferencesProvider.future);
@@ -185,27 +184,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       spacing: 8,
                       runSpacing: 8,
                       children: [
-                      OutlinedButton.icon(
-                        onPressed: state.isLoading
-                            ? null
-                            : () => context.push('/popular'),
-                        icon: const Icon(Icons.local_fire_department_outlined),
-                        label: const Text('热门'),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: state.isLoading
-                            ? null
-                            : () => context.push('/random'),
-                        icon: const Icon(Icons.casino_outlined),
-                        label: Text(state.isRandom ? '换一批' : '随机'),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: () => context.push('/rankings'),
-                        icon: const Icon(Icons.bar_chart_outlined),
-                        label: const Text('排行'),
-                      ),
-                    ],
-                  ),
+                        OutlinedButton.icon(
+                          onPressed: state.isLoading
+                              ? null
+                              : () => context.push('/popular'),
+                          icon:
+                              const Icon(Icons.local_fire_department_outlined),
+                          label: const Text('热门'),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: state.isLoading
+                              ? null
+                              : () => context.push('/random'),
+                          icon: const Icon(Icons.casino_outlined),
+                          label: Text(state.isRandom ? '换一批' : '随机'),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: () => context.push('/rankings'),
+                          icon: const Icon(Icons.bar_chart_outlined),
+                          label: const Text('排行'),
+                        ),
+                      ],
+                    ),
                   const SizedBox(height: 20),
                   SearchBar(
                     controller: _searchController,
@@ -229,7 +229,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       final query = value.trim();
                       if (query.isEmpty) return;
                       _dismissKeyboard();
-                      context.push('/search?query=${Uri.encodeComponent(query)}');
+                      context
+                          .push('/search?query=${Uri.encodeComponent(query)}');
                     },
                   ),
                   if (suggestions.isNotEmpty)
@@ -414,11 +415,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           }
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 12),
-                            child: _GalleryCard(gallery: state.galleries[index]),
+                            child:
+                                _GalleryCard(gallery: state.galleries[index]),
                           );
                         },
-                        childCount: state.galleries.length +
-                            (state.hasMore ? 1 : 0),
+                        childCount:
+                            state.galleries.length + (state.hasMore ? 1 : 0),
                       ),
                     );
                   }

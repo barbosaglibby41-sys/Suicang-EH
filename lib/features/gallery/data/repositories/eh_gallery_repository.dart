@@ -165,7 +165,8 @@ class EhGalleryRepository implements GalleryRepository {
         all[preview.page] = preview;
       }
     }
-    final result = all.values.toList()..sort((a, b) => a.page.compareTo(b.page));
+    final result = all.values.toList()
+      ..sort((a, b) => a.page.compareTo(b.page));
     return result;
   }
 

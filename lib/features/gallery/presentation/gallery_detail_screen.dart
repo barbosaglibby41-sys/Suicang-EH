@@ -49,7 +49,8 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(rating.toStringAsFixed(1), style: Theme.of(context).textTheme.headlineMedium),
+              Text(rating.toStringAsFixed(1),
+                  style: Theme.of(context).textTheme.headlineMedium),
               const SizedBox(height: 12),
               Slider(
                 value: rating,
@@ -63,8 +64,12 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('取消')),
-            FilledButton(onPressed: () => Navigator.pop(dialogContext, rating), child: const Text('提交')),
+            TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('取消')),
+            FilledButton(
+                onPressed: () => Navigator.pop(dialogContext, rating),
+                child: const Text('提交')),
           ],
         ),
       ),
@@ -177,7 +182,8 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
                       isScrollControlled: true,
                       builder: (_) => CloudFavoriteSheet(gallery: gallery),
                     ),
-                    onRate: () => _showRatingDialog(context, notifier, state.metadata.ratingUser ?? gallery.rating ?? 0),
+                    onRate: () => _showRatingDialog(context, notifier,
+                        state.metadata.ratingUser ?? gallery.rating ?? 0),
                     onFollow: () => showModalBottomSheet<void>(
                       context: context,
                       builder: (sheetContext) => SafeArea(

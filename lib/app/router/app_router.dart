@@ -82,15 +82,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ),
               GoRoute(
                 path: '/search',
-                builder: (context, state) => const HomeScreen(mode: HomeMode.search),
+                builder: (context, state) =>
+                    const HomeScreen(mode: HomeMode.search),
               ),
               GoRoute(
                 path: '/popular',
-                builder: (context, state) => const HomeScreen(mode: HomeMode.popular),
+                builder: (context, state) =>
+                    const HomeScreen(mode: HomeMode.popular),
               ),
               GoRoute(
                 path: '/random',
-                builder: (context, state) => const HomeScreen(mode: HomeMode.random),
+                builder: (context, state) =>
+                    const HomeScreen(mode: HomeMode.random),
               ),
             ],
           ),

@@ -38,9 +38,8 @@ class PreviewStrip extends ConsumerWidget {
       itemBuilder: (context, index) => _PreviewTile(
         preview: previews[index],
         source: source,
-        onTap: onSelectPage == null
-            ? null
-            : () => onSelectPage!(previews[index]),
+        onTap:
+            onSelectPage == null ? null : () => onSelectPage!(previews[index]),
       ),
     );
   }
