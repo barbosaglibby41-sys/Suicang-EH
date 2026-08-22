@@ -72,6 +72,14 @@ void main() {
         Uri.parse('https://e-hentai.org/s/abc123/101-1'));
     expect(detail.previews.single.referer,
         Uri.parse('https://e-hentai.org/g/101/token-a/'));
+    expect(parser.previewPageCount(fixture('gallery_detail.html')), 1);
+    expect(
+      parser.previewPageUri(
+        Uri.parse('https://e-hentai.org/g/101/token-a/'),
+        2,
+      ),
+      Uri.parse('https://e-hentai.org/g/101/token-a/?p=2'),
+    );
     expect(detail.previews.single.yOffset, 300);
     expect(detail.pageLinks.map((url) => url.path),
         ['/s/abc123/101-1', '/s/abc123/101-2']);

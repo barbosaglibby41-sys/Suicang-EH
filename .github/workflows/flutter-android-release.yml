@@ -37,8 +37,35 @@ jobs:
       - name: Generate Android host when absent
         run: test -d android || flutter create --platforms=android --project-name=suicang_eh .
       - name: Configure Suicang EH Android host
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
+          test -n "$ANDROID_KEYSTORE_BASE64"
+          test -n "$ANDROID_KEYSTORE_PASSWORD"
+          test -n "$ANDROID_KEY_ALIAS"
+          test -n "$ANDROID_KEY_PASSWORD"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+          cat > android/key.properties <<EOF
+          storePassword=$ANDROID_KEYSTORE_PASSWORD
+          keyPassword=$ANDROID_KEY_PASSWORD
+          keyAlias=$ANDROID_KEY_ALIAS
+          storeFile=upload-keystore.jks
+          EOF
+          sed -i '1i import java.util.Properties\nimport java.io.FileInputStream\n\nval keystoreProperties = Properties()\nval keystorePropertiesFile = rootProject.file("key.properties")\nif (keystorePropertiesFile.exists()) {\n    FileInputStream(keystorePropertiesFile).use { keystoreProperties.load(it) }\n}\n' android/app/build.gradle.kts
           sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 36/' android/app/build.gradle.kts
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('android/app/build.gradle.kts')
+          s = p.read_text()
+          marker = 'android {'
+          signing = '''android {\n    signingConfigs {\n        create("release") {\n            storeFile = file("upload-keystore.jks")\n            storePassword = keystoreProperties["storePassword"] as String?\n            keyAlias = keystoreProperties["keyAlias"] as String?\n            keyPassword = keystoreProperties["keyPassword"] as String?\n        }\n    }'''
+          s = s.replace(marker, signing, 1)
+          s = s.replace('signingConfig = signingConfigs.getByName("debug")', 'signingConfig = signingConfigs.getByName("release")')
+          p.write_text(s)
+          PY
           sed -i 's/android:label="suicang_eh"/android:label="Suicang EH"/' android/app/src/main/AndroidManifest.xml
           # Flutter puts INTERNET in debug/profile manifests only. The
           # release APK needs it explicitly because this host is generated

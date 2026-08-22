@@ -7,6 +7,7 @@ class GalleryActionBar extends StatelessWidget {
     required this.onDownload,
     required this.onCloudFavorite,
     required this.onFollow,
+    required this.onRate,
     required this.isFavorite,
     required this.isLoading,
     super.key,
@@ -17,6 +18,7 @@ class GalleryActionBar extends StatelessWidget {
   final VoidCallback onDownload;
   final VoidCallback onCloudFavorite;
   final VoidCallback onFollow;
+  final VoidCallback onRate;
   final bool isFavorite;
   final bool isLoading;
 
@@ -34,10 +36,12 @@ class GalleryActionBar extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _Action(
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _Action(
               icon: isFavorite ? Icons.star : Icons.star_outline,
               label: isFavorite ? '已收藏' : '收藏',
               onPressed: onFavorite,
@@ -57,7 +61,13 @@ class GalleryActionBar extends StatelessWidget {
               label: '关注',
               onPressed: onFollow,
             ),
-          ],
+            _Action(
+              icon: Icons.star_rate_outlined,
+              label: '评分',
+              onPressed: onRate,
+            ),
+            ],
+          ),
         ),
       ],
     );

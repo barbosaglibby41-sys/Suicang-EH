@@ -84,6 +84,17 @@ class EhHtmlParser {
               '')
           .replaceAll(',', ''),
     );
+    final ratingAverage = double.tryParse(
+      _first(r'''Average:\s*([0-9]+(?:\.[0-9]+)?)''', html) ?? '',
+    );
+    final apiUserId = int.tryParse(
+      _first(r'''apiuid\s*=\s*(-?\d+)''', html) ?? '',
+    );
+    final apiKey = _first(r'''apikey\s*=\s*["']([^"']+)["']''', html);
+    final ratingToken = _first(
+      r'''token\s*=\s*["']([^"']+)["']''',
+      html,
+    );
     final torrent =
         _first(r'''href=["'](https?://[^"']+\.torrent)["']''', html);
     final rawTags = RegExp(
@@ -118,6 +129,10 @@ class EhHtmlParser {
         fileSize: fileSize,
         favoriteCount: favoriteCount,
         ratingCount: ratingCount,
+        ratingAverage: ratingAverage,
+        ratingToken: ratingToken,
+        apiUserId: apiUserId,
+        apiKey: apiKey,
         torrentUrl: torrent == null ? null : Uri.tryParse(_decode(torrent)),
       ),
       comments: comments(html),
@@ -136,6 +151,26 @@ class EhHtmlParser {
       if (token != null && token.isNotEmpty) return _decode(token);
     }
     return null;
+  }
+
+  int previewPageCount(String html) {
+    final match = RegExp(
+      r'''Showing\s+[0-9,]+\s*-\s*[0-9,]+\s+of\s+([0-9,]+)\s+images''',
+      caseSensitive: false,
+    ).firstMatch(html);
+    final total = int.tryParse((match?.group(1) ?? '').replaceAll(',', ''));
+    if (total == null || total <= 0) return 1;
+    return (total + 19) ~/ 20;
+  }
+
+  Uri previewPageUri(Uri baseUri, int page) {
+    if (page <= 0) return baseUri;
+    return baseUri.replace(
+      queryParameters: {
+        ...baseUri.queryParameters,
+        'p': '$page',
+      },
+    );
   }
 
   List<PagePreview> previews(String html, Uri baseUri, {int limit = 2000}) {

@@ -128,6 +128,63 @@ class SiteHttpClient {
     }
   }
 
+  Future<Response<Map<String, dynamic>>> postJson(
+    Uri url, {
+    required SiteSource source,
+    required Map<String, dynamic> data,
+    Uri? referer,
+    CancelToken? cancelToken,
+  }) async {
+    try {
+      final cookies = await _authRepository.cookiesFor(source);
+      final response = await _dio.post<Map<String, dynamic>>(
+        url.toString(),
+        data: data,
+        cancelToken: cancelToken,
+        options: Options(
+          contentType: Headers.formUrlEncodedContentType,
+          responseType: ResponseType.json,
+          headers: _requestPolicy.headers(
+            source: source,
+            cookies: cookies,
+            referer: referer,
+          ),
+          validateStatus: (status) => status != null && status < 500,
+        ),
+      );
+      final status = response.statusCode;
+      if (status == 401) {
+        throw const NetworkException(
+          kind: NetworkFailureKind.authenticationRequired,
+          message: 'The site requires an authenticated session.',
+          statusCode: 401,
+        );
+      }
+      if (status == 403) {
+        throw const NetworkException(
+          kind: NetworkFailureKind.accessDenied,
+          message: 'The site denied this request.',
+          statusCode: 403,
+        );
+      }
+      if (status == null || status < 200 || status >= 400) {
+        throw NetworkException(
+          kind: NetworkFailureKind.invalidResponse,
+          message: 'Unexpected HTTP status.',
+          statusCode: status,
+        );
+      }
+      final setCookies = response.headers.map['set-cookie'] ?? const [];
+      final updates = _requestPolicy.parseSetCookie(setCookies, source: source);
+      if (updates.isNotEmpty) await _authRepository.replaceCookies(updates);
+      return response;
+    } on NetworkException {
+      rethrow;
+    } on DioException catch (error) {
+      throw _mapDioError(error);
+    }
+  }
+
   Future<void> postForm(
     Uri url, {
     required SiteSource source,

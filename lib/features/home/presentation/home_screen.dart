@@ -14,8 +14,12 @@ import '../../search/presentation/providers/search_history_providers.dart';
 import '../../settings/presentation/providers/site_preferences_providers.dart';
 import 'notifiers/discovery_notifier.dart';
 
+enum HomeMode { discover, search, popular, random }
+
 class HomeScreen extends ConsumerStatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({this.mode = HomeMode.discover, super.key});
+
+  final HomeMode mode;
 
   @override
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
@@ -49,9 +53,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       final preferences = await ref.read(sitePreferencesProvider.future);
       if (!mounted) return;
       final notifier = ref.read(discoveryNotifierProvider.notifier);
-      await notifier.initializeSource(preferences.source);
-      if (_searchController.text.trim().isNotEmpty) {
-        await notifier.search(_searchController.text);
+      await notifier.initializeSource(
+        preferences.source,
+        loadInitial: false,
+      );
+      switch (widget.mode) {
+        case HomeMode.search:
+          if (_searchController.text.trim().isNotEmpty) {
+            await notifier.search(_searchController.text);
+          }
+          break;
+        case HomeMode.popular:
+          await notifier.loadPopular();
+          break;
+        case HomeMode.random:
+          await notifier.loadRandom(fresh: true);
+          break;
+        case HomeMode.discover:
+          await notifier.load(force: true);
+          break;
       }
     });
   }
@@ -62,6 +82,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     _appliedRouteQuery = query;
     _searchController.text = query;
     _searchController.selection = TextSelection.collapsed(offset: query.length);
+    if (!_initialized) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) ref.read(discoveryNotifierProvider.notifier).search(query);
     });
@@ -159,20 +180,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ],
                   ),
                   const SizedBox(height: 14),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
+                  if (widget.mode != HomeMode.search)
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
                       OutlinedButton.icon(
-                        onPressed:
-                            state.isLoading ? null : notifier.loadPopular,
+                        onPressed: state.isLoading
+                            ? null
+                            : () => context.push('/popular'),
                         icon: const Icon(Icons.local_fire_department_outlined),
                         label: const Text('热门'),
                       ),
                       OutlinedButton.icon(
                         onPressed: state.isLoading
                             ? null
-                            : () => notifier.loadRandom(fresh: true),
+                            : () => context.push('/random'),
                         icon: const Icon(Icons.casino_outlined),
                         label: Text(state.isRandom ? '换一批' : '随机'),
                       ),
@@ -203,8 +226,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ],
                     onChanged: (_) => setState(() {}),
                     onSubmitted: (value) {
+                      final query = value.trim();
+                      if (query.isEmpty) return;
                       _dismissKeyboard();
-                      notifier.search(value);
+                      context.push('/search?query=${Uri.encodeComponent(query)}');
                     },
                   ),
                   if (suggestions.isNotEmpty)

@@ -2,6 +2,7 @@ import '../entities/gallery.dart';
 import '../entities/gallery_detail.dart';
 import '../entities/gallery_key.dart';
 import '../entities/gallery_page_result.dart';
+import '../entities/page_preview.dart';
 import '../entities/gallery_search_query.dart';
 import '../../../rankings/domain/entities/ranking_period.dart';
 import '../../../rankings/domain/entities/ranking_page.dart';
@@ -25,6 +26,7 @@ abstract interface class GalleryRepository {
   });
   Future<GalleryDetail> loadDetail(Gallery gallery,
       {bool includePageLinks = false});
+  Future<List<PagePreview>> loadAllPreviews(Gallery gallery);
   Future<Uri> resolveImageUrl(Uri pageUrl,
       {Uri? referer, bool forceRefresh = false});
   Future<Uri?> torrentUrl(Gallery gallery);

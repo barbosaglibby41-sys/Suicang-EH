@@ -73,6 +73,33 @@ class GalleryDetailNotifier
     return tag.key;
   }
 
+  Future<void> rateGallery(double rating) async {
+    if (rating < 0.5 || rating > 5 || state.isLoading) return;
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final metadata = await ref
+          .read(galleryInteractionRepositoryProvider)
+          .rateGallery(
+            gallery: state.gallery,
+            rating: rating,
+            metadata: state.metadata,
+          );
+      state = state.copyWith(
+        metadata: metadata,
+        isLoading: false,
+        clearError: true,
+      );
+    } catch (error) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: error is NetworkException &&
+                error.kind == NetworkFailureKind.authenticationRequired
+            ? '评分需要先登录站点账户并导入 Cookie。'
+            : '评分提交失败，请稍后重试。',
+      );
+    }
+  }
+
   Future<void> voteComment({
     required int commentId,
     required bool upvote,
@@ -167,6 +194,24 @@ class GalleryDetailNotifier
     return '详情加载失败，请稍后重试。';
   }
 
+  Future<void> loadAllPreviews() async {
+    if (state.isLoadingPreviews || state.gallery.sourceUrl == null) return;
+    state = state.copyWith(isLoadingPreviews: true, clearError: true);
+    try {
+      final previews = await _repository.loadAllPreviews(state.gallery);
+      state = state.copyWith(
+        previews: previews,
+        isLoadingPreviews: false,
+        clearError: true,
+      );
+    } catch (error) {
+      state = state.copyWith(
+        isLoadingPreviews: false,
+        errorMessage: _detailError(error),
+      );
+    }
+  }
+
   Future<void> load() async {
     if (state.isLoading) {
       return;
@@ -182,6 +227,7 @@ class GalleryDetailNotifier
         isLoading: false,
         clearError: true,
       );
+      await loadAllPreviews();
     } catch (error) {
       state = state.copyWith(
         isLoading: false,

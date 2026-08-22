@@ -10,6 +10,7 @@ import '../../domain/entities/gallery.dart';
 import '../../domain/entities/gallery_detail.dart';
 import '../../domain/entities/gallery_key.dart';
 import '../../domain/entities/gallery_page_result.dart';
+import '../../domain/entities/page_preview.dart';
 import '../../domain/entities/gallery_search_query.dart';
 import '../../domain/entities/gallery_tag.dart';
 import '../../domain/repositories/gallery_repository.dart';
@@ -144,6 +145,28 @@ class EhGalleryRepository implements GalleryRepository {
     }
     await upsert(detail.gallery);
     return detail;
+  }
+
+  @override
+  Future<List<PagePreview>> loadAllPreviews(Gallery gallery) async {
+    final sourceUri = gallery.sourceUrl;
+    if (sourceUri == null) return const [];
+    final source = gallery.key.source;
+    final firstHtml = await _client.getText(sourceUri, source: source);
+    final totalPages = _parser.previewPageCount(firstHtml);
+    final all = <int, PagePreview>{
+      for (final preview in _parser.previews(firstHtml, sourceUri))
+        preview.page: preview,
+    };
+    for (var page = 1; page < totalPages; page++) {
+      final pageUri = _parser.previewPageUri(sourceUri, page);
+      final html = await _client.getText(pageUri, source: source);
+      for (final preview in _parser.previews(html, pageUri)) {
+        all[preview.page] = preview;
+      }
+    }
+    final result = all.values.toList()..sort((a, b) => a.page.compareTo(b.page));
+    return result;
   }
 
   @override

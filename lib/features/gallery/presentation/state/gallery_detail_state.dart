@@ -10,6 +10,7 @@ class GalleryDetailState {
     this.comments = const [],
     this.previews = const [],
     this.isLoading = false,
+    this.isLoadingPreviews = false,
     this.errorMessage,
   });
 
@@ -18,6 +19,7 @@ class GalleryDetailState {
   final List<GalleryComment> comments;
   final List<PagePreview> previews;
   final bool isLoading;
+  final bool isLoadingPreviews;
   final String? errorMessage;
 
   GalleryDetailState copyWith({
@@ -26,6 +28,7 @@ class GalleryDetailState {
     List<GalleryComment>? comments,
     List<PagePreview>? previews,
     bool? isLoading,
+    bool? isLoadingPreviews,
     String? errorMessage,
     bool clearError = false,
   }) {
@@ -35,6 +38,7 @@ class GalleryDetailState {
       comments: comments ?? this.comments,
       previews: previews ?? this.previews,
       isLoading: isLoading ?? this.isLoading,
+      isLoadingPreviews: isLoadingPreviews ?? this.isLoadingPreviews,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
     );
   }

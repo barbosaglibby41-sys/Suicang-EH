@@ -35,7 +35,7 @@ class GalleryCardMeta extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: 2),
             child: Text(
-              published,
+              RelativeTime.chinaCardDate(gallery.postedAt!),
               maxLines: 1,
               overflow: TextOverflow.clip,
               softWrap: false,

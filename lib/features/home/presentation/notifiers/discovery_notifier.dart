@@ -27,9 +27,12 @@ class DiscoveryNotifier extends Notifier<DiscoveryState> {
   @override
   DiscoveryState build() => const DiscoveryState(source: SiteSource.eHentai);
 
-  Future<void> initializeSource(SiteSource source) async {
+  Future<void> initializeSource(
+    SiteSource source, {
+    bool loadInitial = true,
+  }) async {
     state = DiscoveryState(source: source);
-    await load(force: true);
+    if (loadInitial) await load(force: true);
   }
 
   Future<void> load({bool force = false}) async {

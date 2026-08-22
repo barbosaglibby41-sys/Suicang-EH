@@ -1,7 +1,7 @@
 name: suicang_eh
 description: Suicang EH cross-platform manga reader.
 publish_to: none
-version: 0.1.10+11
+version: 0.2.0+12
 
 environment:
   sdk: ">=3.4.0 <4.0.0"

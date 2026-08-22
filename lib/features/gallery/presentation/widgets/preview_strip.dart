@@ -24,81 +24,23 @@ class PreviewStrip extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (previews.isEmpty) return const SizedBox.shrink();
-    return SizedBox(
-      height: 156,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 2),
-        itemCount: previews.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 10),
-        itemBuilder: (context, index) => _PreviewTile(
-          preview: previews[index],
-          source: source,
-          onTap: onSelectPage == null
-              ? null
-              : () => onSelectPage!(previews[index]),
-        ),
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      itemCount: previews.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 14,
+        childAspectRatio: 0.68,
       ),
-    );
-  }
-}
-
-class PreviewGallerySheet extends StatelessWidget {
-  const PreviewGallerySheet({
-    required this.previews,
-    required this.source,
-    required this.onSelectPage,
-    super.key,
-  });
-
-  final List<PagePreview> previews;
-  final SiteSource source;
-  final ValueChanged<PagePreview> onSelectPage;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return SafeArea(
-      child: SizedBox(
-        height: MediaQuery.sizeOf(context).height * 0.88,
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(18, 14, 12, 10),
-              child: Row(
-                children: [
-                  Text('全部预览', style: Theme.of(context).textTheme.titleLarge),
-                  const SizedBox(width: 8),
-                  Text('${previews.length}',
-                      style: TextStyle(color: scheme.onSurfaceVariant)),
-                  const Spacer(),
-                  IconButton(
-                    tooltip: '关闭',
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: GridView.builder(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 0.70,
-                ),
-                itemCount: previews.length,
-                itemBuilder: (context, index) => _PreviewTile(
-                  preview: previews[index],
-                  source: source,
-                  onTap: () => onSelectPage(previews[index]),
-                ),
-              ),
-            ),
-          ],
-        ),
+      itemBuilder: (context, index) => _PreviewTile(
+        preview: previews[index],
+        source: source,
+        onTap: onSelectPage == null
+            ? null
+            : () => onSelectPage!(previews[index]),
       ),
     );
   }

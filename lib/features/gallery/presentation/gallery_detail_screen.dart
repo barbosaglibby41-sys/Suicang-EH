@@ -10,7 +10,7 @@ import '../../follows/presentation/followed_creators_screen.dart';
 import '../domain/entities/gallery.dart';
 import '../domain/entities/gallery_metadata.dart';
 import 'notifiers/gallery_detail_notifier.dart';
-import 'widgets/gallery_comment_card.dart';
+import 'widgets/gallery_comment_carousel.dart';
 import 'widgets/comment_editor_sheet.dart';
 import 'widgets/cloud_favorite_sheet.dart';
 import 'widgets/gallery_stats_strip.dart';
@@ -34,6 +34,43 @@ class GalleryDetailScreen extends ConsumerStatefulWidget {
 
 class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
   late Future<bool> _favorite;
+
+  Future<void> _showRatingDialog(
+    BuildContext context,
+    GalleryDetailNotifier notifier,
+    double current,
+  ) async {
+    var rating = current.clamp(0.5, 5.0).toDouble();
+    final selected = await showDialog<double>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('为作品评分'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(rating.toStringAsFixed(1), style: Theme.of(context).textTheme.headlineMedium),
+              const SizedBox(height: 12),
+              Slider(
+                value: rating,
+                min: 0.5,
+                max: 5,
+                divisions: 9,
+                label: rating.toStringAsFixed(1),
+                onChanged: (value) => setDialogState(() => rating = value),
+              ),
+              const Text('登录账户后提交评分'),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('取消')),
+            FilledButton(onPressed: () => Navigator.pop(dialogContext, rating), child: const Text('提交')),
+          ],
+        ),
+      ),
+    );
+    if (selected != null) await notifier.rateGallery(selected);
+  }
 
   @override
   void initState() {
@@ -140,6 +177,7 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
                       isScrollControlled: true,
                       builder: (_) => CloudFavoriteSheet(gallery: gallery),
                     ),
+                    onRate: () => _showRatingDialog(context, notifier, state.metadata.ratingUser ?? gallery.rating ?? 0),
                     onFollow: () => showModalBottomSheet<void>(
                       context: context,
                       builder: (sheetContext) => SafeArea(
@@ -195,77 +233,66 @@ class _GalleryDetailScreenState extends ConsumerState<GalleryDetailScreen> {
                     ),
                   ),
                 ],
-                if (state.previews.isNotEmpty) ...[
+                if (state.comments.isNotEmpty || gallery.sourceUrl != null) ...[
+                  const SizedBox(height: 22),
+                  GalleryCommentCarousel(
+                    comments: state.comments,
+                    isVoting: state.isLoading,
+                    onVote: (comment, upvote) => notifier.voteComment(
+                      commentId: comment.id,
+                      upvote: upvote,
+                    ),
+                    onWrite: () => showModalBottomSheet<void>(
+                      context: context,
+                      isScrollControlled: true,
+                      builder: (_) => CommentEditorSheet(
+                        onSubmit: notifier.postComment,
+                      ),
+                    ),
+                    onViewAll: () => showModalBottomSheet<void>(
+                      context: context,
+                      isScrollControlled: true,
+                      builder: (_) => GalleryCommentsSheet(
+                        comments: state.comments,
+                        isVoting: state.isLoading,
+                        onVote: (comment, upvote) => notifier.voteComment(
+                          commentId: comment.id,
+                          upvote: upvote,
+                        ),
+                        onWrite: () => showModalBottomSheet<void>(
+                          context: context,
+                          isScrollControlled: true,
+                          builder: (_) => CommentEditorSheet(
+                            onSubmit: notifier.postComment,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+                if (gallery.sourceUrl != null) ...[
                   const SizedBox(height: 22),
                   _DetailSection(
                     title: '内容预览',
                     count: state.previews.length,
                     initiallyExpanded: true,
-                    trailing: TextButton.icon(
-                      onPressed: () => showModalBottomSheet<void>(
-                        context: context,
-                        isScrollControlled: true,
-                        backgroundColor: theme.scaffoldBackgroundColor,
-                        builder: (_) => PreviewGallerySheet(
-                          previews: state.previews,
-                          source: gallery.key.source,
-                          onSelectPage: (preview) {
-                            Navigator.pop(context);
-                            context.push(
-                              '/reader/${gallery.key.source.storageValue}/${gallery.key.gid}?page=${preview.page}',
-                              extra: gallery,
-                            );
-                          },
-                        ),
-                      ),
-                      icon: const Icon(Icons.grid_view_rounded, size: 18),
-                      label: const Text('查看全部'),
-                    ),
-                    child: PreviewStrip(
-                      previews: state.previews,
-                      source: gallery.key.source,
-                      onSelectPage: (preview) => context.push(
-                        '/reader/${gallery.key.source.storageValue}/${gallery.key.gid}?page=${preview.page}',
-                        extra: gallery,
-                      ),
-                    ),
-                  ),
-                ],
-                if (state.comments.isNotEmpty || gallery.sourceUrl != null) ...[
-                  const SizedBox(height: 30),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text('评论 · ${state.comments.length}',
-                            style: theme.textTheme.titleLarge),
-                      ),
-                      TextButton.icon(
-                        onPressed: state.isLoading
-                            ? null
-                            : () => showModalBottomSheet<void>(
-                                  context: context,
-                                  isScrollControlled: true,
-                                  builder: (_) => CommentEditorSheet(
-                                    onSubmit: notifier.postComment,
-                                  ),
+                    child: state.isLoadingPreviews
+                        ? const Center(child: CircularProgressIndicator())
+                        : state.previews.isEmpty
+                            ? OutlinedButton.icon(
+                                onPressed: notifier.loadAllPreviews,
+                                icon: const Icon(Icons.photo_library_outlined),
+                                label: const Text('加载全部预览'),
+                              )
+                            : PreviewStrip(
+                                previews: state.previews,
+                                source: gallery.key.source,
+                                onSelectPage: (preview) => context.push(
+                                  '/reader/${gallery.key.source.storageValue}/${gallery.key.gid}?page=${preview.page}',
+                                  extra: gallery,
                                 ),
-                        icon: const Icon(Icons.edit_outlined),
-                        label: const Text('发表评论'),
-                      ),
-                    ],
+                              ),
                   ),
-                  const SizedBox(height: 12),
-                  for (final comment in state.comments) ...[
-                    GalleryCommentCard(
-                      comment: comment,
-                      isVoting: state.isLoading,
-                      onVote: (upvote) => notifier.voteComment(
-                        commentId: comment.id,
-                        upvote: upvote,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                  ],
                 ],
               ]),
             ),
