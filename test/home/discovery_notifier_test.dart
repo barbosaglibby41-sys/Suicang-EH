@@ -4,6 +4,7 @@ import 'package:suicang_eh/features/gallery/domain/entities/gallery.dart';
 import 'package:suicang_eh/features/gallery/domain/entities/gallery_detail.dart';
 import 'package:suicang_eh/features/gallery/domain/entities/gallery_key.dart';
 import 'package:suicang_eh/features/gallery/domain/entities/gallery_page_result.dart';
+import 'package:suicang_eh/features/gallery/domain/entities/page_preview.dart';
 import 'package:suicang_eh/features/gallery/domain/entities/gallery_search_query.dart';
 import 'package:suicang_eh/features/gallery/domain/repositories/gallery_repository.dart';
 import 'package:suicang_eh/features/gallery/presentation/providers/gallery_providers.dart';
@@ -69,6 +70,9 @@ class _FakeGalleryRepository implements GalleryRepository {
 
   @override
   Future<Gallery?> findByKey(GalleryKey key) async => null;
+
+  @override
+  Future<List<PagePreview>> loadAllPreviews(Gallery gallery) async => const [];
 
   @override
   Future<GalleryDetail> loadDetail(
