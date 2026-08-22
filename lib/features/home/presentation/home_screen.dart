@@ -46,7 +46,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         final savedMode = store.getInt(_galleryModeKey) ?? 0;
         setState(() {
           _galleryMode = _GalleryMode.values[
-            savedMode.clamp(0, _GalleryMode.values.length - 1).toInt(),
+            savedMode.clamp(0, _GalleryMode.values.length - 1).toInt()
           ];
         });
       }
