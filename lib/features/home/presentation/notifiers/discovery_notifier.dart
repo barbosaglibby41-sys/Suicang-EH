@@ -51,10 +51,7 @@ class DiscoveryNotifier extends Notifier<DiscoveryState> {
     } on NetworkException catch (error) {
       state = state.copyWith(
         isLoading: false,
-        errorMessage: state.source == SiteSource.exHentai &&
-                error.kind == NetworkFailureKind.authenticationRequired
-            ? 'ExHentai 会话无效。请在账户与会话中重新验证或刷新 ExHentai。'
-            : '无法加载发现内容。请检查网络和站点会话后重试。',
+        errorMessage: _discoveryError(error),
       );
     } catch (_) {
       state = state.copyWith(
@@ -62,6 +59,21 @@ class DiscoveryNotifier extends Notifier<DiscoveryState> {
         errorMessage: '无法加载发现内容。请检查网络和站点会话后重试。',
       );
     }
+  }
+
+  String _discoveryError(NetworkException error) {
+    if (state.source == SiteSource.exHentai &&
+        error.kind == NetworkFailureKind.authenticationRequired) {
+      return 'ExHentai 会话无效。请在账户与会话中重新验证或刷新 ExHentai。';
+    }
+    return switch (error.kind) {
+      NetworkFailureKind.timeout => '站点响应超时，请稍后重试。',
+      NetworkFailureKind.noConnection => '网络连接失败，请检查网络后重试。',
+      NetworkFailureKind.accessDenied => '站点拒绝访问（HTTP ${error.statusCode ?? 403}）。请稍后重试或重新导入 Cookie。',
+      NetworkFailureKind.authenticationRequired => '站点需要有效会话，请重新导入 Cookie。',
+      NetworkFailureKind.transient => '站点暂时不可用（HTTP ${error.statusCode ?? 500}）。请稍后重试。',
+      _ => '无法加载发现内容${error.statusCode == null ? '' : '（HTTP ${error.statusCode}）'}。请检查网络和站点会话后重试。',
+    };
   }
 
   Future<GalleryPageResult> _discoverWithExRecovery() async {

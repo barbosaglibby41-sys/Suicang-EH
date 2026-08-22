@@ -41,9 +41,12 @@ class BundledTagTranslationRepository extends ChangeNotifier
       final local = await _localFile();
       if (await local.exists()) {
         try {
-          await _apply(await local.readAsString(), isBundled: false);
+          final raw = await local.readAsString();
+          _validateDatabase(raw);
+          await _apply(raw, isBundled: false);
           return;
         } catch (_) {
+          // A failed update should be recoverable without reinstalling.
           await local.delete();
         }
       }
@@ -68,19 +71,38 @@ class BundledTagTranslationRepository extends ChangeNotifier
   @override
   Future<TagDatabaseStatus> updateFromRemote() async {
     await loadBundled();
-    final response = await Dio().get<String>(
+    final response = await Dio(
+      BaseOptions(
+        connectTimeout: const Duration(seconds: 20),
+        receiveTimeout: const Duration(seconds: 90),
+        sendTimeout: const Duration(seconds: 20),
+      ),
+    ).get<String>(
       _remoteUrl,
-      options: Options(responseType: ResponseType.plain),
+      options: Options(
+        responseType: ResponseType.plain,
+        validateStatus: (status) => status != null && status >= 200 && status < 300,
+      ),
     );
     final raw = response.data;
-    if (raw == null || raw.isEmpty) {
-      throw StateError('Tag database update returned no data.');
+    if (raw == null || raw.trim().isEmpty) {
+      throw StateError('标签数据库下载为空。');
     }
+
+    // Normalize and fully validate before touching the active in-memory data
+    // or the persisted file. A partial/corrupt update must never break the
+    // discovery page on the next request.
     final normalized = _normalizeRemote(raw);
+    _validateDatabase(normalized);
     final local = await _localFile();
     final temporary = File('${local.path}.part');
-    await temporary.writeAsString(normalized, flush: true);
-    await temporary.rename(local.path);
+    try {
+      await temporary.writeAsString(normalized, flush: true);
+      if (await local.exists()) await local.delete();
+      await temporary.rename(local.path);
+    } finally {
+      if (await temporary.exists()) await temporary.delete();
+    }
     await _apply(normalized, isBundled: false);
     return status();
   }
@@ -148,31 +170,63 @@ class BundledTagTranslationRepository extends ChangeNotifier
   }
 
   Future<void> _apply(String raw, {required bool isBundled}) async {
-    final decoded = jsonDecode(raw) as Map<String, dynamic>;
-    final tags = decoded['tags'] as List<dynamic>? ?? const [];
-    _tags.clear();
-    _byId.clear();
-    _byEnglish.clear();
-    _byChinese.clear();
-    for (final value in tags.whereType<Map<String, dynamic>>()) {
+    final decoded = jsonDecode(raw);
+    if (decoded is! Map<String, dynamic>) {
+      throw const FormatException('标签数据库根节点无效。');
+    }
+    final values = decoded['tags'];
+    if (values is! List) {
+      throw const FormatException('标签数据库缺少 tags 列表。');
+    }
+
+    // Parse into fresh collections first. If one entry is malformed, the
+    // previous valid database stays active instead of being half-cleared.
+    final nextTags = <TranslatedTag>[];
+    final nextById = <String, TranslatedTag>{};
+    final nextByEnglish = <String, TranslatedTag>{};
+    final nextByChinese = <String, TranslatedTag>{};
+    for (final value in values) {
+      if (value is! Map<String, dynamic>) {
+        throw const FormatException('标签数据库包含无效条目。');
+      }
       final namespace =
           (value['namespace'] as String? ?? 'other').trim().toLowerCase();
       final key = (value['key'] as String? ?? '').trim();
       final name = (value['name'] as String? ?? key).trim();
-      if (key.isEmpty) continue;
+      final introValue = value['intro'];
+      if (key.isEmpty || name.isEmpty ||
+          (introValue != null && introValue is! String)) {
+        throw const FormatException('标签数据库包含无效字段。');
+      }
       final tag = TranslatedTag(
         namespace: namespace,
         key: key,
         name: _stripMarkup(name),
-        intro: value['intro'] == null
+        intro: introValue == null
             ? null
-            : _stripMarkup(value['intro'] as String),
+            : _stripMarkup(introValue as String),
       );
-      _tags.add(tag);
-      _byId[tag.id.toLowerCase()] = tag;
-      _byEnglish.putIfAbsent(tag.key.toLowerCase(), () => tag);
-      _byChinese.putIfAbsent(tag.name.toLowerCase(), () => tag);
+      nextTags.add(tag);
+      nextById[tag.id.toLowerCase()] = tag;
+      nextByEnglish.putIfAbsent(tag.key.toLowerCase(), () => tag);
+      nextByChinese.putIfAbsent(tag.name.toLowerCase(), () => tag);
     }
+    if (nextTags.isEmpty) {
+      throw const FormatException('标签数据库没有可用标签。');
+    }
+
+    _tags
+      ..clear()
+      ..addAll(nextTags);
+    _byId
+      ..clear()
+      ..addAll(nextById);
+    _byEnglish
+      ..clear()
+      ..addAll(nextByEnglish);
+    _byChinese
+      ..clear()
+      ..addAll(nextByChinese);
     _version = decoded['version'] as int? ?? 0;
     _updatedAt =
         DateTime.tryParse(decoded['updatedAt'] as String? ?? '')?.toUtc();
@@ -180,6 +234,25 @@ class BundledTagTranslationRepository extends ChangeNotifier
     _ready = true;
     _revision += 1;
     notifyListeners();
+  }
+
+  void _validateDatabase(String raw) {
+    final decoded = jsonDecode(raw);
+    if (decoded is! Map<String, dynamic> || decoded['tags'] is! List) {
+      throw const FormatException('标签数据库格式无效。');
+    }
+    final tags = decoded['tags'] as List<dynamic>;
+    if (tags.isEmpty) {
+      throw const FormatException('标签数据库没有标签。');
+    }
+    for (final value in tags) {
+      if (value is! Map<String, dynamic> ||
+          value['key'] is! String ||
+          (value['key'] as String).trim().isEmpty ||
+          value['name'] is! String) {
+        throw const FormatException('标签数据库包含无效条目。');
+      }
+    }
   }
 
   String _normalizeRemote(String raw) {

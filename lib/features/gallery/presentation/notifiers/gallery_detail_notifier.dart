@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/network/network_exception.dart';
+
 import '../../../downloads/domain/entities/download_request.dart';
 import '../../../downloads/presentation/providers/download_providers.dart';
 import '../../../library/presentation/providers/library_providers.dart';
@@ -148,6 +150,21 @@ class GalleryDetailNotifier
     }
   }
 
+  String _detailError(Object error) {
+    if (error is NetworkException) {
+      return switch (error.kind) {
+        NetworkFailureKind.timeout => '详情请求超时，请稍后重试。',
+        NetworkFailureKind.noConnection => '详情网络连接失败，请检查网络后重试。',
+        NetworkFailureKind.accessDenied => '详情请求被站点拒绝（HTTP ${error.statusCode ?? 403}）。请重新导入 Cookie 或稍后重试。',
+        NetworkFailureKind.authenticationRequired => '详情需要有效站点会话，请重新导入 Cookie。',
+        NetworkFailureKind.parseFailure => '详情页面格式异常，未找到有效作品信息。',
+        _ => '详情请求失败${error.statusCode == null ? '' : '（HTTP ${error.statusCode}）'}，请稍后重试。',
+      };
+    }
+    if (error is ArgumentError) return '作品地址无效，无法加载详情。';
+    return '详情加载失败，请稍后重试。';
+  }
+
   Future<void> load() async {
     if (state.isLoading) {
       return;
@@ -163,10 +180,10 @@ class GalleryDetailNotifier
         isLoading: false,
         clearError: true,
       );
-    } catch (_) {
+    } catch (error) {
       state = state.copyWith(
         isLoading: false,
-        errorMessage: '详情加载失败。请稍后重试。',
+        errorMessage: _detailError(error),
       );
     }
   }
